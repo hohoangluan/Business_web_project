@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assign Permissions — {{ target_user.username }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-self: flex-start;
+        }
+        h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .subtitle strong { color: #c4b5fd; }
+
+        /* Checkbox list */
+        .checkbox-group {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .checkbox-group label.group-title {
+            display: block;
+            font-size: 0.85rem;
+            color: #a78bfa;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .checkbox-group ul { list-style: none; }
+        .checkbox-group li {
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+            margin-bottom: 0.25rem;
+        }
+        .checkbox-group li:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+        .checkbox-group li label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #e0e0e0;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: normal;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #7c3aed;
+        }
+        .help-text {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-top: 0.8rem;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: white;
+            flex: 1;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+
+        /* Messages */
+        .messages { list-style: none; margin-bottom: 1.5rem; }
+        .messages li {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .messages .success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; }
+        .messages .error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+
+        /* No permissions state */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Assign Permissions</h1>
+        <p class="subtitle">Managing permissions for: <strong>{{ target_user.username }}</strong></p>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="checkbox-group">
+                <label class="group-title">Available Permissions</label>
+
+                {% if form.permissions.field.queryset.count %}
+                    {{ form.permissions }}
+                {% else %}
+                    <div class="empty-state">
+                        <p>No permissions have been created yet.</p>
+                        <p style="margin-top: 0.5rem;">Create permissions in the Django admin panel.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <p class="help-text">
+                ✅ Checked = user has this permission &nbsp;|&nbsp;
+                ☐ Unchecked = user does NOT have it.<br>
+                These are independent of the user's role.
+            </p>
+
+            <div class="btn-group">
+                <a href="{% url 'user_list' %}" class="btn btn-secondary">← Back</a>
+                <button type="submit" class="btn btn-primary">Save Permissions</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

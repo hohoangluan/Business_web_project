@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Đăng ký</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            font-size: 1.8rem;
+            text-align: center;
+            background: linear-gradient(90deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Form fields */
+        .field-group {
+            margin-bottom: 1.25rem;
+        }
+        .field-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #a78bfa;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #818cf8;
+        }
+        .form-input::placeholder { color: #64748b; }
+
+        /* Help text */
+        .help-text {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Error messages */
+        .errorlist {
+            list-style: none;
+            padding: 0;
+            margin: 0.25rem 0 0 0;
+        }
+        .errorlist li {
+            color: #f87171;
+            font-size: 0.8rem;
+            padding: 0.2rem 0;
+        }
+
+        /* Row layout for two fields side by side */
+        .field-row {
+            display: flex;
+            gap: 1rem;
+        }
+        .field-row .field-group { flex: 1; }
+
+        /* Submit button */
+        .btn-submit {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            transform: translateY(-1px);
+        }
+
+        /* Bottom link */
+        .bottom-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .bottom-link a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+        .bottom-link a:hover { color: #c4b5fd; }
+
+        /* Non-field errors */
+        .non-field-errors {
+            list-style: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .non-field-errors li {
+            color: #fca5a5;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 500px) {
+            .field-row { flex-direction: column; gap: 0; }
+            .container { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Đăng ký tài khoản</h1>
+        <p class="subtitle">Create your account</p>
+
+        {% if form.non_field_errors %}
+            <ul class="non-field-errors">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="field-group">
+                <label for="username">Username</label>
+                {{ form.username }}
+                {{ form.username.errors }}
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="password1">Password</label>
+                    {{ form.password1 }}
+                    {{ form.password1.errors }}
+                </div>
+                <div class="field-group">
+                    <label for="password2">Confirm Password</label>
+                    {{ form.password2 }}
+                    {{ form.password2.errors }}
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="full_name">Full Name</label>
+                {{ form.full_name }}
+                <span class="help-text">Letters and spaces only, no numbers or special characters</span>
+                {{ form.full_name.errors }}
+            </div>
+
+            <div class="field-group">
+                <label for="email">Email</label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="phone_number">Phone Number</label>
+                    {{ form.phone_number }}
+                    <span class="help-text">Digits only</span>
+                    {{ form.phone_number.errors }}
+                </div>
+                <div class="field-group">
+                    <label for="date_of_birth">Date of Birth</label>
+                    {{ form.date_of_birth }}
+                    <span class="help-text">DD/MM/YYYY</span>
+                    {{ form.date_of_birth.errors }}
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="employee_id">Employee ID</label>
+                {{ form.employee_id }}
+                <span class="help-text">Must be unique</span>
+                {{ form.employee_id.errors }}
+            </div>
+
+            <button type="submit" class="btn-submit">Đăng ký</button>
+        </form>
+
+        <p class="bottom-link">Đã có tài khoản? <a href="{% url 'login' %}">Đăng nhập</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Đăng nhập</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 420px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            font-size: 1.8rem;
+            text-align: center;
+            background: linear-gradient(90deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Form fields */
+        .field-group {
+            margin-bottom: 1.25rem;
+        }
+        .field-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #a78bfa;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .field-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .field-group input:focus {
+            outline: none;
+            border-color: #818cf8;
+        }
+        .field-group input::placeholder { color: #64748b; }
+
+        /* Error messages */
+        .errorlist {
+            list-style: none;
+            padding: 0;
+            margin: 0.25rem 0 0 0;
+        }
+        .errorlist li {
+            color: #f87171;
+            font-size: 0.8rem;
+        }
+        .non-field-errors {
+            list-style: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .non-field-errors li {
+            color: #fca5a5;
+            font-size: 0.85rem;
+        }
+
+        /* Submit button */
+        .btn-submit {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            transform: translateY(-1px);
+        }
+
+        /* Bottom link */
+        .bottom-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .bottom-link a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+        .bottom-link a:hover { color: #c4b5fd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Đăng nhập</h1>
+        <p class="subtitle">Username and password only</p>
+
+        {% if form.non_field_errors %}
+            <ul class="non-field-errors">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if form.errors %}
+            {% if not form.non_field_errors %}
+                <ul class="non-field-errors">
+                    <li>Invalid username or password. Please try again.</li>
+                </ul>
+            {% endif %}
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="field-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username"
+                       placeholder="Enter your username" autofocus
+                       value="{{ form.username.value|default:'' }}">
+            </div>
+
+            <div class="field-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password"
+                       placeholder="Enter your password">
+            </div>
+
+            <button type="submit" class="btn-submit">Đăng nhập</button>
+        </form>
+
+        <p class="bottom-link">Chưa có tài khoản? <a href="{% url 'register' %}">Đăng ký</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-self: flex-start;
+        }
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .welcome {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        .role-info {
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .role-info strong { color: #c4b5fd; }
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .nav-links a {
+            display: block;
+            padding: 0.8rem 1.2rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #818cf8;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+        .nav-links a:hover {
+            background: rgba(129, 140, 248, 0.1);
+            border-color: rgba(129, 140, 248, 0.3);
+            transform: translateX(4px);
+        }
+        .nav-links .logout-link {
+            color: #f87171;
+            border-color: rgba(248, 113, 113, 0.15);
+            margin-top: 0.5rem;
+        }
+        .nav-links .logout-link:hover {
+            background: rgba(248, 113, 113, 0.1);
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋 Dashboard</h1>
+        <p class="welcome">Xin chào, {{ request.user.username }}! Bạn đã đăng nhập thành công.</p>
+
+        <!-- Show role info if the user has a profile -->
+        {% if request.user.profile %}
+        <div class="role-info">
+            <strong>Role:</strong>
+            {% if request.user.profile.role %}
+                {{ request.user.profile.role.get_name_display }}
+            {% else %}
+                No role assigned
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="nav-links">
+            {% if request.user.is_superuser or request.user.is_staff or request.user.profile.is_master %}
+                <a href="{% url 'user_list' %}">👥 Manage Users & Permissions</a>
+            {% endif %}
+
+            <a href="{% url 'logout' %}" class="logout-link">🚪 Đăng xuất</a>
+        </div>
+    </div>
+</body>
+</html>

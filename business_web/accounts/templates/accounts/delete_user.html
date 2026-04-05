@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete User — {{ target_user.username }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-self: flex-start;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #f87171;
+            margin-bottom: 0.5rem;
+        }
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+        .warning-box p { color: #fca5a5; font-size: 0.95rem; line-height: 1.6; }
+        .warning-box strong { color: #f87171; }
+        .user-info {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .user-info span { color: #c4b5fd; font-weight: 600; }
+        .btn-group { display: flex; gap: 1rem; }
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            flex: 1;
+        }
+        .btn-danger:hover { background: linear-gradient(135deg, #b91c1c, #991b1b); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ Delete User</h1>
+
+        <div class="warning-box">
+            <p>You are about to <strong>permanently delete</strong> this user account. This action <strong>cannot be undone</strong>.</p>
+        </div>
+
+        <div class="user-info">
+            <p><span>Username:</span> {{ target_user.username }}</p>
+            <p><span>Email:</span> {{ target_user.email|default:"—" }}</p>
+            {% if target_user.profile.role %}
+                <p><span>Role:</span> {{ target_user.profile.role.get_name_display }}</p>
+            {% endif %}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="btn-group">
+                <a href="{% url 'user_list' %}" class="btn btn-secondary">← Cancel</a>
+                <button type="submit" class="btn btn-danger">Delete User</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
