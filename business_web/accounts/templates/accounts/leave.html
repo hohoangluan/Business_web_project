@@ -1,0 +1,192 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG NGHỈ PHÉP. View: leave_view. Dữ liệu: MOCK DATA. #}
+{% load static %}
+
+{% block title %}Nghỉ phép - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* CSS Tùy biến cho trang Nghỉ phép */
+    .stat-val-big {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+    .badge-status {
+        padding: 0.35rem 0.85rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge-approved { background: #ecfdf5; color: #059669; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-rejected { background: #fef2f2; color: #dc2626; }
+    
+    .btn-create {
+        background: #5b21b6; /* tím đậm */
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(91, 33, 182, 0.2);
+    }
+    .btn-create:hover {
+        background: #4c1d95;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(91, 33, 182, 0.3);
+    }
+    
+    .btn-approval-nav {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-approval-nav:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+        <div>
+            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Quản lý nghỉ phép</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Đăng ký và theo dõi đơn nghỉ phép</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            {% if can_approve %}
+            <a href="{% url 'leave_approval' %}" class="btn-approval-nav">
+                <i class="fa-solid fa-list-check"></i> Đi đến Trang Phê duyệt
+            </a>
+            {% endif %}
+            
+            <button class="btn-create" onclick="alert('Mở modal tạo đơn nghỉ phép!')">
+                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Đăng ký nghỉ phép
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== STATS GRID ===== -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Card 1 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-calendar"></i>
+            </div>
+            <div>
+                <div class="stat-label">Tổng ngày phép</div>
+                <div class="stat-val-big">20 ngày</div>
+            </div>
+        </div>
+        
+        <!-- Card 2 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-circle-check"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đã nghỉ</div>
+                <div class="stat-val-big">8 ngày</div>
+            </div>
+        </div>
+        
+        <!-- Card 3 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-calendar-minus"></i>
+            </div>
+            <div>
+                <div class="stat-label">Còn lại</div>
+                <div class="stat-val-big">12 ngày</div>
+            </div>
+        </div>
+        
+        <!-- Card 4 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-label">Chờ duyệt</div>
+                <div class="stat-val-big">1 đơn</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HISTORY TABLE ===== -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Danh sách đơn nghỉ phép</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">LOẠI NGHỈ</th>
+                            <th>TỪ NGÀY</th>
+                            <th>ĐẾN NGÀY</th>
+                            <th>SỐ NGÀY</th>
+                            <th>LÝ DO</th>
+                            <th>TRẠNG THÁI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ phép</td>
+                            <td>25/04/2026</td>
+                            <td>27/04/2026</td>
+                            <td><span style="font-weight: 500;">3 ngày</span></td>
+                            <td class="text-secondary">Về quê thăm gia đình</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ ốm</td>
+                            <td>15/04/2026</td>
+                            <td>15/04/2026</td>
+                            <td><span style="font-weight: 500;">1 ngày</span></td>
+                            <td class="text-secondary">Ốm, cần nghỉ ngơi</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ phép</td>
+                            <td>10/04/2026</td>
+                            <td>12/04/2026</td>
+                            <td><span style="font-weight: 500;">3 ngày</span></td>
+                            <td class="text-secondary">Du lịch cùng gia đình</td>
+                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 600;">Công tác</td>
+                            <td>05/04/2026</td>
+                            <td>06/04/2026</td>
+                            <td><span style="font-weight: 500;">2 ngày</span></td>
+                            <td class="text-secondary">Họp khách hàng tại Hà Nội</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

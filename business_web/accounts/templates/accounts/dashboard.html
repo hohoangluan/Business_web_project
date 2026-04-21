@@ -1,104 +1,196 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            padding: 2rem;
-        }
-        .container {
-            max-width: 600px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 2.5rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            align-self: flex-start;
-        }
-        h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(90deg, #a78bfa, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-        .welcome {
-            color: #94a3b8;
-            margin-bottom: 2rem;
-        }
-        .role-info {
-            padding: 1rem;
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-        .role-info strong { color: #c4b5fd; }
-        .nav-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        .nav-links a {
-            display: block;
-            padding: 0.8rem 1.2rem;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            color: #818cf8;
-            text-decoration: none;
-            transition: all 0.2s;
-            font-size: 0.95rem;
-        }
-        .nav-links a:hover {
-            background: rgba(129, 140, 248, 0.1);
-            border-color: rgba(129, 140, 248, 0.3);
-            transform: translateX(4px);
-        }
-        .nav-links .logout-link {
-            color: #f87171;
-            border-color: rgba(248, 113, 113, 0.15);
-            margin-top: 0.5rem;
-        }
-        .nav-links .logout-link:hover {
-            background: rgba(248, 113, 113, 0.1);
-            border-color: rgba(248, 113, 113, 0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>👋 Dashboard</h1>
-        <p class="welcome">Xin chào, {{ request.user.username }}! Bạn đã đăng nhập thành công.</p>
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG DASHBOARD - View: dashboard_view. Dữ liệu thống kê là MOCK DATA. #}
+{% load static %}
 
-        <!-- Show role info if the user has a profile -->
-        {% if request.user.profile %}
-        <div class="role-info">
-            <strong>Role:</strong>
-            {% if request.user.profile.role %}
-                {{ request.user.profile.role.get_name_display }}
-            {% else %}
-                No role assigned
-            {% endif %}
+{% block title %}Dashboard - HR Studio{% endblock %}
+
+{% block content %}
+<!-- ===== STAT CARDS: Thống kê nhanh (MOCK DATA) ===== -->
+<div class="stats-grid animate-fade">
+    <!-- Card 1: Tổng nhân viên -->
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Tổng nhân viên</h4>
+            <!-- MOCK: Thay bằng {{ total_employees }} khi có backend -->
+            <div class="stat-value">—</div>
+            <div class="stat-change">
+                <i class="fa-solid fa-arrow-trend-up"></i> Dữ liệu demo
+            </div>
         </div>
-        {% endif %}
-
-        <div class="nav-links">
-            {% if request.user.is_superuser or request.user.is_staff or request.user.profile.is_master %}
-                <a href="{% url 'user_list' %}">👥 Manage Users & Permissions</a>
-            {% endif %}
-
-            <a href="{% url 'logout' %}" class="logout-link">🚪 Đăng xuất</a>
+        <div class="stat-icon" style="background:var(--gradient-purple);">
+            <i class="fa-solid fa-users"></i>
         </div>
     </div>
-</body>
-</html>
+
+    <!-- Card 2: Nhân viên mới -->
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Nhân viên mới</h4>
+            <div class="stat-value">—</div>
+            <div class="stat-change">Tháng này</div>
+        </div>
+        <div class="stat-icon" style="background:var(--gradient-green);">
+            <i class="fa-solid fa-user-plus"></i>
+        </div>
+    </div>
+
+    <!-- Card 3: Nghỉ việc -->
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Nghỉ việc</h4>
+            <div class="stat-value">—</div>
+            <div class="stat-change">Tháng này</div>
+        </div>
+        <div class="stat-icon" style="background:var(--gradient-pink);">
+            <i class="fa-solid fa-user-minus"></i>
+        </div>
+    </div>
+
+    <!-- Card 4: Điểm danh hôm nay -->
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Điểm danh</h4>
+            <div class="stat-value">—</div>
+            <div class="stat-change">Hôm nay</div>
+        </div>
+        <div class="stat-icon" style="background:var(--gradient-blue);">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN MODULES: Tính năng chính ===== -->
+<div style="margin-top: 2.5rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-layer-group" style="color:var(--primary);"></i>Tính năng của tôi</h3>
+</div>
+<div class="stats-grid animate-fade" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+    <a href="{% url 'contract' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-purple); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-file-contract"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Hợp đồng lao động</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Thông tin hợp đồng</div>
+        </div>
+    </a>
+    <a href="{% url 'attendance' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-blue); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Chấm công</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Bảng công cá nhân</div>
+        </div>
+    </a>
+    <a href="{% url 'leave' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-green); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-calendar-minus"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Nghỉ phép</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Đăng ký nghỉ phép</div>
+        </div>
+    </a>
+    <a href="{% url 'overtime' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-orange); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-business-time"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Tăng ca</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Đăng ký / Lịch sử OT</div>
+        </div>
+    </a>
+    <a href="#" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-pink); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-award"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Khen thưởng/Xử phạt</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Danh sách quyết định</div>
+        </div>
+    </a>
+    <a href="#" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div class="stat-icon" style="background:var(--gradient-purple); width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+        </div>
+        <div class="stat-info">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Tiền lương</h4>
+            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Phiếu lương cá nhân</div>
+        </div>
+    </a>
+</div>
+
+
+
+<!-- ===== QUICK LINKS: Điều hướng nhanh ===== -->
+<div class="dashboard-grid">
+    <!-- Card: Thông tin tài khoản -->
+    <div class="card animate-fade">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-user-circle" style="color:var(--primary);"></i>&nbsp; Tài khoản của bạn</h3>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value">{{ request.user.username }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Họ và tên</div>
+                    <div class="info-value">
+                        {{ request.user.profile.full_name|default:"Chưa cập nhật" }}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ request.user.email|default:"Chưa cập nhật" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Vai trò</div>
+                    <div class="info-value">
+                        {% if request.user.profile.role %}
+                            <span class="badge badge-{{ request.user.profile.role.name }}">
+                                {{ request.user.profile.role.get_name_display }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-none">Chưa gán</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:1.25rem;">
+                <a href="{% url 'profile' %}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-arrow-right"></i> Xem hồ sơ đầy đủ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Truy cập nhanh -->
+    <div class="card animate-fade">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-bolt" style="color:var(--warning);"></i>&nbsp; Truy cập nhanh</h3>
+        </div>
+        <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                <a href="{% url 'profile' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                    <i class="fa-solid fa-user"></i> Hồ sơ cá nhân
+                </a>
+
+                {% if request.user.is_superuser or request.user.profile.is_admin %}
+                <a href="{% url 'user_list' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                    <i class="fa-solid fa-users-gear"></i> Quản lý tài khoản
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                    <i class="fa-solid fa-user-plus"></i> Tạo tài khoản mới
+                </a>
+                {% endif %}
+
+                <a href="{% url 'logout' %}" class="btn btn-outline w-full" style="justify-content:flex-start;color:var(--danger);border-color:rgba(239,68,68,0.3);">
+                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

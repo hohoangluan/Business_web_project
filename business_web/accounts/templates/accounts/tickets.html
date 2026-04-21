@@ -1,0 +1,384 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG HỖ TRỢ & KHIẾU NẠI (Tickets). View: ticket_list_view. #}
+{% load static %}
+
+{% block title %}Hỗ trợ & Khiếu nại - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* CSS Tùy biến cho trang Tickets */
+    .btn-create {
+        background: #8b5cf6; /* Màu tím */
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+    }
+    .btn-create:hover {
+        background: #7c3aed;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(124, 58, 237, 0.3);
+    }
+    
+    .btn-process-nav {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-process-nav:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .stat-val-big {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+
+    /* Bố cục 2 Cột chính */
+    .tickets-layout {
+        display: grid;
+        grid-template-columns: 1.8fr 1fr;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+
+    /* Bộ lọc */
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .search-input {
+        flex: 1;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        font-size: 0.95rem;
+        background: var(--bg-main) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%2394a3b8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197M15.803 15.803A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>') no-repeat 10px center;
+        background-size: 20px;
+    }
+    .status-select {
+        padding: 0.75rem 1.5rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        font-size: 0.95rem;
+        background: var(--bg-main);
+        color: var(--text-main);
+    }
+
+    /* Thẻ Ticket (Dọc) */
+    .ticket-card {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .ticket-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        transform: translateY(-2px);
+    }
+    .ticket-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .ticket-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    .tk-bdg {
+        padding: 0.25rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    /* Các loại Status Badge */
+    .tk-new { background: #fef3c7; color: #d97706; }
+    .tk-proc { background: #e0e7ff; color: #4338ca; }
+    .tk-resolved { background: #dcfce7; color: #15803d; }
+    .tk-closed { background: #f1f5f9; color: #475569; }
+
+    .ticket-desc {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 0.85rem;
+        line-height: 1.4;
+    }
+    .ticket-meta {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    .priority-high { color: #dc2626; font-weight: 600; }
+    .priority-med { color: #d97706; font-weight: 600; }
+    .priority-low { color: #475569; font-weight: 600; }
+
+    /* Cột Phải (FAQ & Khẩn cấp) */
+    .faq-container {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .faq-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--text-main);
+    }
+    .faq-item {
+        margin-bottom: 1.5rem;
+    }
+    .faq-item:last-child { margin-bottom: 0; }
+    .faq-q {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+    }
+    .faq-a {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .emergency-banner {
+        background: #7c3aed; /* Tím đậm */
+        color: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .em-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+    .em-desc { font-size: 0.9rem; color: #e2e8f0; }
+    .em-contact {
+        display: flex; flex-direction: column; gap: 0.5rem;
+        text-align: right; font-weight: 600; font-size: 0.95rem;
+    }
+    .em-contact i { color: #f43f5e; margin-right: 0.4rem; } /* Tông đỏ cho SOS */
+    .em-contact .mail-icon { color: #cbd5e1; }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+        <div>
+            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Hỗ trợ & Khiếu nại</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Gửi yêu cầu hỗ trợ hoặc khiếu nại</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            {% if can_process %}
+            <a href="{% url 'ticket_process' %}" class="btn-process-nav">
+                <i class="fa-solid fa-user-shield"></i> Trang Xử lý Ticket
+            </a>
+            {% endif %}
+            
+            <button class="btn-create" onclick="alert('Đang mở form tạo Ticket!')">
+                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Tạo ticket mới
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== STATS GRID (Tròn dẹt) ===== -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#fef3c7; color:#d97706; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đang chờ</div>
+                <div class="stat-val-big">2</div>
+            </div>
+        </div>
+        
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#e0e7ff; color:#4338ca; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đang xử lý</div>
+                <div class="stat-val-big">1</div>
+            </div>
+        </div>
+        
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#dcfce7; color:#15803d; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đã giải quyết</div>
+                <div class="stat-val-big">1</div>
+            </div>
+        </div>
+        
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#f1f5f9; color:#475569; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đã đóng</div>
+                <div class="stat-val-big">1</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BỐ CỤC 2 CỘT CHÍNH ===== -->
+    <div class="tickets-layout">
+        
+        <!-- Cột Trái: Danh sách Ticket -->
+        <div>
+            <!-- Bộ lọc -->
+            <div class="filter-bar">
+                <input type="text" class="search-input" placeholder="Tìm kiếm ticket...">
+                <select class="status-select">
+                    <option>Tất cả</option>
+                    <option>Mới</option>
+                    <option>Đang xử lý</option>
+                    <option>Đã giải quyết</option>
+                </select>
+            </div>
+
+            <!-- Các thẻ Ticket Card -->
+            <div class="ticket-card">
+                <div class="ticket-title-row">
+                    <span class="ticket-title">Không thể chấm công</span>
+                    <span class="tk-bdg tk-new">Mới</span>
+                </div>
+                <div class="ticket-desc">Hệ thống báo lỗi khi tôi cố gắng chấm công vào sáng nay</div>
+                <div class="ticket-meta">
+                    <span><i class="fa-regular fa-comment"></i> Chấm công</span>
+                    <span class="priority-high">Cao</span>
+                    <span>20/04/2026 14:30</span>
+                </div>
+            </div>
+
+            <div class="ticket-card">
+                <div class="ticket-title-row">
+                    <span class="ticket-title">Sai số ngày phép</span>
+                    <span class="tk-bdg tk-proc">Đang xử lý</span>
+                </div>
+                <div class="ticket-desc">Số ngày phép còn lại hiển thị không chính xác trên trang quản lý cá nhân</div>
+                <div class="ticket-meta">
+                    <span><i class="fa-regular fa-comment"></i> Nghỉ phép</span>
+                    <span class="priority-med">Trung bình</span>
+                    <span>19/04/2026 10:15</span>
+                </div>
+            </div>
+
+            <div class="ticket-card">
+                <div class="ticket-title-row">
+                    <span class="ticket-title">Yêu cầu cập nhật thông tin</span>
+                    <span class="tk-bdg tk-resolved">Đã giải quyết</span>
+                </div>
+                <div class="ticket-desc">Cần cập nhật địa chỉ và số điện thoại mới</div>
+                <div class="ticket-meta">
+                    <span><i class="fa-regular fa-comment"></i> Hồ sơ</span>
+                    <span class="priority-low">Thấp</span>
+                    <span>18/04/2026 16:45</span>
+                </div>
+            </div>
+
+            <div class="ticket-card">
+                <div class="ticket-title-row">
+                    <span class="ticket-title">Không nhận được email thông báo</span>
+                    <span class="tk-bdg tk-new">Mới</span>
+                </div>
+                <div class="ticket-desc">Không nhận được email về đơn nghỉ phép đã được duyệt</div>
+                <div class="ticket-meta">
+                    <span><i class="fa-regular fa-comment"></i> Hệ thống</span>
+                    <span class="priority-med">Trung bình</span>
+                    <span>17/04/2026 09:20</span>
+                </div>
+            </div>
+
+            <div class="ticket-card">
+                <div class="ticket-title-row">
+                    <span class="ticket-title">Báo cáo tăng ca sai</span>
+                    <span class="tk-bdg tk-closed">Đã đóng</span>
+                </div>
+                <div class="ticket-desc">Số giờ tăng ca trong báo cáo không khớp với thực tế</div>
+                <div class="ticket-meta">
+                    <span><i class="fa-regular fa-comment"></i> Tăng ca</span>
+                    <span class="priority-low">Thấp</span>
+                    <span>15/04/2026 11:30</span>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Cột Phải: FAQ & Banner -->
+        <div>
+            <div class="faq-container">
+                <div class="faq-title">Câu hỏi thường gặp</div>
+                
+                <div class="faq-item">
+                    <div class="faq-q">Làm sao để đăng ký nghỉ phép?</div>
+                    <div class="faq-a">Vào mục "Nghỉ phép", nhấn nút "Đăng ký nghỉ phép", điền thông tin và gửi yêu cầu. Quản lý sẽ duyệt trong vòng 24h.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Tôi quên chấm công thì phải làm sao?</div>
+                    <div class="faq-a">Liên hệ với quản lý trực tiếp hoặc gửi khiếu nại qua hệ thống. Cần có lý do chính đáng để được bổ sung.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Mức lương tăng ca được tính như thế nào?</div>
+                    <div class="faq-a">Ngày thường: 150% lương cơ bản, Cuối tuần: 200%, Ngày lễ: 300%. Chi tiết xem trong phần Tăng ca.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Làm sao để xem báo cáo chấm công?</div>
+                    <div class="faq-a">Vào mục "Báo cáo", chọn loại báo cáo cần xem và khoảng thời gian. Có thể xuất file PDF hoặc Excel.</div>
+                </div>
+            </div>
+
+            <div class="emergency-banner">
+                <div>
+                    <div class="em-title">Cần hỗ trợ khẩn cấp?</div>
+                    <div class="em-desc">Liên hệ trực tiếp với bộ phận HR</div>
+                </div>
+                <div class="em-contact">
+                    <div><i class="fa-solid fa-phone"></i> +84 123 456 789</div>
+                    <div><i class="fa-solid fa-envelope mail-icon"></i> hr@company.com</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

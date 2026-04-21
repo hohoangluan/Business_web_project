@@ -1,0 +1,97 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG HỢP ĐỒNG LAO ĐỘNG. View: contract_view. Dữ liệu: MOCK DATA. #}
+{% load static %}
+
+{% block title %}Hợp đồng lao động - HR Studio{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1.5rem;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">
+                <i class="fa-solid fa-file-contract" style="color:var(--primary); margin-right:8px;"></i>Hợp đồng lao động
+            </h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Xem và quản lý thông tin hợp đồng hiện tại</p>
+        </div>
+        
+        <!-- Các nút chức năng dành cho HR -->
+        {% if is_hr %}
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-primary" title="Chỉ đóng vai trò demo GUI">
+                <i class="fa-solid fa-plus"></i> Tạo mới
+            </button>
+            <button class="btn btn-outline" title="Chỉ đóng vai trò demo GUI">
+                <i class="fa-solid fa-pen"></i> Cập nhật
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== CẢNH BÁO ===== -->
+    {% if show_warning %}
+    <div class="alert alert-warning" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 0.75rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.2rem;"></i>
+        <div>
+            <strong>MOCK CẢNH BÁO:</strong> Hợp đồng sắp hết hạn trong vòng <strong>15 ngày tới</strong>! Vui lòng liên hệ bộ phận HR để tiến hành gia hạn.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== NỘI DUNG HỢP ĐỒNG (MOCK DATA) ===== -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-file-invoice" style="color:var(--primary);"></i>&nbsp; Chi tiết Hợp đồng</h3>
+            <span class="badge badge-active">Có hiệu lực</span>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Số hợp đồng</div>
+                    <div class="info-value">HD-2026/001-DEMO</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Loại hợp đồng</div>
+                    <div class="info-value">Thử việc (2 Tháng)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ngày ký hợp đồng</div>
+                    <div class="info-value">01/01/2026</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ngày bắt đầu hiệu lực</div>
+                    <div class="info-value">01/01/2026</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ngày hết hạn</div>
+                    <div class="info-value">01/03/2026</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Số ngày nghỉ phép/năm</div>
+                    <div class="info-value">12 Ngày</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Lương cơ bản</div>
+                    <div class="info-value text-gradient" style="font-weight:600;">15,000,000 VNĐ</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phụ cấp theo hợp đồng</div>
+                    <div class="info-value">2,000,000 VNĐ (Ăn trưa, Xăng xe)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Tiền lương tăng ca theo giờ</div>
+                    <div class="info-value">85,000 VNĐ / Giờ</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">File đính kèm hợp đồng</div>
+                    <div class="info-value">
+                        <a href="#" style="color:var(--primary); text-decoration:none;"><i class="fa-solid fa-paperclip"></i> HD_Luan_012026.pdf</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

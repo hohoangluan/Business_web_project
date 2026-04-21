@@ -1,169 +1,144 @@
+{% comment %}
+==============================================================================
+TRANG ĐĂNG NHẬP - login.html
+==============================================================================
+Trang standalone (không dùng base_dashboard vì user chưa đăng nhập).
+Layout: 2 cột trên desktop (trái: branding, phải: form), 1 cột trên mobile.
+
+View xử lý: LoginView (Django auth built-in) tại accounts/urls.py
+Form fields: username (tên đăng nhập), password (mật khẩu)
+Sau khi đăng nhập thành công → redirect tới settings.LOGIN_REDIRECT_URL = 'dashboard'
+==============================================================================
+{% endcomment %}
+
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Đăng nhập</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-        .container {
-            max-width: 420px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 2.5rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        h1 {
-            font-size: 1.8rem;
-            text-align: center;
-            background: linear-gradient(90deg, #a78bfa, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-        .subtitle {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - HR Studio</title>
+    <meta name="description" content="Đăng nhập vào hệ thống HR Studio">
 
-        /* Form fields */
-        .field-group {
-            margin-bottom: 1.25rem;
-        }
-        .field-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: #a78bfa;
-            margin-bottom: 0.35rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        .field-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            color: #e0e0e0;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-        .field-group input:focus {
-            outline: none;
-            border-color: #818cf8;
-        }
-        .field-group input::placeholder { color: #64748b; }
-
-        /* Error messages */
-        .errorlist {
-            list-style: none;
-            padding: 0;
-            margin: 0.25rem 0 0 0;
-        }
-        .errorlist li {
-            color: #f87171;
-            font-size: 0.8rem;
-        }
-        .non-field-errors {
-            list-style: none;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .non-field-errors li {
-            color: #fca5a5;
-            font-size: 0.85rem;
-        }
-
-        /* Submit button */
-        .btn-submit {
-            width: 100%;
-            padding: 0.8rem;
-            background: linear-gradient(135deg, #7c3aed, #6366f1);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 0.5rem;
-        }
-        .btn-submit:hover {
-            background: linear-gradient(135deg, #6d28d9, #4f46e5);
-            transform: translateY(-1px);
-        }
-
-        /* Bottom link */
-        .bottom-link {
-            text-align: center;
-            margin-top: 1.5rem;
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-        .bottom-link a {
-            color: #818cf8;
-            text-decoration: none;
-        }
-        .bottom-link a:hover { color: #c4b5fd; }
-    </style>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- CSS chính -->
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 Đăng nhập</h1>
-        <p class="subtitle">Username and password only</p>
+    <!-- ===== WRAPPER: 2 cột (trái branding, phải form) ===== -->
+    <div class="login-wrapper">
 
-        {% if form.non_field_errors %}
-            <ul class="non-field-errors">
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        {% if form.errors %}
-            {% if not form.non_field_errors %}
-                <ul class="non-field-errors">
-                    <li>Invalid username or password. Please try again.</li>
-                </ul>
-            {% endif %}
-        {% endif %}
-
-        <form method="post" novalidate>
-            {% csrf_token %}
-
-            <div class="field-group">
-                <label for="id_username">Username</label>
-                <input type="text" name="username" id="id_username"
-                       placeholder="Enter your username" autofocus
-                       value="{{ form.username.value|default:'' }}">
+        <!-- ===== CỘT TRÁI: Branding & decoration ===== -->
+        <div class="login-left">
+            <!-- Các hình tròn trang trí (CSS animation float) -->
+            <div class="login-decoration">
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
             </div>
 
-            <div class="field-group">
-                <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password"
-                       placeholder="Enter your password">
+            <!-- Logo -->
+            <div class="brand-logo">
+                <i class="fa-solid fa-building"></i>
             </div>
 
-            <button type="submit" class="btn-submit">Đăng nhập</button>
-        </form>
+            <!-- Tên hệ thống -->
+            <h1>HR Studio</h1>
+            <p>Hệ thống quản lý nhân sự thông minh.<br>Đơn giản, hiệu quả, chuyên nghiệp.</p>
+        </div>
 
-        <p class="bottom-link">Chưa có tài khoản? <a href="{% url 'register' %}">Đăng ký</a></p>
+        <!-- ===== CỘT PHẢI: Form đăng nhập ===== -->
+        <div class="login-right">
+            <div class="login-card animate-fade">
+                <h2>Đăng nhập</h2>
+                <p class="subtitle">Nhập thông tin tài khoản để tiếp tục</p>
+
+                {% comment %}
+                Hiển thị lỗi chung (ví dụ: sai username/password)
+                form.non_field_errors chứa các lỗi KHÔNG liên quan đến field cụ thể
+                form.errors kiểm tra có lỗi nào không (bao gồm cả field errors)
+                {% endcomment %}
+                {% if form.non_field_errors %}
+                    <div class="login-error">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </span>
+                    </div>
+                {% elif form.errors %}
+                    <div class="login-error">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span>Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.</span>
+                    </div>
+                {% endif %}
+
+                <!-- Form đăng nhập: method POST, Django tự xử lý xác thực -->
+                <form method="post" novalidate id="loginForm">
+                    {% csrf_token %}
+
+                    {% comment %}
+                    Field: Username (Tên đăng nhập / Mã nhân viên)
+                    Django LoginView mặc định dùng field "username"
+                    Label hiển thị: "Mã nhân viên / Username"
+                    {% endcomment %}
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user icon"></i>
+                        <input type="text"
+                               name="username"
+                               id="id_username"
+                               placeholder="Mã nhân viên / Username"
+                               autofocus
+                               value="{{ form.username.value|default:'' }}"
+                               required>
+                    </div>
+
+                    {% comment %}
+                    Field: Password (Mật khẩu)
+                    Có nút toggle hiện/ẩn mật khẩu (xử lý bằng JS)
+                    {% endcomment %}
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-lock icon"></i>
+                        <input type="password"
+                               name="password"
+                               id="id_password"
+                               placeholder="Mật khẩu"
+                               required>
+                        <!-- Nút hiện/ẩn password -->
+                        <button type="button" class="toggle-password" title="Hiện/ẩn mật khẩu">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <!-- Ghi nhớ đăng nhập + Link quên mật khẩu -->
+                    <div class="login-options">
+                        <label class="remember-me">
+                            <input type="checkbox" name="remember_me">
+                            Ghi nhớ đăng nhập
+                        </label>
+                        <!-- TODO: Chức năng quên mật khẩu chưa có backend, link placeholder -->
+                        <a href="#" class="forgot-link">Quên mật khẩu?</a>
+                    </div>
+
+                    <!-- Nút đăng nhập -->
+                    <button type="submit" class="btn-login" id="btnLogin">
+                        <i class="fa-solid fa-right-to-bracket"></i>&nbsp; Đăng nhập
+                    </button>
+                </form>
+
+                <!-- Link đăng ký -->
+                <div class="login-footer">
+                    Chưa có tài khoản? <a href="{% url 'register' %}">Đăng ký ngay</a>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- JS chính (chỉ cần cho toggle password) -->
+    <script src="{% static 'accounts/js/accounts.js' %}"></script>
 </body>
 </html>

@@ -5,16 +5,18 @@ from django.contrib.auth.models import User
 class Role(models.Model):
     """
     Represents a user's job role in the system.
-    There are 4 predefined roles: Master, Manager, Leader, Employee.
+    There are 5 predefined roles: Admin, HR, Manager, Leader, Employee.
     Each role determines what the user sees in the UI (menus, pages, etc.).
     """
-    MASTER = 'master'
+    ADMIN = 'admin'
+    HR = 'hr'
     MANAGER = 'manager'
     LEADER = 'leader'
     EMPLOYEE = 'employee'
 
     ROLE_CHOICES = [
-        (MASTER, 'Master'),
+        (ADMIN, 'Admin'),
+        (HR, 'HR'),
         (MANAGER, 'Manager'),
         (LEADER, 'Leader'),
         (EMPLOYEE, 'Employee'),
@@ -138,9 +140,9 @@ class UserProfile(models.Model):
         """
         return self.permissions.filter(codename=codename).exists()
 
-    def is_master(self):
-        """Returns True if the user has the Master role."""
-        return self.role and self.role.name == Role.MASTER
+    def is_admin(self):
+        """Returns True if the user has the Admin role."""
+        return self.role and self.role.name == Role.ADMIN
 
     class Meta:
         ordering = ['user__username']

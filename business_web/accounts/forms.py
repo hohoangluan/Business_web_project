@@ -164,7 +164,7 @@ class RegisterForm(UserCreationForm):
 class AssignRoleForm(forms.Form):
     """
     Form for admins to assign a ROLE to a user.
-    Shows a dropdown with the 4 roles (Master, Manager, Leader, Employee).
+    Shows a dropdown with the 5 roles (Admin, HR, Manager, Leader, Employee).
     This is SEPARATE from permissions.
     """
     role = forms.ModelChoiceField(

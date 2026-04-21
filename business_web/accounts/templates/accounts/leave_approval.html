@@ -1,0 +1,201 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG PHÊ DUYỆT NGHỈ PHÉP (Cho quản lý). View: leave_approval_view. Dữ liệu: MOCK DATA. #}
+{% load static %}
+
+{% block title %}Phê duyệt Nghỉ phép - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* CSS Tùy biến cho trang Phê duyệt Nghỉ phép */
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        transition: color 0.2s;
+    }
+    .btn-back:hover {
+        color: var(--primary);
+    }
+    
+    .badge-status {
+        padding: 0.35rem 0.85rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    
+    .btn-action {
+        border: none;
+        padding: 0.4rem 0.85rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-right: 0.4rem;
+    }
+    .btn-action-approve {
+        background: #10b981;
+        color: #fff;
+    }
+    .btn-action-approve:hover {
+        background: #059669;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+    }
+    .btn-action-reject {
+        background: #ef4444;
+        color: #fff;
+    }
+    .btn-action-reject:hover {
+        background: #dc2626;
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+    }
+    
+    .user-block {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .user-avatar-small {
+        width: 32px;
+        height: 32px;
+        background: var(--gradient-purple);
+        color: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .user-info-text .name {
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.2;
+    }
+    .user-info-text .dept {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB ===== -->
+    <a href="{% url 'leave' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại Nghỉ phép của tôi
+    </a>
+
+    <!-- ===== HEADER ===== -->
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Phê duyệt Đơn Nghỉ Phép</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Danh sách các đơn nghỉ phép chờ bạn xử lý</p>
+    </div>
+
+    <!-- ===== PENDING APPROVALS TABLE ===== -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Cần phê duyệt (3 đơn)</h3>
+            <button class="btn btn-outline btn-sm">Duyệt tất cả</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">NHÂN VIÊN</th>
+                            <th>LOẠI NGHỈ</th>
+                            <th>THỜI GIAN</th>
+                            <th>LÝ DO</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small">NA</div>
+                                    <div class="user-info-text">
+                                        <div class="name">Nguyễn Văn A</div>
+                                        <div class="dept">Phòng Marketing</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="font-weight: 500;">Nghỉ phép</td>
+                            <td>
+                                <div>28/04/2026 - 30/04/2026</div>
+                                <div class="text-muted" style="font-size: 0.8rem;">(3 ngày)</div>
+                            </td>
+                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                Xin nghỉ đi du lịch gia đình
+                            </td>
+                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
+                            <td>
+                                <button class="btn-action btn-action-approve" onclick="alert('Đã duyệt đơn của Nguyễn Văn A')"><i class="fa-solid fa-check"></i> Duyệt</button>
+                                <button class="btn-action btn-action-reject" onclick="alert('Đã từ chối đơn')"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small" style="background: var(--gradient-orange);">TB</div>
+                                    <div class="user-info-text">
+                                        <div class="name">Trần Thị B</div>
+                                        <div class="dept">Phòng Kế toán</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="font-weight: 500;">Nghỉ thai sản</td>
+                            <td>
+                                <div>01/05/2026 - 01/11/2026</div>
+                                <div class="text-muted" style="font-size: 0.8rem;">(6 tháng)</div>
+                            </td>
+                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                Nghỉ chế độ thai sản theo quy định
+                            </td>
+                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
+                            <td>
+                                <button class="btn-action btn-action-approve" onclick="alert('Đã duyệt')"><i class="fa-solid fa-check"></i> Duyệt</button>
+                                <button class="btn-action btn-action-reject" onclick="alert('Đã từ chối đơn')"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small" style="background: var(--gradient-blue);">LC</div>
+                                    <div class="user-info-text">
+                                        <div class="name">Lê Văn C</div>
+                                        <div class="dept">Phòng IT</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="font-weight: 500;">Nghỉ ốm</td>
+                            <td>
+                                <div>21/04/2026 - 22/04/2026</div>
+                                <div class="text-muted" style="font-size: 0.8rem;">(2 ngày)</div>
+                            </td>
+                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                Đi khám bệnh theo yêu cầu bác sĩ
+                            </td>
+                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
+                            <td>
+                                <button class="btn-action btn-action-approve" onclick="alert('Đã duyệt')"><i class="fa-solid fa-check"></i> Duyệt</button>
+                                <button class="btn-action btn-action-reject" onclick="alert('Đã từ chối đơn')"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,302 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG TĂNG CA (Overtime). View: overtime_view. Dữ liệu: MOCK DATA. #}
+{% load static %}
+
+{% block title %}Tăng ca - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* CSS Tùy biến cho trang Tăng ca */
+    .stat-val-big {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+    
+    .btn-create {
+        background: #8b5cf6; /* Màu tím theo ảnh UI */
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+    }
+    .btn-create:hover {
+        background: #7c3aed;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(124, 58, 237, 0.3);
+    }
+    
+    .btn-approval-nav {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-approval-nav:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .badge-status {
+        padding: 0.35rem 0.85rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge-approved { background: #ecfdf5; color: #059669; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-rejected { background: #fef2f2; color: #dc2626; }
+
+    /* --- CHART CSS --- */
+    .chart-container {
+        position: relative;
+        height: 250px;
+        margin: 2rem 1.5rem 1.5rem 2.5rem; 
+    }
+    .chart-background {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .chart-line {
+        position: relative;
+        width: 100%;
+        border-bottom: 1px dashed var(--border);
+    }
+    .chart-line-label {
+        position: absolute;
+        left: -30px;
+        top: -8px; /* canh giữa chữ với line */
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    .chart-bars-wrap {
+        position: absolute;
+        bottom: 0; left: 0; right: 0; top: 0;
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-end;
+        padding: 0 10px;
+        border-bottom: 1px solid var(--border);
+    }
+    .chart-bar-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 20%;
+        height: 100%;
+        justify-content: flex-end;
+    }
+    .chart-bar {
+        width: 100%;
+        max-width: 120px;
+        background: #8b5cf6;
+        border-radius: 4px 4px 0 0;
+        transition: height 0.5s ease-out;
+    }
+    .chart-x-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+    }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+        <div>
+            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Quản lý tăng ca</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Đăng ký và theo dõi giờ làm thêm</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            {% if can_approve %}
+            <a href="{% url 'overtime_approval' %}" class="btn-approval-nav">
+                <i class="fa-solid fa-list-check"></i> Đi đến Trang Phê duyệt
+            </a>
+            {% endif %}
+            
+            <button class="btn-create" onclick="alert('Mở form tạo đơn Tăng ca!')">
+                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Đăng ký tăng ca
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== STATS GRID ===== -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Card 1 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-label">Tổng giờ tháng này</div>
+                <div class="stat-val-big">20h</div>
+            </div>
+        </div>
+        
+        <!-- Card 2 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-dollar-sign"></i>
+            </div>
+            <div>
+                <div class="stat-label">Thu nhập tăng ca</div>
+                <div class="stat-val-big" style="color: #1e293b;">3,000,000đ</div>
+            </div>
+        </div>
+        
+        <!-- Card 3 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+            <div>
+                <div class="stat-label">Đã duyệt</div>
+                <div class="stat-val-big">12 đơn</div>
+            </div>
+        </div>
+        
+        <!-- Card 4 -->
+        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-regular fa-calendar"></i>
+            </div>
+            <div>
+                <div class="stat-label">Chờ duyệt</div>
+                <div class="stat-val-big">1 đơn</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CSS BAR CHART SECTION ===== -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h3>Thống kê giờ tăng ca theo tháng</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <!-- Grid nền cho biểu đồ -->
+                <div class="chart-background">
+                    <div class="chart-line"><span class="chart-line-label">20</span></div>
+                    <div class="chart-line"><span class="chart-line-label">15</span></div>
+                    <div class="chart-line"><span class="chart-line-label">10</span></div>
+                    <div class="chart-line"><span class="chart-line-label">5</span></div>
+                    <div class="chart-line" style="border-bottom:none;"><span class="chart-line-label">0</span></div>
+                </div>
+                
+                <!-- Cột dọc dữ liệu (Scale Y: max 20) -->
+                <div class="chart-bars-wrap">
+                    <!-- Tuần 1: 12h = 60% chiều cao -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar" style="height: 60%;" title="12h"></div>
+                        <div class="chart-x-label">T1</div>
+                    </div>
+                    
+                    <!-- Tuần 2: 15h = 75% chiều cao -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar" style="height: 75%;" title="15h"></div>
+                        <div class="chart-x-label">T2</div>
+                    </div>
+                    
+                    <!-- Tuần 3: 18h = 90% chiều cao -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar" style="height: 90%;" title="18h"></div>
+                        <div class="chart-x-label">T3</div>
+                    </div>
+                    
+                    <!-- Tuần 4: 20h = 100% chiều cao -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar" style="height: 100%;" title="20h"></div>
+                        <div class="chart-x-label">T4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HISTORY TABLE ===== -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Danh sách đơn tăng ca</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">NGÀY</th>
+                            <th>THỜI GIAN</th>
+                            <th>SỐ GIỜ</th>
+                            <th>LÝ DO</th>
+                            <th>THANH TOÁN</th>
+                            <th>TRẠNG THÁI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">20/04/2026</td>
+                            <td>18:00 - 21:00</td>
+                            <td style="font-weight: 600;">3h</td>
+                            <td class="text-secondary">Hoàn thành dự án X</td>
+                            <td style="color: #059669; font-weight: 600;">450,000đ</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">18/04/2026</td>
+                            <td>18:00 - 20:00</td>
+                            <td style="font-weight: 600;">2h</td>
+                            <td class="text-secondary">Sửa lỗi hệ thống</td>
+                            <td style="color: #059669; font-weight: 600;">300,000đ</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">15/04/2026</td>
+                            <td>17:30 - 21:30</td>
+                            <td style="font-weight: 600;">4h</td>
+                            <td class="text-secondary">Deploy tính năng mới</td>
+                            <td style="color: #94a3b8; font-weight: 500;">-</td>
+                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">12/04/2026</td>
+                            <td>18:00 - 20:30</td>
+                            <td style="font-weight: 600;">2.5h</td>
+                            <td class="text-secondary">Họp khách hàng</td>
+                            <td style="color: #059669; font-weight: 600;">375,000đ</td>
+                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">10/04/2026</td>
+                            <td>17:30 - 20:30</td>
+                            <td style="font-weight: 600;">3h</td>
+                            <td class="text-secondary">Chuẩn bị báo cáo</td>
+                            <td style="color: #94a3b8; font-weight: 500;">-</td>
+                            <td><span class="badge-status badge-rejected">Từ chối</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,224 +1,119 @@
+{% comment %}
+==============================================================================
+TRANG ĐĂNG KÝ TÀI KHOẢN - register.html (REDESIGN)
+==============================================================================
+Trang standalone (không dùng base_dashboard).
+Phong cách giống login page - sáng, hiện đại, pastel.
+
+View xử lý: register_view tại accounts/views.py
+Form: RegisterForm (7 trường: username, password x2, full_name, email, phone, dob, employee_id)
+==============================================================================
+{% endcomment %}
+
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Đăng ký</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-        .container {
-            max-width: 500px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 2.5rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        h1 {
-            font-size: 1.8rem;
-            text-align: center;
-            background: linear-gradient(90deg, #a78bfa, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-        .subtitle {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-        }
-
-        /* Form fields */
-        .field-group {
-            margin-bottom: 1.25rem;
-        }
-        .field-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: #a78bfa;
-            margin-bottom: 0.35rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        .form-input {
-            width: 100%;
-            padding: 0.7rem 1rem;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            color: #e0e0e0;
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #818cf8;
-        }
-        .form-input::placeholder { color: #64748b; }
-
-        /* Help text */
-        .help-text {
-            color: #64748b;
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-        }
-
-        /* Error messages */
-        .errorlist {
-            list-style: none;
-            padding: 0;
-            margin: 0.25rem 0 0 0;
-        }
-        .errorlist li {
-            color: #f87171;
-            font-size: 0.8rem;
-            padding: 0.2rem 0;
-        }
-
-        /* Row layout for two fields side by side */
-        .field-row {
-            display: flex;
-            gap: 1rem;
-        }
-        .field-row .field-group { flex: 1; }
-
-        /* Submit button */
-        .btn-submit {
-            width: 100%;
-            padding: 0.8rem;
-            background: linear-gradient(135deg, #7c3aed, #6366f1);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 0.5rem;
-        }
-        .btn-submit:hover {
-            background: linear-gradient(135deg, #6d28d9, #4f46e5);
-            transform: translateY(-1px);
-        }
-
-        /* Bottom link */
-        .bottom-link {
-            text-align: center;
-            margin-top: 1.5rem;
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-        .bottom-link a {
-            color: #818cf8;
-            text-decoration: none;
-        }
-        .bottom-link a:hover { color: #c4b5fd; }
-
-        /* Non-field errors */
-        .non-field-errors {
-            list-style: none;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .non-field-errors li {
-            color: #fca5a5;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 500px) {
-            .field-row { flex-direction: column; gap: 0; }
-            .container { padding: 1.5rem; }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký tài khoản - HR Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
 </head>
 <body>
-    <div class="container">
-        <h1>📝 Đăng ký tài khoản</h1>
-        <p class="subtitle">Create your account</p>
-
-        {% if form.non_field_errors %}
-            <ul class="non-field-errors">
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        <form method="post" novalidate>
-            {% csrf_token %}
-
-            <div class="field-group">
-                <label for="username">Username</label>
-                {{ form.username }}
-                {{ form.username.errors }}
-            </div>
-
-            <div class="field-row">
-                <div class="field-group">
-                    <label for="password1">Password</label>
-                    {{ form.password1 }}
-                    {{ form.password1.errors }}
-                </div>
-                <div class="field-group">
-                    <label for="password2">Confirm Password</label>
-                    {{ form.password2 }}
-                    {{ form.password2.errors }}
+    <div class="register-wrapper">
+        <div class="register-card animate-fade">
+            <!-- Header -->
+            <div style="text-align:center;margin-bottom:0.5rem;">
+                <div style="width:50px;height:50px;background:var(--gradient-primary);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;margin-bottom:0.75rem;">
+                    <i class="fa-solid fa-user-plus"></i>
                 </div>
             </div>
+            <h2 style="text-align:center;">Đăng ký tài khoản</h2>
+            <p class="subtitle" style="text-align:center;">Tạo tài khoản mới để truy cập hệ thống</p>
 
-            <div class="field-group">
-                <label for="full_name">Full Name</label>
-                {{ form.full_name }}
-                <span class="help-text">Letters and spaces only, no numbers or special characters</span>
-                {{ form.full_name.errors }}
-            </div>
-
-            <div class="field-group">
-                <label for="email">Email</label>
-                {{ form.email }}
-                {{ form.email.errors }}
-            </div>
-
-            <div class="field-row">
-                <div class="field-group">
-                    <label for="phone_number">Phone Number</label>
-                    {{ form.phone_number }}
-                    <span class="help-text">Digits only</span>
-                    {{ form.phone_number.errors }}
+            {% if form.non_field_errors %}
+                <div class="login-error">
+                    <i class="fa-solid fa-exclamation-circle"></i>
+                    <span>
+                        {% for error in form.non_field_errors %}{{ error }} {% endfor %}
+                    </span>
                 </div>
-                <div class="field-group">
-                    <label for="date_of_birth">Date of Birth</label>
-                    {{ form.date_of_birth }}
-                    <span class="help-text">DD/MM/YYYY</span>
-                    {{ form.date_of_birth.errors }}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- Username -->
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    {{ form.username }}
+                    {{ form.username.errors }}
                 </div>
+
+                <!-- Password row -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="password1">Mật khẩu</label>
+                        {{ form.password1 }}
+                        {{ form.password1.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password2">Xác nhận mật khẩu</label>
+                        {{ form.password2 }}
+                        {{ form.password2.errors }}
+                    </div>
+                </div>
+
+                <!-- Full name -->
+                <div class="form-group">
+                    <label class="form-label" for="full_name">Họ và tên</label>
+                    {{ form.full_name }}
+                    <span class="form-text">Chỉ chữ cái và khoảng trắng, không số hay ký tự đặc biệt</span>
+                    {{ form.full_name.errors }}
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+
+                <!-- Phone + DOB row -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="phone_number">Số điện thoại</label>
+                        {{ form.phone_number }}
+                        <span class="form-text">Chỉ nhập số</span>
+                        {{ form.phone_number.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="date_of_birth">Ngày sinh</label>
+                        {{ form.date_of_birth }}
+                        <span class="form-text">Định dạng DD/MM/YYYY</span>
+                        {{ form.date_of_birth.errors }}
+                    </div>
+                </div>
+
+                <!-- Employee ID -->
+                <div class="form-group">
+                    <label class="form-label" for="employee_id">Mã nhân viên</label>
+                    {{ form.employee_id }}
+                    <span class="form-text">Mã duy nhất, mỗi mã chỉ dùng 1 lần</span>
+                    {{ form.employee_id.errors }}
+                </div>
+
+                <button type="submit" class="btn-login" style="margin-top:0.5rem;">
+                    <i class="fa-solid fa-user-plus"></i>&nbsp; Đăng ký
+                </button>
+            </form>
+
+            <div class="login-footer">
+                Đã có tài khoản? <a href="{% url 'login' %}">Đăng nhập</a>
             </div>
-
-            <div class="field-group">
-                <label for="employee_id">Employee ID</label>
-                {{ form.employee_id }}
-                <span class="help-text">Must be unique</span>
-                {{ form.employee_id.errors }}
-            </div>
-
-            <button type="submit" class="btn-submit">Đăng ký</button>
-        </form>
-
-        <p class="bottom-link">Đã có tài khoản? <a href="{% url 'login' %}">Đăng nhập</a></p>
+        </div>
     </div>
 </body>
 </html>

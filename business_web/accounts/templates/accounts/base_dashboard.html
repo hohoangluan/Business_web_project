@@ -1,0 +1,253 @@
+{% comment %}
+==============================================================================
+BASE DASHBOARD TEMPLATE - base_dashboard.html
+==============================================================================
+Template gốc cho tất cả trang sau khi đăng nhập.
+Bao gồm: Sidebar (menu trái) + Topbar (thanh trên) + Content area
+
+Các trang con sẽ kế thừa template này bằng: {% extends 'accounts/base_dashboard.html' %}
+Và override block "content" để đặt nội dung riêng.
+
+Blocks có thể override:
+  - {% block title %} : tiêu đề trang
+  - {% block extra_css %} : CSS thêm
+  - {% block content %} : nội dung chính
+  - {% block extra_js %} : JS thêm
+==============================================================================
+{% endcomment %}
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HR Studio{% endblock %}</title>
+    <meta name="description" content="HR Studio - Hệ thống quản lý nhân sự">
+
+    <!-- Google Fonts: Inter - font chính cho toàn bộ hệ thống -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6: thư viện icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- CSS chính của hệ thống -->
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-wrapper">
+
+        <!-- ===== SIDEBAR: Menu điều hướng bên trái ===== -->
+        <aside class="sidebar" id="sidebar">
+
+            <!-- Logo & tên hệ thống -->
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-name">HR Studio</span>
+                        <span class="logo-sub">Creative Workspace</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu chính -->
+            <nav class="sidebar-nav">
+                <!-- Dashboard -->
+                <a href="{% url 'dashboard' %}"
+                   class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <!-- Hồ sơ cá nhân -->
+                <a href="{% url 'profile' %}"
+                   class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Hồ sơ cá nhân</span>
+                </a>
+
+                <!-- ================== CÁ NHÂN (Mọi role) ================== -->
+                <div class="nav-section-title">Cá nhân</div>
+                
+                <a href="{% url 'contract' %}" class="nav-item {% if active_page == 'contract' %}active{% endif %}">
+                    <i class="fa-solid fa-file-contract"></i>
+                    <span>Hợp đồng lao động</span>
+                </a>
+                <a href="{% url 'attendance' %}" class="nav-item {% if active_page == 'attendance' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Chấm công</span>
+                </a>
+                <a href="{% url 'leave' %}" class="nav-item {% if active_page == 'leave' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-minus"></i>
+                    <span>Nghỉ phép</span>
+                </a>
+                <a href="{% url 'overtime' %}" class="nav-item {% if active_page == 'overtime' %}active{% endif %}">
+                    <i class="fa-solid fa-business-time"></i>
+                    <span>Tăng ca</span>
+                </a>
+                <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Thống kê</span>
+                </a>
+                <a href="{% url 'reports' %}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+                    <i class="fa-solid fa-file-signature"></i>
+                    <span>Báo cáo</span>
+                </a>
+                <a href="{% url 'tickets' %}" class="nav-item {% if active_page == 'tickets' %}active{% endif %}">
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Hỗ trợ & Khiếu nại</span>
+                </a>
+                <a href="{% url 'rewards_penalties' %}" class="nav-item {% if active_page == 'rewards' %}active{% endif %}">
+                    <i class="fa-solid fa-award"></i>
+                    <span>Khen thưởng & Xử phạt</span>
+                </a>
+                <a href="{% url 'payroll' %}" class="nav-item {% if active_page == 'payroll' %}active{% endif %}">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Tiền lương</span>
+                </a>
+
+
+                <!-- ================== HỆ THỐNG (Chỉ Admin/Superuser) ================== -->
+                {% if request.user.is_superuser or request.user.profile.is_admin %}
+                <div class="nav-section-title">Hệ thống</div>
+
+                <!-- Quản lý tài khoản -->
+                <a href="{% url 'user_list' %}"
+                   class="nav-item {% if active_page == 'users' %}active{% endif %}">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>Quản lý tài khoản</span>
+                </a>
+
+                <!-- Đăng ký tài khoản mới -->
+                <a href="{% url 'register' %}"
+                   class="nav-item {% if active_page == 'register' %}active{% endif %}">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Tạo tài khoản</span>
+                </a>
+                {% endif %}
+
+                <!-- Cài đặt (placeholder - chưa có backend) -->
+                <a href="#" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Cài đặt chung</span>
+                </a>
+            </nav>
+
+            <!-- Card hỗ trợ ở cuối sidebar -->
+            <div class="sidebar-help">
+                <p>Cần hỗ trợ?</p>
+                <span>Xem tài liệu hướng dẫn</span>
+                <a href="#" class="btn-support">Hỗ trợ</a>
+            </div>
+        </aside>
+
+        <!-- Overlay khi sidebar mở trên mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- ===== MAIN AREA: Phần nội dung chính (topbar + content) ===== -->
+        <div class="main-area">
+
+            <!-- ===== TOPBAR: Thanh trên cùng ===== -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <!-- Nút hamburger (chỉ hiện trên mobile) -->
+                    <button class="sidebar-toggle" id="sidebarToggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <!-- Lời chào -->
+                    <div class="welcome-section">
+                        <h2 class="text-gradient">
+                            Xin chào, {{ request.user.profile.full_name|default:request.user.username }}!
+                        </h2>
+                        <p>Chúc bạn một ngày làm việc hiệu quả ✨</p>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <!-- Ô tìm kiếm -->
+                    <div class="search-box">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" placeholder="Tìm kiếm...">
+                    </div>
+
+                    <!-- Nút thông báo -->
+                    <button class="notification-btn">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+
+                    <!-- Menu user -->
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            {{ request.user.username|make_list|first|upper }}
+                        </div>
+                        <div class="user-info">
+                            <span class="name">
+                                {{ request.user.profile.full_name|default:request.user.username }}
+                            </span>
+                            <span class="role">
+                                {% if request.user.profile.role %}
+                                    {{ request.user.profile.role.get_name_display }}
+                                {% else %}
+                                    User
+                                {% endif %}
+                            </span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size:0.65rem;color:var(--text-muted);"></i>
+
+                        <!-- Dropdown menu -->
+                        <div class="user-dropdown">
+                            <a href="{% url 'profile' %}">
+                                <i class="fa-solid fa-user"></i> Hồ sơ cá nhân
+                            </a>
+                            <a href="#">
+                                <i class="fa-solid fa-gear"></i> Cài đặt
+                            </a>
+                            <div class="divider"></div>
+                            <a href="{% url 'logout' %}" class="danger">
+                                <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ===== CONTENT: Nội dung trang ===== -->
+            <main class="content">
+                {% comment %}
+                Hiển thị thông báo Django messages (success, error, warning...)
+                Messages được tạo bằng: messages.success(request, "...")
+                {% endcomment %}
+                {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button class="alert-close">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% comment %}
+                Block "content" - Các trang con sẽ override block này.
+                Ví dụ trong profile.html:
+                  {% block content %}
+                    <h1>Hồ sơ cá nhân</h1>
+                    ...
+                  {% endblock %}
+                {% endcomment %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript chính -->
+    <script src="{% static 'accounts/js/accounts.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

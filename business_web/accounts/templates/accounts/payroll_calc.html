@@ -1,0 +1,129 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG TÍNH LƯƠNG TỰ ĐỘNG (Dành cho HR). View: payroll_calc_view. MOCK DATA. #}
+{% load static %}
+
+{% block title %}Tính lương tự động - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    .btn-back {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: var(--text-muted); text-decoration: none;
+        font-weight: 600; margin-bottom: 1rem; transition: color 0.2s;
+    }
+    .btn-back:hover { color: var(--primary); }
+    
+    .btn-calc-huge {
+        background: var(--gradient-blue);
+        color: white; border: none;
+        padding: 1rem 2rem; border-radius: var(--radius-lg);
+        font-weight: 700; font-size: 1.1rem;
+        cursor: pointer; transition: all 0.2s;
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        display: flex; align-items: center; gap: 0.75rem;
+    }
+    .btn-calc-huge:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4); }
+
+    .calc-stats-bar {
+        display: flex; gap: 2rem; margin-top: 1.5rem;
+    }
+    .cs-box {
+        background: white; padding: 1.25rem 1.5rem; border-radius: var(--radius);
+        border: 1px solid var(--border-light); flex: 1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .cs-lbl { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.3rem; }
+    .cs-val { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+
+    .tbl-bdg { padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .bdg-draft { background: #f1f5f9; color: #475569; }
+    .bdg-wait { background: #fef3c7; color: #d97706; }
+</style>
+
+<div class="animate-fade">
+    <a href="{% url 'payroll' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại mục Lương cá nhân
+    </a>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 2.5rem;">
+        <div>
+            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Hệ thống Tính Lương Tự Động</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Tính toán tổng hợp dựa trên dữ liệu Chấm công, Tăng ca, Thưởng phạt trong hệ thống</p>
+            
+            <div class="calc-stats-bar">
+                <div class="cs-box">
+                    <div class="cs-lbl">TỔNG QUỸ LƯƠNG NHÂN SỰ</div>
+                    <div class="cs-val text-primary" style="color: #3b82f6;">428,500,000đ</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">TỔNG KHẤU TRỪ BẢO HIỂM</div>
+                    <div class="cs-val text-red" style="color: #ef4444;">45,200,000đ</div>
+                </div>
+                <div class="cs-box">
+                    <div class="cs-lbl">TỔNG THUẾ TNCN CHẠM BẦC</div>
+                    <div class="cs-val" style="color: #f59e0b;">18,300,000đ</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn-calc-huge" onclick="alert('Thuật toán đang tổng hợp dữ liệu toàn công ty...')">
+                <i class="fa-solid fa-laptop-code"></i> Chạy Tính Lương T4/2026
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== MASTER BẢNG LƯƠNG ===== -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Bảng Lương Tổng Hợp (Tháng 4)</h3>
+            <div>
+                <button class="btn btn-outline btn-sm"><i class="fa-solid fa-file-excel" style="margin-right:5px; color:#10b981;"></i>Xuất Excel</button>
+                <button class="btn btn-primary btn-sm" style="margin-left:5px;"><i class="fa-solid fa-paper-plane" style="margin-right:5px;"></i>Gửi Giám Đốc Duyệt</button>
+            </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">NHÂN VIÊN</th>
+                            <th>TỔNG THU NHẬP</th>
+                            <th>TỔNG KHẤU TRỪ</th>
+                            <th>THỰC LÃNH (NET)</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight:600;">Trần Văn Quý (NV-0182)</td>
+                            <td class="text-success" style="font-weight:600;">22,000,000đ</td>
+                            <td class="text-danger" style="font-weight:600;">3,000,000đ</td>
+                            <td style="font-weight:800; color:var(--primary);">19,000,000đ</td>
+                            <td><span class="tbl-bdg bdg-wait">Chờ duyệt</span></td>
+                            <td><button class="btn btn-outline btn-sm">Xem chi tiết</button></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight:600;">Nguyễn Thị Mai (NV-0245)</td>
+                            <td class="text-success" style="font-weight:600;">14,500,000đ</td>
+                            <td class="text-danger" style="font-weight:600;">1,550,000đ</td>
+                            <td style="font-weight:800; color:var(--primary);">12,950,000đ</td>
+                            <td><span class="tbl-bdg bdg-wait">Chờ duyệt</span></td>
+                            <td><button class="btn btn-outline btn-sm">Xem chi tiết</button></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 1.5rem; font-weight:600;">David Smith (EX-0012)</td>
+                            <td class="text-success" style="font-weight:600;">85,000,000đ</td>
+                            <td class="text-danger" style="font-weight:600;">12,000,000đ</td>
+                            <td style="font-weight:800; color:var(--primary);">73,000,000đ</td>
+                            <td><span class="tbl-bdg bdg-draft">Bản nháp</span></td>
+                            <td><button class="btn btn-outline btn-sm">Xem chi tiết</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

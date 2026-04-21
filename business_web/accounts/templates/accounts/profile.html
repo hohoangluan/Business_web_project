@@ -1,0 +1,394 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG HỒ SƠ CÁ NHÂN - profile.html
+   View: profile_view. Data: request.user + request.user.profile
+   Field CHƯA CÓ trong model được đánh dấu "MOCK DATA" trong template #}
+{% load static %}
+
+{% block title %}Hồ sơ cá nhân - HR Studio{% endblock %}
+
+{% block content %}
+<!-- ===== PROFILE HEADER CARD: Avatar + thông tin tóm tắt ===== -->
+<div class="profile-header-card animate-fade">
+    <!-- Avatar: hiện chữ cái đầu tên, sau này có thể thay bằng ảnh -->
+    <div class="profile-avatar">
+        {{ request.user.username|make_list|first|upper }}
+    </div>
+
+    <!-- Thông tin tóm tắt -->
+    <div class="profile-info">
+        <h2>{{ request.user.profile.full_name|default:request.user.username }}</h2>
+        <div class="profile-role">
+            {% if request.user.profile.role %}
+                <span class="badge badge-{{ request.user.profile.role.name }}">
+                    {{ request.user.profile.role.get_name_display }}
+                </span>
+            {% else %}
+                <span class="badge badge-none">Chưa có vai trò</span>
+            {% endif %}
+            <!-- MOCK DATA: chức vụ chưa có trong model -->
+            <span>• Nhân viên</span>
+        </div>
+        <div class="profile-meta">
+            <span><i class="fa-solid fa-id-badge"></i> {{ request.user.profile.employee_id|default:"Chưa có" }}</span>
+            <span><i class="fa-solid fa-envelope"></i> {{ request.user.email|default:"Chưa có" }}</span>
+            <span><i class="fa-solid fa-phone"></i> {{ request.user.profile.phone_number|default:"Chưa có" }}</span>
+        </div>
+    </div>
+
+    <!-- Nút chỉnh sửa -->
+    <div class="profile-actions">
+        <button class="btn btn-primary" id="btnEditProfile">
+            <i class="fa-solid fa-pen"></i> Chỉnh sửa
+        </button>
+    </div>
+</div>
+
+<!-- ===== TABS: Chuyển đổi giữa các nhóm thông tin ===== -->
+<div class="profile-tabs">
+    <button class="profile-tab active" data-tab="personal">
+        <i class="fa-solid fa-user"></i>&nbsp; Cá nhân
+    </button>
+    <button class="profile-tab" data-tab="work">
+        <i class="fa-solid fa-briefcase"></i>&nbsp; Công việc
+    </button>
+    <button class="profile-tab" data-tab="bank">
+        <i class="fa-solid fa-building-columns"></i>&nbsp; Ngân hàng & Thuế
+    </button>
+    <button class="profile-tab" data-tab="contact">
+        <i class="fa-solid fa-address-book"></i>&nbsp; Liên hệ
+    </button>
+    <button class="profile-tab" data-tab="education">
+        <i class="fa-solid fa-graduation-cap"></i>&nbsp; Học vấn
+    </button>
+    <button class="profile-tab" data-tab="files">
+        <i class="fa-solid fa-folder-open"></i>&nbsp; Tệp minh chứng
+    </button>
+</div>
+
+<!-- ===== VIEW MODE: Hiển thị thông tin (chỉ đọc) ===== -->
+<div id="profileViewMode">
+
+    <!-- --- Section 1: Thông tin cá nhân --- -->
+    <div class="profile-section active" id="section-personal">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-user" style="color:var(--primary);"></i>&nbsp; Thông tin cá nhân</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <!-- field CÓ trong model -->
+                    <div class="info-item">
+                        <div class="info-label">Họ và tên</div>
+                        <div class="info-value">{{ request.user.profile.full_name|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ request.user.email|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày sinh</div>
+                        <div class="info-value">{{ request.user.profile.date_of_birth|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số điện thoại</div>
+                        <div class="info-value">{{ request.user.profile.phone_number|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Mã nhân viên</div>
+                        <div class="info-value">{{ request.user.profile.employee_id|default:"Chưa cập nhật" }}</div>
+                    </div>
+
+                    <!-- MOCK DATA: các field chưa có trong model -->
+                    <div class="info-item">
+                        <div class="info-label">Giới tính</div>
+                        <!-- MOCK: Thay bằng {{ profile.gender }} khi thêm field -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tình trạng hôn nhân</div>
+                        <!-- MOCK: Thay bằng {{ profile.marital_status }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Quốc tịch</div>
+                        <!-- MOCK: Thay bằng {{ profile.nationality }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số CCCD/CMND</div>
+                        <!-- MOCK: Thay bằng {{ profile.id_number }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nơi cấp</div>
+                        <!-- MOCK: Thay bằng {{ profile.id_issued_place }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày cấp</div>
+                        <!-- MOCK: Thay bằng {{ profile.id_issued_date }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Địa chỉ thường trú</div>
+                        <!-- MOCK: Thay bằng {{ profile.permanent_address }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Địa chỉ tạm trú</div>
+                        <!-- MOCK: Thay bằng {{ profile.temporary_address }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- Section 2: Thông tin công việc --- -->
+    <div class="profile-section" id="section-work">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-briefcase" style="color:var(--primary);"></i>&nbsp; Thông tin công việc</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Vai trò hệ thống</div>
+                        <div class="info-value">
+                            {% if request.user.profile.role %}
+                                {{ request.user.profile.role.get_name_display }}
+                            {% else %}
+                                <span class="empty">Chưa gán vai trò</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- Tất cả các field dưới đây là MOCK DATA -->
+                    <div class="info-item">
+                        <div class="info-label">Phòng ban</div>
+                        <!-- MOCK: Thay bằng {{ profile.department }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Chức vụ</div>
+                        <!-- MOCK: Thay bằng {{ profile.position }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Quản lý trực tiếp</div>
+                        <!-- MOCK: Thay bằng {{ profile.manager }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Loại nhân viên</div>
+                        <!-- MOCK: Thay bằng {{ profile.employee_type }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nơi làm việc</div>
+                        <!-- MOCK: Thay bằng {{ profile.workplace }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày bắt đầu thử việc</div>
+                        <!-- MOCK: Thay bằng {{ profile.probation_start }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày làm việc chính thức</div>
+                        <!-- MOCK: Thay bằng {{ profile.official_start_date }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Trạng thái làm việc</div>
+                        <!-- MOCK: Thay bằng badge hiển thị {{ profile.work_status }} -->
+                        <div class="info-value">
+                            <span class="badge badge-active">Đang làm việc</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Hình thức trả lương</div>
+                        <!-- MOCK: Thay bằng {{ profile.salary_type }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- Section 3: Ngân hàng & Thuế --- -->
+    <div class="profile-section" id="section-bank">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-building-columns" style="color:var(--primary);"></i>&nbsp; Ngân hàng & Thuế</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <!-- Tất cả MOCK DATA -->
+                    <div class="info-item">
+                        <div class="info-label">Tên ngân hàng</div>
+                        <!-- MOCK: Thay bằng {{ profile.bank_name }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số tài khoản ngân hàng</div>
+                        <!-- MOCK: Thay bằng {{ profile.bank_account }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Mã số thuế cá nhân</div>
+                        <!-- MOCK: Thay bằng {{ profile.tax_id }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- Section 4: Người liên hệ --- -->
+    <div class="profile-section" id="section-contact">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-address-book" style="color:var(--primary);"></i>&nbsp; Người liên hệ khẩn cấp</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <!-- Tất cả MOCK DATA -->
+                    <div class="info-item">
+                        <div class="info-label">Họ tên người liên hệ</div>
+                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_name }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số điện thoại</div>
+                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_phone }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Quan hệ với nhân viên</div>
+                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_relation }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Địa chỉ</div>
+                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_address }} -->
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- Section 5: Học vấn & Năng lực --- -->
+    <div class="profile-section" id="section-education">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-graduation-cap" style="color:var(--primary);"></i>&nbsp; Học vấn & Năng lực</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <!-- Tất cả MOCK DATA -->
+                    <div class="info-item">
+                        <div class="info-label">Trình độ học vấn</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Bằng cấp</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Chuyên ngành</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Chứng chỉ</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngoại ngữ</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Kỹ năng chuyên môn</div>
+                        <div class="info-value empty">Chưa cập nhật</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- Section 6: Tệp minh chứng --- -->
+    <div class="profile-section" id="section-files">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-folder-open" style="color:var(--primary);"></i>&nbsp; Tệp minh chứng</h3>
+                <!-- TODO: Nút upload file - cần backend xử lý file upload -->
+                <button class="btn btn-sm btn-outline" disabled title="Chức năng upload sẽ có khi nối backend">
+                    <i class="fa-solid fa-upload"></i> Tải lên
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- MOCK: Chưa có file nào, hiện empty state -->
+                <div class="empty-state">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <h3>Chưa có tệp nào</h3>
+                    <p>Các tệp minh chứng sẽ hiển thị tại đây khi được tải lên</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end #profileViewMode -->
+
+<!-- ===== EDIT MODE: Form chỉnh sửa thông tin (ẩn mặc định) ===== -->
+<div id="profileEditMode" style="display:none;">
+    <form method="post" action="{% url 'profile' %}">
+        {% csrf_token %}
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-pen" style="color:var(--primary);"></i>&nbsp; Chỉnh sửa thông tin cá nhân</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    {% comment %}
+                    Chỉ cho phép chỉnh sửa các field CÓ trong model.
+                    Các field mock chưa thể chỉnh sửa (cần thêm vào model trước).
+                    {% endcomment %}
+                    <div class="form-group">
+                        <label class="form-label">Họ và tên</label>
+                        <input type="text" name="full_name" class="form-control"
+                               value="{{ request.user.profile.full_name }}"
+                               placeholder="Nhập họ và tên">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ request.user.email }}"
+                               placeholder="Nhập email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" name="phone_number" class="form-control"
+                               value="{{ request.user.profile.phone_number }}"
+                               placeholder="Nhập số điện thoại">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ngày sinh (DD/MM/YYYY)</label>
+                        <input type="text" name="date_of_birth" class="form-control"
+                               value="{{ request.user.profile.date_of_birth }}"
+                               placeholder="VD: 15/06/1990">
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-secondary" id="btnCancelEdit">
+                    <i class="fa-solid fa-xmark"></i> Hủy
+                </button>
+                <button type="submit" class="btn btn-primary" id="btnSaveProfile">
+                    <i class="fa-solid fa-check"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

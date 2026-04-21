@@ -1,0 +1,270 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG QUẢN LÝ TÀI KHOẢN - user_management.html
+   Extends base_dashboard.html. Chỉ admin (superuser/Admin) mới truy cập được.
+   View xử lý: user_list_view tại accounts/views.py #}
+{% load static %}
+
+{% block title %}Quản lý tài khoản - HR Studio{% endblock %}
+
+{% block content %}
+<!-- ===== PAGE HEADER ===== -->
+<div class="page-header animate-fade">
+    <div>
+        <h1>Quản lý tài khoản</h1>
+        <p class="text-secondary">Quản lý tất cả tài khoản người dùng trong hệ thống</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'register' %}" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus"></i> Tạo tài khoản mới
+        </a>
+    </div>
+</div>
+
+<!-- ===== FILTER BAR: Tìm kiếm + Lọc ===== -->
+<div class="filter-bar animate-fade">
+    <!-- Ô tìm kiếm -->
+    <div class="filter-search">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="userSearch"
+               placeholder="Tìm theo mã NV, họ tên, email...">
+    </div>
+
+    <!-- Lọc theo vai trò -->
+    <select id="roleFilter" class="filter-select">
+        <option value="">Tất cả vai trò</option>
+        <option value="admin">Admin</option>
+        <option value="hr">HR</option>
+        <option value="manager">Manager</option>
+        <option value="leader">Leader</option>
+        <option value="employee">Employee</option>
+        <option value="none">Chưa gán vai trò</option>
+    </select>
+
+    <!-- Lọc theo trạng thái -->
+    <select id="statusFilter" class="filter-select">
+        <option value="">Tất cả trạng thái</option>
+        <option value="active">Đang hoạt động</option>
+        <option value="inactive">Đã khóa</option>
+    </select>
+</div>
+
+<!-- ===== DATA TABLE: Bảng danh sách tài khoản ===== -->
+<div class="card animate-fade">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nhân viên</th>
+                    <th>Mã NV</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr data-role="{% if u.profile.role %}{{ u.profile.role.name }}{% else %}none{% endif %}"
+                    data-status="{% if u.is_active %}active{% else %}inactive{% endif %}">
+
+                    <!-- Cột: Avatar + Tên + Username -->
+                    <td>
+                        <div class="table-user">
+                            <div class="table-avatar" style="background:var(--gradient-{% cycle 'purple' 'green' 'pink' 'blue' 'orange' %});">
+                                {{ u.username|make_list|first|upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight:600;">
+                                    {{ u.profile.full_name|default:u.username }}
+                                </div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">
+                                    @{{ u.username }}
+                                    {% if u.is_superuser %}
+                                        <span class="badge badge-superuser" style="margin-left:4px;">superuser</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Cột: Mã nhân viên -->
+                    <td>{{ u.profile.employee_id|default:"—" }}</td>
+
+                    <!-- Cột: Email -->
+                    <td>{{ u.email|default:"—" }}</td>
+
+                    <!-- Cột: Vai trò (badge màu) -->
+                    <td>
+                        {% if u.profile.role %}
+                            <span class="badge badge-{{ u.profile.role.name }}">
+                                {{ u.profile.role.get_name_display }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-none">Chưa gán</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Cột: Trạng thái tài khoản -->
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge badge-active">Hoạt động</span>
+                        {% else %}
+                            <span class="badge badge-inactive">Đã khóa</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Cột: Ngày tạo tài khoản -->
+                    <td>{{ u.date_joined|date:"d/m/Y" }}</td>
+
+                    <!-- Cột: Thao tác -->
+                    <td>
+                        <div class="table-actions">
+                            {% comment %}
+                            Nút Xem chi tiết: mở modal hiển thị thông tin
+                            Truyền data qua JavaScript function openUserDetail()
+                            {% endcomment %}
+                            <button class="btn btn-icon btn-sm btn-outline"
+                                    title="Xem chi tiết"
+                                    onclick="openUserDetail(
+                                        '{{ u.id }}',
+                                        '{{ u.username }}',
+                                        '{{ u.email|default:"" }}',
+                                        '{{ u.profile.full_name|default:"" }}',
+                                        '{{ u.profile.employee_id|default:"" }}',
+                                        '{% if u.profile.role %}{{ u.profile.role.get_name_display }}{% else %}Chưa gán{% endif %}',
+                                        '{% if u.is_active %}Hoạt động{% else %}Đã khóa{% endif %}',
+                                        '{{ u.date_joined|date:"d/m/Y H:i" }}'
+                                    )">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+
+                            <!-- Nút chỉnh sửa vai trò -->
+                            <a href="{% url 'assign_role' u.id %}"
+                               class="btn btn-icon btn-sm btn-outline" title="Chỉnh sửa vai trò">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+
+                            <!-- Nút phân quyền -->
+                            <a href="{% url 'assign_permissions' u.id %}"
+                               class="btn btn-icon btn-sm btn-outline" title="Phân quyền">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </a>
+
+                            {% comment %}
+                            Nút khóa/mở khóa tài khoản
+                            Gọi JS function confirmAction() để hiện modal xác nhận
+                            Không cho phép khóa chính mình
+                            {% endcomment %}
+                            {% if u != request.user %}
+                                {% if u.is_active %}
+                                <button class="btn btn-icon btn-sm btn-outline"
+                                        title="Khóa tài khoản"
+                                        onclick="confirmAction('{% url 'toggle_active' u.id %}', 'lock', '{{ u.username }}')">
+                                    <i class="fa-solid fa-lock" style="color:var(--warning);"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-icon btn-sm btn-outline"
+                                        title="Mở khóa tài khoản"
+                                        onclick="confirmAction('{% url 'toggle_active' u.id %}', 'unlock', '{{ u.username }}')">
+                                    <i class="fa-solid fa-unlock" style="color:var(--success);"></i>
+                                </button>
+                                {% endif %}
+
+                                <!-- Nút reset mật khẩu -->
+                                <button class="btn btn-icon btn-sm btn-outline"
+                                        title="Reset mật khẩu"
+                                        onclick="confirmAction('{% url 'reset_user_password' u.id %}', 'reset', '{{ u.username }}')">
+                                    <i class="fa-solid fa-key" style="color:var(--info);"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-users-slash"></i>
+                            <h3>Chưa có tài khoản nào</h3>
+                            <p>Hãy tạo tài khoản đầu tiên</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ===== MODAL: Xem chi tiết tài khoản ===== -->
+<div class="modal-overlay" id="userDetailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-user"></i>&nbsp; Chi tiết tài khoản</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Họ và tên</div>
+                    <div class="info-value" id="detail-fullname">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value" id="detail-username">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value" id="detail-email">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Mã nhân viên</div>
+                    <div class="info-value" id="detail-employee-id">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Vai trò</div>
+                    <div class="info-value" id="detail-role">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Trạng thái</div>
+                    <div class="info-value" id="detail-status">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ngày tạo</div>
+                    <div class="info-value" id="detail-date-joined">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary modal-close">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: Xác nhận hành động (Khóa / Mở khóa / Reset password) ===== -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="confirm-title">Xác nhận</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-content warning">
+                <i class="fa-solid fa-exclamation-triangle confirm-icon"></i>
+                <h4 class="confirm-title">Xác nhận hành động</h4>
+                <p class="confirm-desc">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary modal-cancel">Hủy</button>
+            <!-- Form submit xác nhận: action URL sẽ được JS điền vào -->
+            <form class="confirm-form" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Xác nhận</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,234 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG KHEN THƯỞNG BỊ PHẠT CÁ NHÂN. View: rewards_penalties_view. #}
+{% load static %}
+
+{% block title %}Khen thưởng & Xử phạt - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* Nút Tạo Phiếu & Phê Duyệt */
+    .btn-create {
+        background: #8b5cf6; 
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+    }
+    .btn-create:hover { background: #7c3aed; transform: translateY(-2px); }
+    
+    .btn-approve-nav {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-approve-nav:hover { background: #e2e8f0; color: #0f172a; }
+
+    /* Stats Grid Custom (3 Thẻ) */
+    .rp-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .rp-stat-card {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .rp-stat-label { font-size: 0.95rem; color: var(--text-muted); font-weight: 600; margin-bottom:0.4rem; }
+    .val-reward { font-size: 1.8rem; font-weight: 800; color: #10b981; } /* Xanh dương */
+    .val-penalty { font-size: 1.8rem; font-weight: 800; color: #ef4444; } /* Đỏ */
+    .val-net { font-size: 1.8rem; font-weight: 800; color: #8b5cf6; } /* Tím tổng kết */
+
+    /* Bố cục 2 Bảng Khen thưởng và Phạt */
+    .rp-tables-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    .rp-card {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        overflow: hidden; /* Cắt góc tròn cho table */
+    }
+    
+    /* Đầu bảng Xanh (Thưởng) vs Đỏ (Phạt) */
+    .rp-header-reward { background: #ecfdf5; padding: 1rem 1.5rem; border-bottom: 2px solid #34d399; }
+    .rp-header-penalty { background: #fef2f2; padding: 1rem 1.5rem; border-bottom: 2px solid #f87171; }
+    
+    .rp-header-title { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .txt-reward { color: #059669; }
+    .txt-penalty { color: #dc2626; }
+    
+    /* Tùy chỉnh Table Mini */
+    .rp-table { width: 100%; border-collapse: collapse; }
+    .rp-table th { background: #f8fafc; font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; padding: 0.8rem 1rem; text-align: left; }
+    .rp-table td { padding: 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); }
+    .rp-table tr:last-child td { border-bottom: none; }
+    
+    .badge-status { padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .badge-appr { background: #e0e7ff; color: #4338ca; } /* Đã duyệt */
+    .badge-pend { background: #fef3c7; color: #d97706; } /* Chờ duyệt */
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+        <div>
+            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Khen thưởng & Xử phạt</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Theo dõi tổng dòng tiền thưởng và phạt của bạn</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            {% if can_approve %}
+            <a href="{% url 'rewards_penalties_approval' %}" class="btn-approve-nav">
+                <i class="fa-solid fa-list-check"></i> Phê duyệt Phiếu
+            </a>
+            {% endif %}
+            
+            <button class="btn-create" onclick="alert('Đang mở form tạo Phiếu Thưởng/Phạt')">
+                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Tạo phiếu mới
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== STATS GRID (3 CỘT) ===== -->
+    <div class="rp-stats-grid">
+        <div class="rp-stat-card">
+            <div>
+                <div class="rp-stat-label">TỔNG TIỀN THƯỞNG</div>
+                <div class="val-reward">+ 5,000,000đ</div>
+            </div>
+            <div style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-gift"></i>
+            </div>
+        </div>
+
+        <div class="rp-stat-card">
+            <div>
+                <div class="rp-stat-label">TỔNG TIỀN PHẠT</div>
+                <div class="val-penalty">- 500,000đ</div>
+            </div>
+            <div style="background:#fef2f2; color:#ef4444; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+
+        <div class="rp-stat-card">
+            <div>
+                <div class="rp-stat-label">THU NHẬP THỰC TẾ (NET)</div>
+                <div class="val-net">+ 4,500,000đ</div>
+            </div>
+            <div style="background:#f5f3ff; color:#8b5cf6; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2 BẢNG THƯỞNG / PHẠT ===== -->
+    <div class="rp-tables-grid">
+        
+        <!-- Bảng KHEN THƯỞNG -->
+        <div class="rp-card">
+            <div class="rp-header-reward">
+                <div class="rp-header-title txt-reward"><i class="fa-solid fa-circle-arrow-up"></i> Các Phiếu Khen Thưởng</div>
+            </div>
+            <table class="rp-table">
+                <thead>
+                    <tr>
+                        <th>NGÀY ÁP DỤNG</th>
+                        <th>LÝ DO & CHI TIẾT</th>
+                        <th>SỐ TIỀN</th>
+                        <th>TRẠNG THÁI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 500;">15/04/2026</td>
+                        <td style="color: var(--text-main); font-weight: 600;">
+                            Thưởng KPI Quý 1
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Đạt vượt mốc Doanh số 120%</div>
+                        </td>
+                        <td style="font-weight: 700; color: #10b981;">+ 3,000,000đ</td>
+                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 500;">20/03/2026</td>
+                        <td style="color: var(--text-main); font-weight: 600;">
+                            Nhân viên Tiêu biểu Tháng
+                        </td>
+                        <td style="font-weight: 700; color: #10b981;">+ 2,000,000đ</td>
+                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 500;">25/04/2026</td>
+                        <td style="color: var(--text-main); font-weight: 600;">
+                            Sáng kiến Cải tiến App
+                        </td>
+                        <td style="font-weight: 700; color: var(--text-primary);">+ 1,500,000đ</td>
+                        <td><span class="badge-status badge-pend">Chờ duyệt</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bảng XỬ PHẠT -->
+        <div class="rp-card">
+            <div class="rp-header-penalty">
+                <div class="rp-header-title txt-penalty"><i class="fa-solid fa-circle-arrow-down"></i> Các Phiếu Xử Phạt</div>
+            </div>
+            <table class="rp-table">
+                <thead>
+                    <tr>
+                        <th>NGÀY ÁP DỤNG</th>
+                        <th>LÝ DO & CHI TIẾT</th>
+                        <th>SỐ TIỀN PHẠT</th>
+                        <th>TRẠNG THÁI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 500;">10/04/2026</td>
+                        <td style="color: var(--text-main); font-weight: 600;">
+                            Đi trễ quá 3 lần/tháng
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Trừ vào lương T4</div>
+                        </td>
+                        <td style="font-weight: 700; color: #ef4444;">- 200,000đ</td>
+                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 500;">05/03/2026</td>
+                        <td style="color: var(--text-main); font-weight: 600;">
+                            Quên thẻ nhân viên dự hội thảo
+                        </td>
+                        <td style="font-weight: 700; color: #ef4444;">- 300,000đ</td>
+                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            Không có phiếu xử phạt nào khác!
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

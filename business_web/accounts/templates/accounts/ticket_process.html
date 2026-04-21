@@ -1,0 +1,145 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG XỬ LÝ TICKETS (Cho quản lý). View: ticket_process_view. MOCK DATA. #}
+{% load static %}
+
+{% block title %}Xử lý Tickets - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        transition: color 0.2s;
+    }
+    .btn-back:hover {
+        color: var(--primary);
+    }
+    
+    .tk-bdg {
+        padding: 0.25rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .tk-new { background: #fef3c7; color: #d97706; }
+    .tk-proc { background: #e0e7ff; color: #4338ca; }
+    
+    .btn-action {
+        border: none;
+        padding: 0.4rem 0.85rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-right: 0.4rem;
+    }
+    .btn-action-proc { background: #3b82f6; color: #fff; }
+    .btn-action-proc:hover { background: #2563eb; }
+    
+    .btn-action-resolve { background: #10b981; color: #fff; }
+    .btn-action-resolve:hover { background: #059669; }
+
+    .user-block { display: flex; align-items: center; gap: 0.75rem; }
+    .user-avatar-small {
+        width: 32px; height: 32px; background: var(--gradient-blue);
+        color: #fff; border-radius: 50%; display: flex; 
+        align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+    }
+    .user-info-text .name { font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+    .user-info-text .dept { font-size: 0.75rem; color: var(--text-muted); }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BREADCRUMB ===== -->
+    <a href="{% url 'tickets' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại Tickets cá nhân
+    </a>
+
+    <!-- ===== HEADER ===== -->
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Xử lý Hệ thống Tickets</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Danh sách yêu cầu khiếu nại chưa được giải quyết của Công ty</p>
+    </div>
+
+    <!-- ===== TICKETS PROCESSING TABLE ===== -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Cần xử lý (2 yêu cầu)</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">NGƯỜI GỬI</th>
+                            <th>THỜI GIAN</th>
+                            <th>MỨC ĐỘ</th>
+                            <th>NỘI DUNG TICKET</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>CẬP NHẬT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small">NA</div>
+                                    <div class="user-info-text">
+                                        <div class="name">Nguyễn Văn A</div>
+                                        <div class="dept">Phòng Marketing</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>Hôm nay, 14:30</td>
+                            <td style="color: #dc2626; font-weight: 600;">Cao</td>
+                            <td>
+                                <div style="font-weight: 600; color:var(--text-main);">Không thể chấm công</div>
+                                <div class="text-secondary" style="font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    Hệ thống báo lỗi khi tôi cố gắng chấm công...
+                                </div>
+                            </td>
+                            <td><span class="tk-bdg tk-new">Mới</span></td>
+                            <td>
+                                <button class="btn-action btn-action-proc" onclick="alert('Chuyển trạng thái thành Đang xử lý')">Tiếp nhận</button>
+                                <button class="btn-action btn-action-resolve" onclick="alert('Đánh dấu Đã giải quyết')"><i class="fa-solid fa-check"></i> Đóng</button>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small" style="background: var(--gradient-pink);">LD</div>
+                                    <div class="user-info-text">
+                                        <div class="name">Lê Đình D</div>
+                                        <div class="dept">Phòng HR</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>Hôm qua, 10:15</td>
+                            <td style="color: #d97706; font-weight: 600;">TB</td>
+                            <td>
+                                <div style="font-weight: 600; color:var(--text-main);">Sai số ngày phép</div>
+                                <div class="text-secondary" style="font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    Số ngày phép còn lại hiển thị không...
+                                </div>
+                            </td>
+                            <td><span class="tk-bdg tk-proc">Đang xử lý</span></td>
+                            <td>
+                                <button class="btn-action btn-action-resolve" onclick="alert('Đã giải quyết xong')"><i class="fa-solid fa-check"></i> Hoàn thành</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
