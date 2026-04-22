@@ -74,7 +74,7 @@ class PermissionManagementTests(TestCase):
 
         # Create a regular employee (should NOT be able to access admin pages)
         self.regular_user = User.objects.create_user(
-            username='employee1', password='emppass123', email='emp@example.com'
+            username='employee1', password='emppass123', email='employee1@gmail.com'
         )
         self.regular_profile = UserProfile.objects.create(
             user=self.regular_user, role=self.role_employee
@@ -474,6 +474,38 @@ class PermissionManagementTests(TestCase):
             'password': 'emppass123',
         })
         self.assertEqual(response.status_code, 302)  # redirect to dashboard
+
+    def test_login_page_links_to_forgot_password(self):
+        """Login page should link to the password recovery UI."""
+        response = self.client.get('/login/')
+        self.assertContains(response, '/forgot-password/')
+        self.assertContains(response, 'Quên mật khẩu?')
+
+    def test_forgot_password_page_loads_username_step(self):
+        """Password recovery starts with the username step."""
+        response = self.client.get('/forgot-password/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Nhập username')
+        self.assertContains(response, 'Gửi mã xác nhận')
+
+    def test_forgot_password_username_submit_shows_code_step(self):
+        """Submitting a valid username should show the verification code UI."""
+        response = self.client.post('/forgot-password/', {
+            'step': 'username',
+            'username': 'employee1',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Xác nhận mã')
+        self.assertContains(response, 'e*******1@gmail.com')
+
+    def test_forgot_password_unknown_username_shows_error(self):
+        """Unknown usernames should stay on the recovery UI with an error."""
+        response = self.client.post('/forgot-password/', {
+            'step': 'username',
+            'username': 'missing_user',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Không tìm thấy tài khoản')
 
     # =========================================================================
     # DELETE USER TESTS

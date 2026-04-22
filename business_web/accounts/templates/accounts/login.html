@@ -120,8 +120,7 @@ Sau khi đăng nhập thành công → redirect tới settings.LOGIN_REDIRECT_UR
                             <input type="checkbox" name="remember_me">
                             Ghi nhớ đăng nhập
                         </label>
-                        <!-- TODO: Chức năng quên mật khẩu chưa có backend, link placeholder -->
-                        <a href="#" class="forgot-link">Quên mật khẩu?</a>
+                        <a href="{% url 'forgot_password' %}" class="forgot-link">Quên mật khẩu?</a>
                     </div>
 
                     <!-- Nút đăng nhập -->

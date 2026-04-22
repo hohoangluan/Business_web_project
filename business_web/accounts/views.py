@@ -57,6 +57,19 @@ def ensure_profile(user):
     return profile
 
 
+def mask_email(email):
+    """Mask an email address before showing it in password recovery UI."""
+    if not email or '@' not in email:
+        return email or ''
+
+    local_part, domain = email.split('@', 1)
+    if len(local_part) <= 2:
+        masked_local = local_part[:1] + '*'
+    else:
+        masked_local = local_part[0] + ('*' * (len(local_part) - 2)) + local_part[-1]
+    return f'{masked_local}@{domain}'
+
+
 def get_user_role_name(user):
     """Return the normalized profile role name used by the UI and guards."""
     if not user.is_authenticated:
@@ -153,6 +166,65 @@ def register_view(request):
         form = RegisterForm()
 
     return render(request, 'accounts/register.html', {'form': form})
+
+
+def forgot_password_view(request):
+    """
+    UI quên mật khẩu 2 bước:
+    - Bước 1: nhập username.
+    - Bước 2: hiển thị form nhập mã xác nhận gửi về email trong tài khoản.
+
+    Hiện tại chỉ dựng UI/flow xác nhận, chưa gửi email thật vì project chưa cấu
+    hình EMAIL_BACKEND/SMTP.
+    """
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    context = {
+        'step': 'username',
+        'username': '',
+        'masked_email': '',
+    }
+
+    if request.method == 'POST':
+        step = request.POST.get('step', 'username')
+        username = request.POST.get('username', '').strip()
+        context['username'] = username
+
+        if step == 'username':
+            user = User.objects.filter(username=username).first() if username else None
+
+            if not username:
+                context['error_message'] = 'Vui lòng nhập username để nhận mã xác nhận.'
+            elif not user:
+                context['error_message'] = 'Không tìm thấy tài khoản với username này.'
+            elif not user.email:
+                context['error_message'] = 'Tài khoản này chưa có email trong hồ sơ.'
+            else:
+                context.update({
+                    'step': 'code',
+                    'masked_email': mask_email(user.email),
+                    'success_message': 'Mã xác nhận sẽ được gửi đến Gmail trong hồ sơ tài khoản.',
+                })
+
+        elif step == 'code':
+            verification_code = request.POST.get('verification_code', '').strip()
+            user = User.objects.filter(username=username).first() if username else None
+
+            context.update({
+                'step': 'code',
+                'masked_email': mask_email(user.email) if user and user.email else '',
+                'verification_code': verification_code,
+            })
+
+            if not verification_code:
+                context['error_message'] = 'Vui lòng nhập mã xác nhận.'
+            elif len(verification_code) != 6:
+                context['error_message'] = 'Mã xác nhận gồm 6 ký tự.'
+            else:
+                context['success_message'] = 'Giao diện xác nhận mã đã sẵn sàng. Bước đặt lại mật khẩu sẽ được kết nối sau.'
+
+    return render(request, 'accounts/forgot_password.html', context)
 
 
 @login_required

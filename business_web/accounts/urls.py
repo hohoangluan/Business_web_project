@@ -16,6 +16,7 @@ from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect
 from .views import (
     register_view,
+    forgot_password_view,
     logout_view,
     dashboard_view,
     profile_view,               # MỚI: hồ sơ cá nhân
@@ -57,6 +58,9 @@ urlpatterns = [
     # Đăng nhập: dùng Django LoginView built-in
     # template_name trỏ tới template login.html đã redesign
     path('login/', LoginView.as_view(template_name='accounts/login.html'), name='login'),
+
+    # Quên mật khẩu: UI nhập username và mã xác nhận
+    path('forgot-password/', forgot_password_view, name='forgot_password'),
 
     # Đăng xuất
     path('logout/', logout_view, name='logout'),
