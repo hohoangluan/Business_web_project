@@ -1,195 +1,197 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG DASHBOARD - View: dashboard_view. Dữ liệu thống kê là MOCK DATA. #}
+{# TRANG DASHBOARD - Trọng tâm hiển thị Tính năng & Thông báo #}
 {% load static %}
 
-{% block title %}Dashboard - HR Studio{% endblock %}
+{% block title %}Dashboard - HRMS Portal{% endblock %}
 
 {% block content %}
-<!-- ===== STAT CARDS: Thống kê nhanh (MOCK DATA) ===== -->
-<div class="stats-grid animate-fade">
-    <!-- Card 1: Tổng nhân viên -->
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Tổng nhân viên</h4>
-            <!-- MOCK: Thay bằng {{ total_employees }} khi có backend -->
-            <div class="stat-value">—</div>
-            <div class="stat-change">
-                <i class="fa-solid fa-arrow-trend-up"></i> Dữ liệu demo
-            </div>
-        </div>
-        <div class="stat-icon" style="background:var(--gradient-purple);">
-            <i class="fa-solid fa-users"></i>
-        </div>
+<style>
+    .dash-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    /* Vùng Tính năng */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.25rem;
+    }
+    .feature-card {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        border-color: var(--primary);
+    }
+    .fc-icon {
+        width: 54px; height: 54px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: white;
+    }
+    .fc-title { font-weight: 700; font-size: 1.05rem; }
+    .fc-desc { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Vùng Thông báo */
+    .notif-panel {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+    }
+    .np-header { margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .np-title { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+    .np-list { display: flex; flex-direction: column; gap: 1rem; }
+    .np-item {
+        padding: 1rem; border-radius: 8px;
+        background: #f8fafc; border-left: 4px solid var(--primary);
+    }
+    .np-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .np-msg { font-size: 0.9rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
+
+    /* Màu sắc Icon */
+    .bg-indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .bg-emerald { background: linear-gradient(135deg, #10b981, #059669); }
+    .bg-rose { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+    .bg-amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .bg-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .bg-purple { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+    .bg-slate { background: linear-gradient(135deg, #64748b, #475569); }
+
+    @media (max-width: 900px) {
+        .dash-layout { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size:1.8rem; font-weight:800; color:var(--text-main); margin-bottom:0.25rem;">
+            Xin chào, {{ request.user.profile.full_name|default:request.user.username }}! 👋
+        </h2>
+        <p style="color:var(--text-muted); font-size:1rem;">Chào mừng bạn đến với Cổng thông tin Quản trị Nhân sự (HRMS Portal).</p>
     </div>
 
-    <!-- Card 2: Nhân viên mới -->
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Nhân viên mới</h4>
-            <div class="stat-value">—</div>
-            <div class="stat-change">Tháng này</div>
-        </div>
-        <div class="stat-icon" style="background:var(--gradient-green);">
-            <i class="fa-solid fa-user-plus"></i>
-        </div>
-    </div>
-
-    <!-- Card 3: Nghỉ việc -->
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Nghỉ việc</h4>
-            <div class="stat-value">—</div>
-            <div class="stat-change">Tháng này</div>
-        </div>
-        <div class="stat-icon" style="background:var(--gradient-pink);">
-            <i class="fa-solid fa-user-minus"></i>
-        </div>
-    </div>
-
-    <!-- Card 4: Điểm danh hôm nay -->
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Điểm danh</h4>
-            <div class="stat-value">—</div>
-            <div class="stat-change">Hôm nay</div>
-        </div>
-        <div class="stat-icon" style="background:var(--gradient-blue);">
-            <i class="fa-solid fa-clock"></i>
-        </div>
-    </div>
-</div>
-
-<!-- ===== MAIN MODULES: Tính năng chính ===== -->
-<div style="margin-top: 2.5rem; margin-bottom: 1.5rem;">
-    <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-layer-group" style="color:var(--primary);"></i>Tính năng của tôi</h3>
-</div>
-<div class="stats-grid animate-fade" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-    <a href="{% url 'contract' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-purple); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-file-contract"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Hợp đồng lao động</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Thông tin hợp đồng</div>
-        </div>
-    </a>
-    <a href="{% url 'attendance' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-blue); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-calendar-check"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Chấm công</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Bảng công cá nhân</div>
-        </div>
-    </a>
-    <a href="{% url 'leave' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-green); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-calendar-minus"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Nghỉ phép</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Đăng ký nghỉ phép</div>
-        </div>
-    </a>
-    <a href="{% url 'overtime' %}" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-orange); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-business-time"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Tăng ca</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Đăng ký / Lịch sử OT</div>
-        </div>
-    </a>
-    <a href="#" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-pink); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-award"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Khen thưởng/Xử phạt</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Danh sách quyết định</div>
-        </div>
-    </a>
-    <a href="#" class="stat-card" style="text-decoration: none; align-items: center; justify-content: flex-start; gap: 1.25rem; cursor: pointer; transition: transform 0.2s; background: var(--bg-main);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div class="stat-icon" style="background:var(--gradient-purple); width: 40px; height: 40px; font-size: 1rem;">
-            <i class="fa-solid fa-file-invoice-dollar"></i>
-        </div>
-        <div class="stat-info">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Tiền lương</h4>
-            <div class="stat-change" style="color: var(--text-muted); font-size: 0.75rem;">Phiếu lương cá nhân</div>
-        </div>
-    </a>
-</div>
-
-
-
-<!-- ===== QUICK LINKS: Điều hướng nhanh ===== -->
-<div class="dashboard-grid">
-    <!-- Card: Thông tin tài khoản -->
-    <div class="card animate-fade">
-        <div class="card-header">
-            <h3><i class="fa-solid fa-user-circle" style="color:var(--primary);"></i>&nbsp; Tài khoản của bạn</h3>
-        </div>
-        <div class="card-body">
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Username</div>
-                    <div class="info-value">{{ request.user.username }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Họ và tên</div>
-                    <div class="info-value">
-                        {{ request.user.profile.full_name|default:"Chưa cập nhật" }}
+    <div class="dash-layout">
+        <!-- CỐT LÕI TÍNH NĂNG TRÊN KHUNG CHÍNH -->
+        <div>
+            <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem; color: var(--text-secondary);"><i class="fa-solid fa-layer-group"></i> Không gian làm việc của bạn</h3>
+            
+            <div class="feature-grid">
+                <!-- Chức năng Chung -->
+                <a href="{% url 'profile' %}" class="feature-card">
+                    <div class="fc-icon bg-indigo"><i class="fa-solid fa-id-badge"></i></div>
+                    <div>
+                        <div class="fc-title">Hồ sơ cá nhân</div>
+                        <div class="fc-desc">Quản lý lý lịch & liên hệ</div>
                     </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Email</div>
-                    <div class="info-value">{{ request.user.email|default:"Chưa cập nhật" }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Vai trò</div>
-                    <div class="info-value">
-                        {% if request.user.profile.role %}
-                            <span class="badge badge-{{ request.user.profile.role.name }}">
-                                {{ request.user.profile.role.get_name_display }}
-                            </span>
-                        {% else %}
-                            <span class="badge badge-none">Chưa gán</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div style="margin-top:1.25rem;">
-                <a href="{% url 'profile' %}" class="btn btn-primary btn-sm">
-                    <i class="fa-solid fa-arrow-right"></i> Xem hồ sơ đầy đủ
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card: Truy cập nhanh -->
-    <div class="card animate-fade">
-        <div class="card-header">
-            <h3><i class="fa-solid fa-bolt" style="color:var(--warning);"></i>&nbsp; Truy cập nhanh</h3>
-        </div>
-        <div class="card-body">
-            <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                <a href="{% url 'profile' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
-                    <i class="fa-solid fa-user"></i> Hồ sơ cá nhân
                 </a>
 
-                {% if request.user.is_superuser or request.user.profile.is_admin %}
-                <a href="{% url 'user_list' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
-                    <i class="fa-solid fa-users-gear"></i> Quản lý tài khoản
-                </a>
-                <a href="{% url 'register' %}" class="btn btn-outline w-full" style="justify-content:flex-start;">
-                    <i class="fa-solid fa-user-plus"></i> Tạo tài khoản mới
-                </a>
+                <!-- Phân nhanh cho Admin -->
+                {% if request.user.profile.is_admin %}
+                    <a href="{% url 'user_list' %}" class="feature-card">
+                        <div class="fc-icon bg-rose"><i class="fa-solid fa-users-gear"></i></div>
+                        <div>
+                            <div class="fc-title">Quản lý User</div>
+                            <div class="fc-desc">Danh sách và cấp quyền</div>
+                        </div>
+                    </a>
+                    <a href="{% url 'settings' %}" class="feature-card">
+                        <div class="fc-icon bg-slate"><i class="fa-solid fa-gears"></i></div>
+                        <div>
+                            <div class="fc-title">Cài đặt Hệ thống</div>
+                            <div class="fc-desc">Cấu hình CTY toàn cầu</div>
+                        </div>
+                    </a>
+                {% else %}
+                    <!-- Phân nhanh cho Khối Nghiệp Vụ -->
+                    <a href="{% url 'attendance' %}" class="feature-card">
+                        <div class="fc-icon bg-emerald"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div>
+                            <div class="fc-title">Chấm công</div>
+                            <div class="fc-desc">Lịch sử ra vào & Check-in</div>
+                        </div>
+                    </a>
+                    
+                    <a href="{% url 'leave' %}" class="feature-card">
+                        <div class="fc-icon bg-amber"><i class="fa-solid fa-plane-departure"></i></div>
+                        <div>
+                            <div class="fc-title">Nghỉ phép</div>
+                            <div class="fc-desc">Đăng ký & Tracking ngày nghỉ</div>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'payroll' %}" class="feature-card">
+                        <div class="fc-icon bg-cyan"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <div>
+                            <div class="fc-title">Tiền lương (Payslip)</div>
+                            <div class="fc-desc">Tra cứu thu nhập hàng tháng</div>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'rewards_penalties' %}" class="feature-card">
+                        <div class="fc-icon bg-purple"><i class="fa-solid fa-star"></i></div>
+                        <div>
+                            <div class="fc-title">Khen thưởng/Phạt</div>
+                            <div class="fc-desc">Quản lý các khoản cộng/trừ</div>
+                        </div>
+                    </a>
+
+                    {% if request.user.profile.role.name == 'HR' %}
+                    <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
+                        <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
+                        <div>
+                            <div class="fc-title">Thống kê HR</div>
+                            <div class="fc-desc">Báo cáo dữ liệu độc quyền</div>
+                        </div>
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- CỘT THÔNG BÁO BÊN PHẢI -->
+        <div class="notif-panel">
+            <div class="np-header">
+                <div class="np-title"><i class="fa-solid fa-bell" style="color: #f59e0b;"></i> Thông báo mới</div>
+                <span class="badge badge-primary" style="font-size:0.7rem;">3 Mới</span>
+            </div>
+            
+            <div class="np-list">
+                <div class="np-item">
+                    <div class="np-time"><i class="fa-regular fa-clock"></i> 2 giờ trước</div>
+                    <div class="np-msg">Hệ thống đã cập nhật chức năng Tính thuế thu nhập trọn gói trong "Cài đặt Chung".</div>
+                </div>
+                
+                {% if not request.user.profile.is_admin %}
+                <div class="np-item" style="border-left-color: #10b981;">
+                    <div class="np-time"><i class="fa-regular fa-clock"></i> Hôm qua</div>
+                    <div class="np-msg">Phiếu lương Tháng 4/2026 của bạn đã được xuất bản. Vui lòng kiểm tra mục "Tiền lương".</div>
+                </div>
                 {% endif %}
 
-                <a href="{% url 'logout' %}" class="btn btn-outline w-full" style="justify-content:flex-start;color:var(--danger);border-color:rgba(239,68,68,0.3);">
-                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-                </a>
+                <div class="np-item" style="border-left-color: #64748b;">
+                    <div class="np-time"><i class="fa-regular fa-clock"></i> 22/04/2026</div>
+                    <div class="np-msg">Thông báo triển khai bộ phận Dịch vụ HRMS Portal. Chào mừng tất cả thành viên gia nhập cổng thông tin số.</div>
+                </div>
             </div>
+            
+            <button class="btn btn-outline" style="width: 100%; margin-top: 1.5rem; justify-content: center;">Xem tất cả thông báo</button>
         </div>
     </div>
 </div>

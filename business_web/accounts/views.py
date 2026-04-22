@@ -24,10 +24,11 @@ VIEWS MỚI:
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import RegisterForm, AssignRoleForm, AssignPermissionsForm
-from .models import UserProfile
+from .models import UserProfile, Role
 
 
 # =============================================================================
@@ -37,11 +38,8 @@ from .models import UserProfile
 def is_admin_user(user):
     """
     Kiểm tra user có quyền quản trị không.
-    Trả về True nếu user là superuser HOẶC có role 'Admin'.
-
-    Hàm này dùng với @user_passes_test decorator:
-      - True → user được truy cập trang
-      - False → user bị redirect về trang login
+    Dùng cho @user_passes_test (backend gate) — superuser luôn pass.
+    Lưu ý: UI template dùng request.user.profile.is_admin riêng biệt.
     """
     if not user.is_authenticated:
         return False
@@ -61,6 +59,20 @@ def ensure_profile(user):
     profile, created = UserProfile.objects.get_or_create(user=user)
     return profile
 
+
+def is_hr_user(user):
+    """
+    Kiểm tra user có phải HR không.
+    Dùng cho @user_passes_test — superuser cũng pass.
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    try:
+        return user.profile.role and user.profile.role.name == Role.HR
+    except UserProfile.DoesNotExist:
+        return False
 
 # =============================================================================
 # PUBLIC VIEWS: Registration, Login, Logout, Dashboard
@@ -214,7 +226,7 @@ def leave_view(request):
     
     # Kiểm tra quyền duyệt nghỉ phép (HR, Manager, Leader, Admin)
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -236,7 +248,7 @@ def leave_approval_view(request):
     
     # Kiểm tra lại quyền truy cập trang này
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -261,7 +273,7 @@ def overtime_view(request):
     ensure_profile(request.user)
     
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -281,7 +293,7 @@ def overtime_approval_view(request):
     ensure_profile(request.user)
     
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -300,9 +312,16 @@ def overtime_approval_view(request):
 def statistics_view(request):
     """
     Trang Thống kê quản trị (Biểu đồ).
-    MOCK DATA.
+    MOCK DATA. Trực tiếp chống lại các truy cập không phải HR.
     """
     ensure_profile(request.user)
+    
+    # Chỉ cho phép HR
+    is_hr = hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'HR'
+    if not is_hr:
+        messages.error(request, 'Bạn không đủ thẩm quyền (Bắt buộc Khối HR) để xem Báo cáo Thống kê!')
+        return redirect('dashboard')
+        
     return render(request, 'accounts/statistics.html', {
         'active_page': 'statistics',
     })
@@ -317,7 +336,7 @@ def report_view(request):
     ensure_profile(request.user)
     
     is_manager = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         is_manager = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -337,7 +356,7 @@ def report_inbox_view(request):
     ensure_profile(request.user)
     
     is_manager = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         is_manager = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -362,7 +381,7 @@ def ticket_list_view(request):
     ensure_profile(request.user)
     
     can_process = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_process = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -381,7 +400,7 @@ def ticket_process_view(request):
     ensure_profile(request.user)
     
     can_process = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_process = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -405,7 +424,7 @@ def rewards_penalties_view(request):
     ensure_profile(request.user)
     
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -424,7 +443,7 @@ def rewards_penalties_approval_view(request):
     ensure_profile(request.user)
     
     can_approve = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         can_approve = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR', 'Manager', 'Leader']:
@@ -449,7 +468,7 @@ def payroll_view(request):
     is_hr = False
     is_director = False
     
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         is_hr = True
         is_director = True
     elif hasattr(request.user, 'role') and request.user.role:
@@ -473,7 +492,7 @@ def payroll_calc_view(request):
     ensure_profile(request.user)
     
     is_hr = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         is_hr = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['HR']:
@@ -495,7 +514,7 @@ def payroll_approval_view(request):
     ensure_profile(request.user)
     
     is_director = False
-    if request.user.is_superuser or is_admin_user(request.user):
+    if is_admin_user(request.user):
         is_director = True
     elif hasattr(request.user, 'role') and request.user.role:
         if request.user.role.name in ['Manager', 'Leader']:
@@ -507,6 +526,136 @@ def payroll_approval_view(request):
         
     return render(request, 'accounts/payroll_approval.html', {
         'active_page': 'payroll', 
+    })
+
+
+@login_required
+def settings_view(request):
+    """
+    Trang Cài đặt chung (HRMS Settings).
+    Hiển thị giao diện tab dọc. Admin thấy cấu hình Cty, HR thấy cấu hình Luật.
+    """
+    ensure_profile(request.user)
+    
+    is_admin = False
+    is_hr = False
+    
+    if is_admin_user(request.user):
+        is_admin = True
+    if hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'HR':
+        is_hr = True
+        
+    return render(request, 'accounts/settings.html', {
+        'active_page': 'settings',
+        'is_admin': is_admin,
+        'is_hr': is_hr,
+    })
+
+
+@login_required
+@require_POST
+def switch_role_view(request):
+    """
+    DEV TOOL: Giúp superuser chuyển đổi vai trò nhanh chóng để test giao diện.
+    Chỉ hiển thị và hoạt động đổi với Superuser.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, 'Tính năng Switch Role này chỉ dành cho tài khoản Admin/Dev khởi tạo (Superuser).')
+        return redirect('dashboard')
+        
+    role_name = request.POST.get('role_name')
+    ensure_profile(request.user)
+    
+    if role_name:
+        role, created = Role.objects.get_or_create(name=role_name)
+        request.user.profile.role = role
+        request.user.profile.save()
+        messages.success(request, f'[DEV] Đã mô phỏng trải nghiệm với vai trò: {role.get_name_display()}')
+    else:
+        request.user.profile.role = None
+        request.user.profile.save()
+        messages.success(request, f'[DEV] Đã gỡ Role. Tài khoản trở về trạng thái chưa cấp quyền.')
+        
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+# =============================================================================
+# HR VIEWS: Tạo hồ sơ nhân viên (chỉ cho HR)
+# =============================================================================
+
+@login_required
+@user_passes_test(is_hr_user)
+def hr_create_profile_view(request):
+    """
+    Trang tạo hồ sơ nhân viên mới (dành cho HR).
+    - GET: hiển thị form tạo hồ sơ
+    - POST: tạo UserProfile + tài khoản Django tự động
+    """
+    ensure_profile(request.user)
+    
+    if request.method == 'POST':
+        full_name = request.POST.get('full_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone_number', '').strip()
+        dob = request.POST.get('date_of_birth', '').strip()
+        employee_id = request.POST.get('employee_id', '').strip()
+        department = request.POST.get('department', '').strip()
+        position = request.POST.get('position', '').strip()
+        role_name = request.POST.get('role', '').strip()
+        auto_create = request.POST.get('auto_create_account') == 'on'
+        
+        # Validation
+        errors = []
+        if not full_name:
+            errors.append('Họ và tên không được để trống.')
+        if not employee_id:
+            errors.append('Mã nhân viên không được để trống.')
+        elif UserProfile.objects.filter(employee_id=employee_id).exists():
+            errors.append(f'Mã nhân viên "{employee_id}" đã tồn tại.')
+        
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return render(request, 'accounts/hr_create_profile.html', {
+                'active_page': 'hr_profiles',
+                'form_data': request.POST,
+            })
+        
+        if auto_create:
+            # Tự động tạo tài khoản Django
+            username = employee_id.lower().replace(' ', '')
+            password = f'{employee_id}@2026'
+            
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f'Username "{username}" đã tồn tại. Vui lòng đổi Mã NV.')
+                return render(request, 'accounts/hr_create_profile.html', {
+                    'active_page': 'hr_profiles',
+                    'form_data': request.POST,
+                })
+            
+            user = User.objects.create_user(username=username, email=email, password=password)
+            profile = ensure_profile(user)
+            profile.full_name = full_name
+            profile.phone_number = phone
+            profile.date_of_birth = dob
+            profile.employee_id = employee_id
+            
+            if role_name:
+                role, _ = Role.objects.get_or_create(name=role_name)
+                profile.role = role
+            
+            profile.save()
+            
+            messages.success(request,
+                f'✅ Đã tạo hồ sơ và tài khoản cho "{full_name}" thành công! '
+                f'Username: {username} | Mật khẩu: {password}'
+            )
+        else:
+            messages.success(request, f'✅ Đã lưu hồ sơ "{full_name}" (Chưa tạo tài khoản).')
+        
+        return redirect('hr_create_profile')
+    
+    return render(request, 'accounts/hr_create_profile.html', {
+        'active_page': 'hr_profiles',
     })
 
 

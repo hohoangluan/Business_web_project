@@ -1,9 +1,128 @@
 {% extends 'accounts/base_dashboard.html' %}
 {# GÁN VAI TRÒ - assign_role.html. View: assign_role_view #}
 
-{% block title %}Gán vai trò - {{ target_user.username }} - HR Studio{% endblock %}
+{% block title %}Gán vai trò - {{ target_user.username }} - HRMS Portal{% endblock %}
 
 {% block content %}
+<style>
+    /* ===== ROLE PICKER CREATIVE ===== */
+    .role-picker-wrapper {
+        max-width: 680px;
+    }
+    .rp-user-banner {
+        display: flex; align-items: center; gap: 1.25rem;
+        padding: 1.5rem; background: linear-gradient(135deg, #f8fafc 0%, #ede9fe 100%);
+        border-radius: 16px; margin-bottom: 2rem;
+        border: 1px solid rgba(139,92,246,0.15);
+    }
+    .rp-avatar {
+        width: 56px; height: 56px; border-radius: 50%;
+        background: var(--gradient-purple);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; font-weight: 800; color: #fff;
+        box-shadow: 0 4px 15px rgba(139,92,246,0.3);
+    }
+    .rp-user-name { font-weight: 700; font-size: 1.15rem; color: var(--text-main); }
+    .rp-user-email { font-size: 0.85rem; color: var(--text-muted); }
+    .rp-user-current {
+        margin-left: auto; padding: 4px 14px;
+        border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+        background: rgba(139,92,246,0.1); color: #7c3aed;
+        border: 1px solid rgba(139,92,246,0.25);
+    }
+
+    /* Role Cards Grid */
+    .rp-section-title {
+        font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px;
+        color: var(--text-muted); font-weight: 700; margin-bottom: 1rem;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .rp-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 1rem; margin-bottom: 2rem;
+    }
+    .rp-card {
+        position: relative; padding: 1.5rem 1.25rem;
+        border-radius: 16px; border: 2px solid var(--border-light);
+        background: var(--bg-main); cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; flex-direction: column; align-items: center;
+        gap: 0.75rem; text-align: center;
+        overflow: hidden;
+    }
+    .rp-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 4px; border-radius: 16px 16px 0 0;
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .rp-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    }
+    .rp-card.selected {
+        border-color: transparent;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .rp-card.selected::before { opacity: 1; }
+    .rp-card.selected .rp-check { opacity: 1; transform: scale(1); }
+
+    /* Role-specific colors */
+    .rp-card[data-role="admin"]::before { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .rp-card[data-role="admin"].selected { border-color: #ef4444; background: linear-gradient(to bottom, #fef2f2, #fff); }
+
+    .rp-card[data-role="hr"]::before { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .rp-card[data-role="hr"].selected { border-color: #8b5cf6; background: linear-gradient(to bottom, #f5f3ff, #fff); }
+
+    .rp-card[data-role="manager"]::before { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .rp-card[data-role="manager"].selected { border-color: #3b82f6; background: linear-gradient(to bottom, #eff6ff, #fff); }
+
+    .rp-card[data-role="leader"]::before { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .rp-card[data-role="leader"].selected { border-color: #f59e0b; background: linear-gradient(to bottom, #fffbeb, #fff); }
+
+    .rp-card[data-role="employee"]::before { background: linear-gradient(135deg, #10b981, #059669); }
+    .rp-card[data-role="employee"].selected { border-color: #10b981; background: linear-gradient(to bottom, #ecfdf5, #fff); }
+
+    /* Icon Container */
+    .rp-icon {
+        width: 52px; height: 52px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; color: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.3s;
+    }
+    .rp-card:hover .rp-icon { transform: scale(1.1) rotate(-3deg); }
+    .rp-card[data-role="admin"] .rp-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .rp-card[data-role="hr"] .rp-icon { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .rp-card[data-role="manager"] .rp-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .rp-card[data-role="leader"] .rp-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .rp-card[data-role="employee"] .rp-icon { background: linear-gradient(135deg, #10b981, #059669); }
+
+    .rp-card-title { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+    .rp-card-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; }
+
+    /* Checkmark overlay */
+    .rp-check {
+        position: absolute; top: 10px; right: 10px;
+        width: 24px; height: 24px; border-radius: 50%;
+        background: #10b981; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; font-weight: 900;
+        opacity: 0; transform: scale(0.5);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Footer Actions */
+    .rp-footer {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-top: 1.5rem; border-top: 1px solid var(--border-light);
+    }
+    .rp-hint {
+        font-size: 0.82rem; color: var(--text-muted);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .rp-actions { display: flex; gap: 0.75rem; }
+</style>
+
 <div class="page-header animate-fade">
     <div>
         <h1>Gán vai trò</h1>
@@ -14,35 +133,115 @@
     </a>
 </div>
 
-<div class="card animate-fade" style="max-width:550px;">
-    <div class="card-header">
-        <h3><i class="fa-solid fa-id-badge" style="color:var(--primary);"></i>&nbsp; Vai trò hệ thống</h3>
+<div class="role-picker-wrapper animate-fade">
+    <!-- User Banner -->
+    <div class="rp-user-banner">
+        <div class="rp-avatar">{{ target_user.username|make_list|first|upper }}</div>
+        <div>
+            <div class="rp-user-name">{{ target_user.profile.full_name|default:target_user.username }}</div>
+            <div class="rp-user-email">{{ target_user.email|default:"Chưa có email" }}</div>
+        </div>
+        <div class="rp-user-current">
+            {% if target_user.profile.role %}
+                {{ target_user.profile.role.get_name_display }}
+            {% else %}
+                Chưa gán
+            {% endif %}
+        </div>
     </div>
-    <div class="card-body">
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding:1rem;background:var(--bg-main);border-radius:var(--radius);">
-            <div class="table-avatar" style="background:var(--gradient-purple);width:42px;height:42px;font-size:0.9rem;">
-                {{ target_user.username|make_list|first|upper }}
+
+    <!-- Role Picker -->
+    <div class="rp-section-title">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Chọn vai trò mới
+    </div>
+
+    <form method="post" novalidate id="roleForm">
+        {% csrf_token %}
+        <!-- Hidden select synced with cards -->
+        <select name="role" id="role-select" style="display:none;">
+            <option value="">-- No Role --</option>
+            {% for choice in form.role.field.queryset %}
+                <option value="{{ choice.pk }}" {% if form.role.value == choice.pk|stringformat:"d" or target_user.profile.role_id == choice.pk %}selected{% endif %}>
+                    {{ choice.get_name_display }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <div class="rp-grid">
+            <div class="rp-card {% if target_user.profile.role.name == 'admin' %}selected{% endif %}" data-role="admin" onclick="pickRole(this, 'admin')">
+                <div class="rp-check"><i class="fa-solid fa-check"></i></div>
+                <div class="rp-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="rp-card-title">Admin</div>
+                <div class="rp-card-desc">Quản trị hệ thống, phân quyền truy cập</div>
             </div>
-            <div>
-                <div style="font-weight:600;">{{ target_user.profile.full_name|default:target_user.username }}</div>
-                <div style="font-size:0.8rem;color:var(--text-muted);">{{ target_user.email|default:"Chưa có email" }}</div>
+
+            <div class="rp-card {% if target_user.profile.role.name == 'hr' %}selected{% endif %}" data-role="hr" onclick="pickRole(this, 'hr')">
+                <div class="rp-check"><i class="fa-solid fa-check"></i></div>
+                <div class="rp-icon"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="rp-card-title">HR</div>
+                <div class="rp-card-desc">Nhân sự, chính sách lương & phúc lợi</div>
+            </div>
+
+            <div class="rp-card {% if target_user.profile.role.name == 'manager' %}selected{% endif %}" data-role="manager" onclick="pickRole(this, 'manager')">
+                <div class="rp-check"><i class="fa-solid fa-check"></i></div>
+                <div class="rp-icon"><i class="fa-solid fa-briefcase"></i></div>
+                <div class="rp-card-title">Manager</div>
+                <div class="rp-card-desc">Quản lý bộ phận, phê duyệt đơn từ</div>
+            </div>
+
+            <div class="rp-card {% if target_user.profile.role.name == 'leader' %}selected{% endif %}" data-role="leader" onclick="pickRole(this, 'leader')">
+                <div class="rp-check"><i class="fa-solid fa-check"></i></div>
+                <div class="rp-icon"><i class="fa-solid fa-star"></i></div>
+                <div class="rp-card-title">Leader</div>
+                <div class="rp-card-desc">Trưởng nhóm, giám sát tiến độ</div>
+            </div>
+
+            <div class="rp-card {% if target_user.profile.role.name == 'employee' %}selected{% endif %}" data-role="employee" onclick="pickRole(this, 'employee')">
+                <div class="rp-check"><i class="fa-solid fa-check"></i></div>
+                <div class="rp-icon"><i class="fa-solid fa-user"></i></div>
+                <div class="rp-card-title">Employee</div>
+                <div class="rp-card-desc">Nhân viên, xem thông tin cá nhân</div>
             </div>
         </div>
 
-        <form method="post" novalidate>
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="form-label">Chọn vai trò</label>
-                {{ form.role }}
-                <span class="form-text">Vai trò quy định quyền truy cập UI. Thay đổi vai trò KHÔNG ảnh hưởng đến quyền (permissions).</span>
+        <!-- Footer -->
+        <div class="rp-footer">
+            <div class="rp-hint">
+                <i class="fa-solid fa-circle-info"></i>
+                Vai trò quy định giao diện. Không ảnh hưởng đến permissions.
             </div>
-            <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;">
+            <div class="rp-actions">
                 <a href="{% url 'user_list' %}" class="btn btn-secondary">Hủy</a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-check"></i> Lưu vai trò
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
+
+<script>
+    // Map role names to option values from the hidden select
+    const roleSelect = document.getElementById('role-select');
+    const roleMap = {};
+    for (const opt of roleSelect.options) {
+        const text = opt.textContent.trim().toLowerCase();
+        if (text.includes('admin')) roleMap['admin'] = opt.value;
+        else if (text.includes('hr') || text.includes('nhân sự')) roleMap['hr'] = opt.value;
+        else if (text.includes('manager') || text.includes('quản lý')) roleMap['manager'] = opt.value;
+        else if (text.includes('leader') || text.includes('trưởng nhóm')) roleMap['leader'] = opt.value;
+        else if (text.includes('employee') || text.includes('nhân viên')) roleMap['employee'] = opt.value;
+    }
+
+    function pickRole(card, roleName) {
+        // Deselect all
+        document.querySelectorAll('.rp-card').forEach(c => c.classList.remove('selected'));
+        // Select clicked
+        card.classList.add('selected');
+        // Sync hidden select
+        if (roleMap[roleName]) {
+            roleSelect.value = roleMap[roleName];
+        }
+    }
+</script>
 {% endblock %}

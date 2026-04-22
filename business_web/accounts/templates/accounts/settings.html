@@ -1,0 +1,242 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG CÀI ĐẶT CHUNG (SETTINGS) #}
+{% load static %}
+
+{% block title %}Cài đặt chung - HRMS{% endblock %}
+
+{% block content %}
+<style>
+    .settings-container {
+        display: flex;
+        gap: 2rem;
+        min-height: 70vh;
+    }
+
+    /* Bảng Tab bên trái */
+    .settings-sidebar {
+        width: 250px;
+        flex-shrink: 0;
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1rem 0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);
+    }
+    
+    .st-tab {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.8rem 1.5rem;
+        color: var(--text-secondary);
+        font-weight: 600; font-size: 0.95rem;
+        cursor: pointer; transition: all 0.2s;
+        border-left: 3px solid transparent;
+    }
+    .st-tab:hover { background: #f8fafc; color: var(--text-main); }
+    .st-tab.active {
+        background: #f1f5f9;
+        color: var(--primary);
+        border-left-color: var(--primary);
+    }
+
+    /* Nội dung khung bên phải */
+    .settings-content {
+        flex: 1;
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 2.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.015);
+    }
+    
+    .st-panel { display: none; animation: fadeIn 0.3s ease-in-out; }
+    .st-panel.active { display: block; }
+    
+    .st-panel-header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    .st-panel-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
+    .st-panel-desc { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
+
+    /* Form Fields Styling */
+    .st-form-group { margin-bottom: 1.5rem; }
+    .st-label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .st-input {
+        width: 100%; max-width: 400px;
+        padding: 0.6rem 1rem;
+        border: 1px solid var(--border-light);
+        border-radius: 6px; font-family: 'Inter', sans-serif;
+        background: #f8fafc; transition: border-color 0.2s;
+    }
+    .st-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    
+    .st-btn-save {
+        background: var(--gradient-blue); color: #fff;
+        border: none; padding: 0.6rem 1.5rem; border-radius: 6px;
+        font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .st-btn-save:hover { opacity: 0.9; }
+
+    /* Toggle Switch (Nút gạt) */
+    .st-toggle {
+        position: relative; display: inline-block; width: 44px; height: 24px;
+    }
+    .st-toggle input { opacity: 0; width: 0; height: 0; }
+    .st-slider {
+        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1; transition: .3s; border-radius: 34px;
+    }
+    .st-slider:before {
+        position: absolute; content: ""; height: 18px; width: 18px;
+        left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;
+    }
+    input:checked + .st-slider { background-color: var(--primary); }
+    input:checked + .st-slider:before { transform: translateX(20px); }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Cài đặt Chung</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Quản lý toàn bộ cấu hình hệ thống HRMS</p>
+    </div>
+
+    <div class="settings-container">
+        <!-- Sidebar Tabs -->
+        <div class="settings-sidebar">
+            <div class="st-tab active" onclick="openTab('tab-personal')"><i class="fa-solid fa-user-gear"></i> Cá nhân hóa</div>
+            {% if is_admin %}
+            <div class="st-tab" onclick="openTab('tab-company')"><i class="fa-solid fa-building"></i> Hồ sơ Công ty</div>
+            {% endif %}
+            {% if is_hr %}
+            <div class="st-tab" onclick="openTab('tab-hr')"><i class="fa-solid fa-scale-balanced"></i> Luật Nhân Sự & Thuế</div>
+            {% endif %}
+        </div>
+
+        <!-- Content Area -->
+        <div class="settings-content">
+            
+            <!-- PANEL 1: CÁ NHÂN HÓA -->
+            <div id="tab-personal" class="st-panel active">
+                <div class="st-panel-header">
+                    <div class="st-panel-title">Cá nhân hóa Giao diện</div>
+                    <div class="st-panel-desc">Tùy biến bộ công cụ HRMS theo ý muốn của riêng bạn.</div>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; max-width: 500px; padding: 1rem 0; border-bottom: 1px solid #f1f5f9;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-main);">Chế độ Tối (Dark Mode)</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Sử dụng giao diện ban đêm bảo vệ mắt</div>
+                    </div>
+                    <label class="st-toggle">
+                        <input type="checkbox">
+                        <span class="st-slider"></span>
+                    </label>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; max-width: 500px; padding: 1rem 0; border-bottom: 1px solid #f1f5f9;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-main);">Nhận Thông Báo Email</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Thông báo khi có phiếu lương mới hoặc đơn được duyệt</div>
+                    </div>
+                    <label class="st-toggle">
+                        <input type="checkbox" checked>
+                        <span class="st-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="st-form-group" style="margin-top: 1.5rem;">
+                    <label class="st-label">Ngôn ngữ hiển thị</label>
+                    <select class="st-input" style="width: 200px;">
+                        <option>Tiếng Việt (Mặc định)</option>
+                        <option>English (US)</option>
+                    </select>
+                </div>
+                
+                <button class="st-btn-save" onclick="alert('Đã lưu cấu hình cá nhân!')">Lưu thay đổi</button>
+            </div>
+
+            <!-- PANEL 2: CÔNG TY (Chỉ Admin) -->
+            {% if is_admin %}
+            <div id="tab-company" class="st-panel">
+                <div class="st-panel-header">
+                    <div class="st-panel-title">Hồ sơ Doanh nghiệp</div>
+                    <div class="st-panel-desc">Thông tin sẽ đính kèm trên mẫu báo cáo, hợp đồng.</div>
+                </div>
+                
+                <div class="st-form-group">
+                    <label class="st-label">Tên Doanh nghiệp Đăng ký</label>
+                    <input type="text" class="st-input" value="Công ty TNHH Kính Râm Bay">
+                </div>
+                
+                <div class="st-form-group">
+                    <label class="st-label">Mã số thuế</label>
+                    <input type="text" class="st-input" value="0312689551">
+                </div>
+                
+                <div class="st-form-group">
+                    <label class="st-label">Email Tổng đài hệ thống</label>
+                    <input type="email" class="st-input" value="noreply@kinhrambay.vn">
+                </div>
+
+                <button class="st-btn-save" style="background: var(--gradient-blue);" onclick="alert('Đã lưu Thông tin Doanh nghiệp!')">Lưu Cấu hình</button>
+            </div>
+            {% endif %}
+
+            <!-- PANEL 3: LUẬT NHÂN SỰ (Chỉ HR) -->
+            {% if is_hr %}
+            <div id="tab-hr" class="st-panel">
+                <div class="st-panel-header">
+                    <div class="st-panel-title">Luật Nhân Sự & Cấu hình Thuế</div>
+                    <div class="st-panel-desc">Tham chiếu luật tính toán dùng cho toàn bộ máy Tính Lương (Payroll).</div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 600px;">
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: #ef4444;"><i class="fa-solid fa-money-bill-transfer"></i> KHẤU TRỪ BẢO HIỂM NĂM 2026</h4>
+                        <div class="st-form-group">
+                            <label class="st-label">Bảo Hiểm Xã Hội (BHXH) - % Lương</label>
+                            <input type="number" class="st-input" value="8.0" step="0.5" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">%</span>
+                        </div>
+                        <div class="st-form-group">
+                            <label class="st-label">Bảo Hiểm Y Tế (BHYT) - % Lương</label>
+                            <input type="number" class="st-input" value="1.5" step="0.5" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">%</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: #f59e0b;"><i class="fa-solid fa-scale-balanced"></i> QUY ĐỊNH THUẾ TNCN</h4>
+                        <div class="st-form-group">
+                            <label class="st-label">Mức giảm trừ gia cảnh Bản thân</label>
+                            <input type="text" class="st-input" value="11,000,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ</span>
+                        </div>
+                        <div class="st-form-group">
+                            <label class="st-label">Mức giảm trừ Người phụ thuộc</label>
+                            <input type="text" class="st-input" value="4,400,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr style="border:0; border-top: 1px dashed #cbd5e1; margin: 1.5rem 0; max-width: 600px;">
+                
+                <div class="st-form-group">
+                    <label class="st-label">Mức phạt chuẩn Nghỉ không phép (Trừ thẳng vào lương)</label>
+                    <input type="text" class="st-input" value="500,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ/Ngày</span>
+                </div>
+
+                <button class="st-btn-save" style="background: var(--gradient-purple);" onclick="alert('Đã khởi tạo quy định Luật Thuế mới thành công!')">Cập nhật Luật Nhân Sự</button>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTab(tabId) {
+        // Remove active from all tabs
+        document.querySelectorAll('.st-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.st-panel').forEach(p => p.classList.remove('active'));
+        
+        // Add active to clicked tab
+        event.currentTarget.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+</script>
+{% endblock %}

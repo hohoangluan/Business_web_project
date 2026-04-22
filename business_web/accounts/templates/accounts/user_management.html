@@ -80,7 +80,7 @@
                                 </div>
                                 <div style="font-size:0.75rem;color:var(--text-muted);">
                                     @{{ u.username }}
-                                    {% if u.is_superuser %}
+                                    {% if u.profile.is_admin %}
                                         <span class="badge badge-superuser" style="margin-left:4px;">superuser</span>
                                     {% endif %}
                                 </div>

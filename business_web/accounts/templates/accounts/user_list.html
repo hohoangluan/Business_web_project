@@ -173,7 +173,7 @@
                 <tr>
                     <td>
                         {{ u.username }}
-                        {% if u.is_superuser %}<span class="badge badge-master">superuser</span>{% endif %}
+                        {% if u.profile.is_admin %}<span class="badge badge-master">superuser</span>{% endif %}
                     </td>
                     <td>{{ u.profile.employee_id|default:"—" }}</td>
                     <td>{{ u.email|default:"—" }}</td>

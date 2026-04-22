@@ -46,8 +46,8 @@ Blocks có thể override:
                         <i class="fa-solid fa-building"></i>
                     </div>
                     <div class="logo-text">
-                        <span class="logo-name">HR Studio</span>
-                        <span class="logo-sub">Creative Workspace</span>
+                        <span class="logo-name">HRMS</span>
+                        <span class="logo-sub">Portal</span>
                     </div>
                 </div>
             </div>
@@ -68,7 +68,8 @@ Blocks có thể override:
                     <span>Hồ sơ cá nhân</span>
                 </a>
 
-                <!-- ================== CÁ NHÂN (Mọi role) ================== -->
+                <!-- ===== NGHIỆP VỤ (Chỉ dành cho khối Nhân sự / Nhân viên) ===== -->
+                {% if not request.user.profile.is_admin %}
                 <div class="nav-section-title">Cá nhân</div>
                 
                 <a href="{% url 'contract' %}" class="nav-item {% if active_page == 'contract' %}active{% endif %}">
@@ -87,10 +88,16 @@ Blocks có thể override:
                     <i class="fa-solid fa-business-time"></i>
                     <span>Tăng ca</span>
                 </a>
+                {% if request.user.profile.role.name == 'HR' or request.user.profile.role.name == 'hr' %}
                 <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Thống kê</span>
                 </a>
+                <a href="{% url 'hr_create_profile' %}" class="nav-item {% if active_page == 'hr_profiles' %}active{% endif %}">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Tạo hồ sơ NV</span>
+                </a>
+                {% endif %}
                 <a href="{% url 'reports' %}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
                     <i class="fa-solid fa-file-signature"></i>
                     <span>Báo cáo</span>
@@ -107,10 +114,11 @@ Blocks có thể override:
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                     <span>Tiền lương</span>
                 </a>
+                {% endif %}  <!-- End of Khối nghiệp vụ -->
 
 
                 <!-- ================== HỆ THỐNG (Chỉ Admin/Superuser) ================== -->
-                {% if request.user.is_superuser or request.user.profile.is_admin %}
+                {% if request.user.profile.is_admin %}
                 <div class="nav-section-title">Hệ thống</div>
 
                 <!-- Quản lý tài khoản -->
@@ -128,8 +136,8 @@ Blocks có thể override:
                 </a>
                 {% endif %}
 
-                <!-- Cài đặt (placeholder - chưa có backend) -->
-                <a href="#" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+                <!-- Cài đặt -->
+                <a href="{% url 'settings' %}" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
                     <i class="fa-solid fa-gear"></i>
                     <span>Cài đặt chung</span>
                 </a>
@@ -172,6 +180,141 @@ Blocks có thể override:
                         <i class="fa-solid fa-search"></i>
                         <input type="text" placeholder="Tìm kiếm...">
                     </div>
+
+                    {% if request.user.is_superuser %}
+                    <!-- DEV TOOLS: ROLE SWITCHER (Creative Edition) -->
+                    <style>
+                        .dev-switcher { position: relative; margin-right: 14px; }
+                        .dev-toggle {
+                            display: flex; align-items: center; gap: 6px;
+                            padding: 5px 14px 5px 10px;
+                            background: linear-gradient(135deg, #7c3aed, #db2777);
+                            color: #fff; border: none; border-radius: 20px;
+                            font-size: 0.78rem; font-weight: 700; cursor: pointer;
+                            font-family: 'Inter', sans-serif;
+                            box-shadow: 0 0 12px rgba(124,58,237,0.35);
+                            animation: devPulse 2.5s ease-in-out infinite;
+                            transition: transform 0.2s;
+                        }
+                        .dev-toggle:hover { transform: scale(1.05); }
+                        .dev-toggle .dev-dot {
+                            width: 7px; height: 7px; background: #34d399;
+                            border-radius: 50%; box-shadow: 0 0 6px #34d399;
+                        }
+                        @keyframes devPulse {
+                            0%, 100% { box-shadow: 0 0 12px rgba(124,58,237,0.35); }
+                            50% { box-shadow: 0 0 22px rgba(219,39,119,0.5); }
+                        }
+                        .dev-panel {
+                            display: none; position: absolute; top: calc(100% + 10px); right: 0;
+                            background: #1e1b3a; border: 1px solid rgba(124,58,237,0.4);
+                            border-radius: 16px; padding: 18px; min-width: 280px;
+                            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+                            z-index: 9999; animation: panelIn 0.25s ease-out;
+                        }
+                        .dev-panel.open { display: block; }
+                        @keyframes panelIn {
+                            from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+                            to { opacity: 1; transform: translateY(0) scale(1); }
+                        }
+                        .dev-panel-title {
+                            display: flex; align-items: center; gap: 8px;
+                            font-size: 0.7rem; text-transform: uppercase;
+                            letter-spacing: 1.5px; color: #a78bfa;
+                            font-weight: 800; margin-bottom: 14px;
+                            padding-bottom: 10px;
+                            border-bottom: 1px solid rgba(124,58,237,0.2);
+                        }
+                        .dev-roles { display: flex; flex-direction: column; gap: 6px; }
+                        .dev-role-btn {
+                            display: flex; align-items: center; gap: 10px;
+                            padding: 10px 14px; border-radius: 10px;
+                            border: 1.5px solid transparent;
+                            background: rgba(255,255,255,0.04);
+                            color: #e2e8f0; font-size: 0.88rem;
+                            font-weight: 600; cursor: pointer;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.2s ease;
+                        }
+                        .dev-role-btn:hover {
+                            background: rgba(255,255,255,0.08);
+                            transform: translateX(4px);
+                        }
+                        .dev-role-btn.active-role {
+                            border-color: #a78bfa;
+                            background: rgba(167,139,250,0.12);
+                            color: #c4b5fd;
+                        }
+                        .dev-role-btn.active-role::after {
+                            content: '✓'; margin-left: auto;
+                            font-size: 0.85rem; color: #34d399;
+                        }
+                        .dev-icon {
+                            width: 32px; height: 32px; border-radius: 8px;
+                            display: flex; align-items: center; justify-content: center;
+                            font-size: 0.9rem; color: #fff; flex-shrink: 0;
+                        }
+                        .dev-icon.ic-admin { background: linear-gradient(135deg, #ef4444, #dc2626); }
+                        .dev-icon.ic-hr { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+                        .dev-icon.ic-manager { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+                        .dev-icon.ic-leader { background: linear-gradient(135deg, #f59e0b, #d97706); }
+                        .dev-icon.ic-employee { background: linear-gradient(135deg, #10b981, #059669); }
+                        .dev-role-label { display: flex; flex-direction: column; }
+                        .dev-role-sub { font-size: 0.7rem; color: #64748b; font-weight: 400; }
+                    </style>
+
+                    <div class="dev-switcher">
+                        <button class="dev-toggle" onclick="document.getElementById('devPanel').classList.toggle('open')" type="button">
+                            <span class="dev-dot"></span>
+                            DEV ⚡ {% if request.user.profile.role %}{{ request.user.profile.role.get_name_display }}{% else %}No Role{% endif %}
+                        </button>
+
+                        <div class="dev-panel" id="devPanel">
+                            <div class="dev-panel-title">
+                                <i class="fa-solid fa-flask"></i> Mô phỏng Vai trò
+                            </div>
+                            <div class="dev-roles">
+                                <form id="devSwitchForm" action="{% url 'switch_role' %}" method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="role_name" id="devRoleInput">
+                                </form>
+
+                                <button class="dev-role-btn {% if request.user.profile.role.name == 'admin' %}active-role{% endif %}" onclick="devSwitch('admin')">
+                                    <div class="dev-icon ic-admin"><i class="fa-solid fa-shield-halved"></i></div>
+                                    <div class="dev-role-label">Admin <span class="dev-role-sub">Quản trị hệ thống</span></div>
+                                </button>
+                                <button class="dev-role-btn {% if request.user.profile.role.name == 'hr' %}active-role{% endif %}" onclick="devSwitch('hr')">
+                                    <div class="dev-icon ic-hr"><i class="fa-solid fa-user-tie"></i></div>
+                                    <div class="dev-role-label">HR <span class="dev-role-sub">Nhân sự & Chính sách</span></div>
+                                </button>
+                                <button class="dev-role-btn {% if request.user.profile.role.name == 'manager' %}active-role{% endif %}" onclick="devSwitch('manager')">
+                                    <div class="dev-icon ic-manager"><i class="fa-solid fa-briefcase"></i></div>
+                                    <div class="dev-role-label">Manager <span class="dev-role-sub">Quản lý Bộ phận</span></div>
+                                </button>
+                                <button class="dev-role-btn {% if request.user.profile.role.name == 'leader' %}active-role{% endif %}" onclick="devSwitch('leader')">
+                                    <div class="dev-icon ic-leader"><i class="fa-solid fa-star"></i></div>
+                                    <div class="dev-role-label">Leader <span class="dev-role-sub">Trưởng nhóm</span></div>
+                                </button>
+                                <button class="dev-role-btn {% if request.user.profile.role.name == 'employee' %}active-role{% endif %}" onclick="devSwitch('employee')">
+                                    <div class="dev-icon ic-employee"><i class="fa-solid fa-user"></i></div>
+                                    <div class="dev-role-label">Employee <span class="dev-role-sub">Nhân viên</span></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        function devSwitch(role) {
+                            document.getElementById('devRoleInput').value = role;
+                            document.getElementById('devSwitchForm').submit();
+                        }
+                        // Close panel khi click ra ngoài
+                        document.addEventListener('click', function(e) {
+                            const panel = document.getElementById('devPanel');
+                            const switcher = e.target.closest('.dev-switcher');
+                            if (!switcher && panel) panel.classList.remove('open');
+                        });
+                    </script>
+                    {% endif %}
 
                     <!-- Nút thông báo -->
                     <button class="notification-btn">

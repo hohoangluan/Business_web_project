@@ -1,0 +1,320 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TẠO HỒ SƠ NHÂN VIÊN MỚI (HR Only) #}
+{% load static %}
+
+{% block title %}Tạo hồ sơ nhân viên - HRMS Portal{% endblock %}
+
+{% block content %}
+<style>
+    /* ===== LAYOUT ===== */
+    .hrc-wrapper {
+        max-width: 820px;
+    }
+    .hrc-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+    .hrc-title { font-size: 1.6rem; font-weight: 800; color: var(--text-main); }
+    .hrc-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+
+    /* ===== FORM CARD ===== */
+    .hrc-card {
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    /* Section Headers */
+    .hrc-section {
+        padding: 1.75rem 2rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .hrc-section:last-child { border-bottom: none; }
+    .hrc-section-head {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .hrc-sec-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1rem;
+    }
+    .hrc-sec-title { font-weight: 700; font-size: 1.05rem; color: var(--text-main); }
+    .hrc-sec-desc { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Form Grid */
+    .hrc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+    .hrc-grid .full { grid-column: 1 / -1; }
+
+    .hrc-field label {
+        display: block; font-weight: 600; font-size: 0.88rem;
+        color: var(--text-secondary); margin-bottom: 0.4rem;
+    }
+    .hrc-field label .req { color: #ef4444; }
+    .hrc-field input,
+    .hrc-field select {
+        width: 100%; padding: 0.65rem 1rem;
+        border: 1.5px solid var(--border-light);
+        border-radius: 8px; font-family: 'Inter', sans-serif;
+        font-size: 0.92rem; background: #f8fafc;
+        transition: all 0.2s;
+    }
+    .hrc-field input:focus,
+    .hrc-field select:focus {
+        outline: none; border-color: var(--primary);
+        background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .hrc-field input::placeholder { color: #94a3b8; }
+
+    /* Auto-account toggle */
+    .hrc-auto-box {
+        display: flex; align-items: center; gap: 1.25rem;
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+        border: 1.5px dashed #86efac;
+        border-radius: 12px;
+    }
+    .hrc-auto-icon {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: linear-gradient(135deg, #10b981, #059669);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1.2rem; flex-shrink: 0;
+    }
+    .hrc-auto-info { flex: 1; }
+    .hrc-auto-title { font-weight: 700; color: #065f46; font-size: 0.95rem; }
+    .hrc-auto-desc { font-size: 0.8rem; color: #047857; margin-top: 0.15rem; }
+
+    /* Toggle switch */
+    .hrc-switch {
+        position: relative; display: inline-block; width: 52px; height: 28px;
+    }
+    .hrc-switch input { opacity: 0; width: 0; height: 0; }
+    .hrc-switch-slider {
+        position: absolute; cursor: pointer; inset: 0;
+        background-color: #cbd5e1; transition: .3s; border-radius: 34px;
+    }
+    .hrc-switch-slider:before {
+        position: absolute; content: ""; height: 22px; width: 22px;
+        left: 3px; bottom: 3px; background-color: white;
+        transition: .3s; border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    input:checked + .hrc-switch-slider { background-color: #10b981; }
+    input:checked + .hrc-switch-slider:before { transform: translateX(24px); }
+
+    /* Preview Card */
+    .hrc-preview {
+        margin-top: 1rem; padding: 1rem 1.5rem;
+        background: #f1f5f9; border-radius: 10px;
+        display: none; animation: fadeIn 0.3s;
+    }
+    .hrc-preview.show { display: block; }
+    .hrc-preview-label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .hrc-preview-row { display: flex; gap: 2rem; font-size: 0.9rem; }
+    .hrc-preview-row span { color: var(--text-muted); }
+    .hrc-preview-row strong { color: var(--text-main); }
+
+    /* Submit Footer */
+    .hrc-footer {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.5rem 2rem;
+        background: #f8fafc;
+        border-top: 1px solid var(--border-light);
+    }
+    .hrc-footer-hint { font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+
+    /* Role Cards (Mini) */
+    .hrc-role-list { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .hrc-role-chip {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 10px;
+        background: var(--bg-main); border: 2px solid var(--border-light);
+        cursor: pointer; transition: all 0.25s; font-size: 0.85rem; font-weight: 600;
+        color: var(--text-secondary);
+    }
+    .hrc-role-chip:hover { border-color: #a78bfa; transform: translateY(-2px); }
+    .hrc-role-chip.active { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+    .hrc-role-chip .chip-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+    }
+    .chip-admin { background: #ef4444; }
+    .chip-hr { background: #8b5cf6; }
+    .chip-manager { background: #3b82f6; }
+    .chip-leader { background: #f59e0b; }
+    .chip-employee { background: #10b981; }
+
+    @media (max-width: 640px) {
+        .hrc-grid { grid-template-columns: 1fr; }
+        .hrc-auto-box { flex-direction: column; text-align: center; }
+    }
+</style>
+
+<div class="hrc-wrapper animate-fade">
+    <div class="hrc-header">
+        <div>
+            <div class="hrc-title"><i class="fa-solid fa-user-plus" style="color:var(--primary);"></i> Tạo hồ sơ nhân viên mới</div>
+            <div class="hrc-subtitle">Nhập thông tin cá nhân — hệ thống sẽ tự động tạo tài khoản đăng nhập.</div>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="hrc-card">
+
+            <!-- Section 1: Thông tin cá nhân -->
+            <div class="hrc-section">
+                <div class="hrc-section-head">
+                    <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);"><i class="fa-solid fa-id-card"></i></div>
+                    <div>
+                        <div class="hrc-sec-title">Thông tin Cá nhân</div>
+                        <div class="hrc-sec-desc">Các trường đánh dấu <span style="color:#ef4444;">*</span> là bắt buộc</div>
+                    </div>
+                </div>
+
+                <div class="hrc-grid">
+                    <div class="hrc-field">
+                        <label>Họ và tên <span class="req">*</span></label>
+                        <input type="text" name="full_name" placeholder="VD: Nguyễn Văn A" value="{{ form_data.full_name|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Mã nhân viên <span class="req">*</span></label>
+                        <input type="text" name="employee_id" id="empIdInput" placeholder="VD: NV001" value="{{ form_data.employee_id|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="VD: nguyenvana@company.vn" value="{{ form_data.email|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Số điện thoại</label>
+                        <input type="text" name="phone_number" placeholder="VD: 0901234567" value="{{ form_data.phone_number|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày sinh</label>
+                        <input type="text" name="date_of_birth" placeholder="DD/MM/YYYY" value="{{ form_data.date_of_birth|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Vị trí & Vai trò -->
+            <div class="hrc-section">
+                <div class="hrc-section-head">
+                    <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-briefcase"></i></div>
+                    <div>
+                        <div class="hrc-sec-title">Vị trí & Vai trò</div>
+                        <div class="hrc-sec-desc">Bộ phận và cấp thẩm quyền ban đầu</div>
+                    </div>
+                </div>
+
+                <div class="hrc-grid">
+                    <div class="hrc-field">
+                        <label>Phòng ban / Bộ phận</label>
+                        <input type="text" name="department" placeholder="VD: Phòng Kinh doanh" value="{{ form_data.department|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Chức vụ</label>
+                        <input type="text" name="position" placeholder="VD: Chuyên viên" value="{{ form_data.position|default:'' }}">
+                    </div>
+                    <div class="hrc-field full">
+                        <label>Vai trò hệ thống</label>
+                        <input type="hidden" name="role" id="roleHiddenInput" value="{{ form_data.role|default:'employee' }}">
+                        <div class="hrc-role-list">
+                            <div class="hrc-role-chip {% if form_data.role == 'employee' or not form_data %}active{% endif %}" onclick="pickChip(this, 'employee')">
+                                <span class="chip-dot chip-employee"></span> Employee
+                            </div>
+                            <div class="hrc-role-chip {% if form_data.role == 'leader' %}active{% endif %}" onclick="pickChip(this, 'leader')">
+                                <span class="chip-dot chip-leader"></span> Leader
+                            </div>
+                            <div class="hrc-role-chip {% if form_data.role == 'manager' %}active{% endif %}" onclick="pickChip(this, 'manager')">
+                                <span class="chip-dot chip-manager"></span> Manager
+                            </div>
+                            <div class="hrc-role-chip {% if form_data.role == 'hr' %}active{% endif %}" onclick="pickChip(this, 'hr')">
+                                <span class="chip-dot chip-hr"></span> HR
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Tạo tài khoản tự động -->
+            <div class="hrc-section">
+                <div class="hrc-section-head">
+                    <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <div>
+                        <div class="hrc-sec-title">Tài khoản Đăng nhập</div>
+                        <div class="hrc-sec-desc">Tự động khởi tạo username & password khi lưu hồ sơ</div>
+                    </div>
+                </div>
+
+                <div class="hrc-auto-box">
+                    <div class="hrc-auto-icon"><i class="fa-solid fa-robot"></i></div>
+                    <div class="hrc-auto-info">
+                        <div class="hrc-auto-title">Tạo tài khoản tự động</div>
+                        <div class="hrc-auto-desc">Username = Mã NV (viết thường) · Mật khẩu = MãNV@2026</div>
+                    </div>
+                    <label class="hrc-switch">
+                        <input type="checkbox" name="auto_create_account" id="autoToggle" checked onchange="togglePreview()">
+                        <span class="hrc-switch-slider"></span>
+                    </label>
+                </div>
+
+                <div class="hrc-preview show" id="accPreview">
+                    <div class="hrc-preview-label"><i class="fa-solid fa-eye"></i> Xem trước tài khoản</div>
+                    <div class="hrc-preview-row">
+                        <div><span>Username:</span> <strong id="prevUser">nv001</strong></div>
+                        <div><span>Mật khẩu:</span> <strong id="prevPass">NV001@2026</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="hrc-footer">
+                <div class="hrc-footer-hint">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Nhân viên có thể đổi mật khẩu sau khi đăng nhập lần đầu.
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Hủy</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-sparkles"></i> Tạo hồ sơ
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    // Role chip picker
+    function pickChip(el, role) {
+        document.querySelectorAll('.hrc-role-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('roleHiddenInput').value = role;
+    }
+    
+    // Preview toggle
+    function togglePreview() {
+        const on = document.getElementById('autoToggle').checked;
+        document.getElementById('accPreview').classList.toggle('show', on);
+    }
+    
+    // Live preview username/password based on employee_id
+    const empInput = document.getElementById('empIdInput');
+    if (empInput) {
+        empInput.addEventListener('input', function() {
+            const raw = this.value.trim();
+            const username = raw.toLowerCase().replace(/\s/g, '');
+            document.getElementById('prevUser').textContent = username || '—';
+            document.getElementById('prevPass').textContent = raw ? raw + '@2026' : '—';
+        });
+        // Trigger on load
+        empInput.dispatchEvent(new Event('input'));
+    }
+</script>
+{% endblock %}

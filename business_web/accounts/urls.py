@@ -35,6 +35,9 @@ from .views import (
     payroll_view,               # MỚI: phiếu lương cá nhân
     payroll_calc_view,          # MỚI: tính lương HR
     payroll_approval_view,      # MỚI: duyệt bảng lương GĐ
+    settings_view,              # MỚI: cài đặt chung
+    switch_role_view,           # DEV: đổi vai trò nhanh
+    hr_create_profile_view,     # MỚI: HR tạo hồ sơ
     user_list_view,
     assign_role_view,
     assign_permissions_view,
@@ -97,6 +100,15 @@ urlpatterns = [
     path('payroll/', payroll_view, name='payroll'),
     path('payroll/calc/', payroll_calc_view, name='payroll_calc'),
     path('payroll/approval/', payroll_approval_view, name='payroll_approval'),
+
+    # Cài đặt
+    path('settings/', settings_view, name='settings'),
+
+    # DEV Toggles
+    path('switch-role/', switch_role_view, name='switch_role'),
+
+    # HR: Tạo hồ sơ nhân viên
+    path('hr/create-profile/', hr_create_profile_view, name='hr_create_profile'),
 
     # ---------- Admin routes (Admin / superuser only) ----------
     # Tất cả routes bên dưới yêu cầu quyền admin
