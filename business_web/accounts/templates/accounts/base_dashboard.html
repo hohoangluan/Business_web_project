@@ -88,7 +88,7 @@ Blocks có thể override:
                     <i class="fa-solid fa-business-time"></i>
                     <span>Tăng ca</span>
                 </a>
-                {% if request.user.profile.role.name == 'HR' or request.user.profile.role.name == 'hr' %}
+                {% if request.user.profile.role.name == 'hr' %}
                 <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Thống kê</span>
@@ -134,6 +134,13 @@ Blocks có thể override:
                     <i class="fa-solid fa-user-plus"></i>
                     <span>Tạo tài khoản</span>
                 </a>
+
+                {% if request.user.is_superuser %}
+                <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Thống kê</span>
+                </a>
+                {% endif %}
                 {% endif %}
 
                 <!-- Cài đặt -->

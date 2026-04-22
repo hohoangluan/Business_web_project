@@ -20,18 +20,21 @@ class PermissionManagementTests(TestCase):
         Runs before EVERY test method. Creates test users and data.
         Think of this as "prepare the stage before each scene."
         """
-        # Get or create the 4 roles (the data migration may have already created them)
-        self.role_master, _ = Role.objects.get_or_create(
-            name='master', defaults={'description': 'Full access'}
+        # Get or create the standard roles used by the current role model.
+        self.role_admin, _ = Role.objects.get_or_create(
+            name=Role.ADMIN, defaults={'description': 'Full access'}
+        )
+        self.role_hr, _ = Role.objects.get_or_create(
+            name=Role.HR, defaults={'description': 'Human Resources'}
         )
         self.role_manager, _ = Role.objects.get_or_create(
-            name='manager', defaults={'description': 'Manager'}
+            name=Role.MANAGER, defaults={'description': 'Manager'}
         )
         self.role_leader, _ = Role.objects.get_or_create(
-            name='leader', defaults={'description': 'Leader'}
+            name=Role.LEADER, defaults={'description': 'Leader'}
         )
         self.role_employee, _ = Role.objects.get_or_create(
-            name='employee', defaults={'description': 'Employee'}
+            name=Role.EMPLOYEE, defaults={'description': 'Employee'}
         )
 
         # Get or create some test permissions
@@ -50,15 +53,23 @@ class PermissionManagementTests(TestCase):
             username='admin', password='adminpass123', email='admin@example.com'
         )
         self.admin_profile = UserProfile.objects.create(
-            user=self.admin_user, role=self.role_master
+            user=self.admin_user, role=self.role_admin
         )
 
-        # Create a Master-role user (not superuser, but has Master role)
-        self.master_user = User.objects.create_user(
-            username='master_user', password='masterpass123', email='master@example.com'
+        # Create an Admin-role user (not superuser, but has Admin role)
+        self.admin_role_user = User.objects.create_user(
+            username='admin_role_user', password='adminrolepass123', email='adminrole@example.com'
         )
-        self.master_profile = UserProfile.objects.create(
-            user=self.master_user, role=self.role_master
+        self.admin_role_profile = UserProfile.objects.create(
+            user=self.admin_role_user, role=self.role_admin
+        )
+
+        # Create an HR user for HR-only pages.
+        self.hr_user = User.objects.create_user(
+            username='hr1', password='hrpass123', email='hr@example.com'
+        )
+        self.hr_profile = UserProfile.objects.create(
+            user=self.hr_user, role=self.role_hr
         )
 
         # Create a regular employee (should NOT be able to access admin pages)
@@ -101,9 +112,9 @@ class PermissionManagementTests(TestCase):
         response = self.client.get('/users/')
         self.assertEqual(response.status_code, 200)
 
-    def test_user_list_accessible_by_master_role(self):
-        """Users with the Master role SHOULD be able to see the user list."""
-        self.client.login(username='master_user', password='masterpass123')
+    def test_user_list_accessible_by_admin_role(self):
+        """Users with the Admin role SHOULD be able to see the user list."""
+        self.client.login(username='admin_role_user', password='adminrolepass123')
         response = self.client.get('/users/')
         self.assertEqual(response.status_code, 200)
 
@@ -118,6 +129,123 @@ class PermissionManagementTests(TestCase):
         self.client.login(username='employee1', password='emppass123')
         response = self.client.get(f'/users/{self.target_user.id}/permissions/')
         self.assertEqual(response.status_code, 302)
+
+    def test_employee_does_not_see_manager_action_buttons(self):
+        """Employees should not see approval/management buttons after login."""
+        self.client.login(username='employee1', password='emppass123')
+
+        self.assert_manager_action_buttons_hidden()
+
+    def test_superuser_switched_to_employee_does_not_see_manager_action_buttons(self):
+        """The dev role switcher should let superusers preview Employee UI."""
+        self.admin_profile.role = self.role_employee
+        self.admin_profile.save()
+        self.client.login(username='admin', password='adminpass123')
+
+        self.assert_manager_action_buttons_hidden()
+
+    def assert_manager_action_buttons_hidden(self):
+        hidden_buttons_by_path = {
+            '/leave/': ['Đi đến Trang Phê duyệt'],
+            '/overtime/': ['Đi đến Trang Phê duyệt'],
+            '/reports/': ['Xem Hộp thư Báo cáo'],
+            '/tickets/': ['Trang Xử lý Ticket'],
+            '/rewards-penalties/': ['Phê duyệt Phiếu'],
+            '/payroll/': ['Tính Lương (HR)', 'Phê duyệt Quỹ'],
+        }
+
+        for path, hidden_buttons in hidden_buttons_by_path.items():
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                for button_text in hidden_buttons:
+                    self.assertNotContains(response, button_text)
+
+    def test_employee_cannot_access_manager_action_urls_directly(self):
+        """Employees should be redirected away from approval/management URLs."""
+        self.client.login(username='employee1', password='emppass123')
+
+        self.assert_manager_action_urls_redirect()
+
+    def test_superuser_switched_to_employee_cannot_access_manager_urls_directly(self):
+        """A superuser switched to Employee should be blocked from business actions."""
+        self.admin_profile.role = self.role_employee
+        self.admin_profile.save()
+        self.client.login(username='admin', password='adminpass123')
+
+        self.assert_manager_action_urls_redirect()
+
+    def assert_manager_action_urls_redirect(self):
+        protected_urls = [
+            '/leave/approval/',
+            '/overtime/approval/',
+            '/reports/inbox/',
+            '/tickets/process/',
+            '/rewards-penalties/approval/',
+            '/payroll/calc/',
+            '/payroll/approval/',
+        ]
+
+        for path in protected_urls:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 302)
+
+    def test_statistics_accessible_by_hr(self):
+        """HR users should be able to access the statistics page."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_statistics_accessible_by_superuser(self):
+        """Superusers should be able to access the statistics page."""
+        self.client.login(username='admin', password='adminpass123')
+        response = self.client.get('/statistics/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_statistics_blocked_for_employee(self):
+        """Employees should not be able to access the statistics page."""
+        self.client.login(username='employee1', password='emppass123')
+        response = self.client.get('/statistics/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_hr_dashboard_shows_statistics_button(self):
+        """HR users should see the statistics shortcut on the dashboard."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/dashboard/')
+        self.assertContains(response, 'Thống kê HR')
+
+    def test_settings_company_profile_visible_for_admin_role(self):
+        """Only the active Admin role should see the company profile settings."""
+        self.client.login(username='admin_role_user', password='adminrolepass123')
+        response = self.client.get('/settings/')
+        self.assertContains(response, 'Hồ sơ Công ty')
+        self.assertContains(response, 'Hồ sơ Doanh nghiệp')
+
+    def test_settings_company_profile_hidden_for_employee_and_hr(self):
+        """Employee and HR roles should not see the company profile settings."""
+        users = [
+            ('employee1', 'emppass123'),
+            ('hr1', 'hrpass123'),
+        ]
+
+        for username, password in users:
+            with self.subTest(username=username):
+                self.client.logout()
+                self.client.login(username=username, password=password)
+                response = self.client.get('/settings/')
+                self.assertNotContains(response, 'Hồ sơ Công ty')
+                self.assertNotContains(response, 'Hồ sơ Doanh nghiệp')
+
+    def test_settings_company_profile_hidden_for_superuser_switched_to_employee(self):
+        """The dev role switcher should hide company settings in Employee mode."""
+        self.admin_profile.role = self.role_employee
+        self.admin_profile.save()
+        self.client.login(username='admin', password='adminpass123')
+
+        response = self.client.get('/settings/')
+        self.assertNotContains(response, 'Hồ sơ Công ty')
+        self.assertNotContains(response, 'Hồ sơ Doanh nghiệp')
 
     # =========================================================================
     # USER LIST TESTS

@@ -118,6 +118,15 @@
                             <div class="fc-desc">Cấu hình CTY toàn cầu</div>
                         </div>
                     </a>
+                    {% if can_access_hr_stats %}
+                    <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
+                        <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
+                        <div>
+                            <div class="fc-title">Thống kê HR</div>
+                            <div class="fc-desc">Báo cáo dữ liệu độc quyền</div>
+                        </div>
+                    </a>
+                    {% endif %}
                 {% else %}
                     <!-- Phân nhanh cho Khối Nghiệp Vụ -->
                     <a href="{% url 'attendance' %}" class="feature-card">
@@ -152,7 +161,7 @@
                         </div>
                     </a>
 
-                    {% if request.user.profile.role.name == 'HR' %}
+                    {% if can_access_hr_stats %}
                     <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
                         <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
                         <div>

@@ -45,10 +45,7 @@ def is_admin_user(user):
         return False
     if user.is_superuser:
         return True
-    try:
-        return user.profile.is_admin()
-    except UserProfile.DoesNotExist:
-        return False
+    return get_user_role_name(user) == Role.ADMIN
 
 
 def ensure_profile(user):
@@ -60,6 +57,32 @@ def ensure_profile(user):
     return profile
 
 
+def get_user_role_name(user):
+    """Return the normalized profile role name used by the UI and guards."""
+    if not user.is_authenticated:
+        return ''
+    try:
+        role = user.profile.role
+    except UserProfile.DoesNotExist:
+        return ''
+    return role.name.lower() if role and role.name else ''
+
+
+def user_has_role(user, *role_names):
+    normalized_roles = {role.lower() for role in role_names}
+    return get_user_role_name(user) in normalized_roles
+
+
+def has_admin_business_access(user):
+    """
+    Admin business actions should follow the active profile role.
+    A superuser without a simulated role keeps full access, but switching to
+    employee in the dev role switcher should behave like a real employee.
+    """
+    role_name = get_user_role_name(user)
+    return role_name == Role.ADMIN or (user.is_authenticated and user.is_superuser and not role_name)
+
+
 def is_hr_user(user):
     """
     Kiểm tra user có phải HR không.
@@ -69,10 +92,31 @@ def is_hr_user(user):
         return False
     if user.is_superuser:
         return True
-    try:
-        return user.profile.role and user.profile.role.name == Role.HR
-    except UserProfile.DoesNotExist:
-        return False
+    return user_has_role(user, Role.HR)
+
+
+def can_manage_requests(user):
+    """HR/Manager/Leader/Admin can access approval and processing pages."""
+    return has_admin_business_access(user) or user_has_role(
+        user, Role.HR, Role.MANAGER, Role.LEADER
+    )
+
+
+def can_access_hr_stats(user):
+    """Only HR and superuser can access the HR statistics page."""
+    return user.is_authenticated and (
+        user.is_superuser or user_has_role(user, Role.HR)
+    )
+
+
+def can_calculate_payroll(user):
+    """Payroll calculation is available to HR and Admin/Superuser."""
+    return has_admin_business_access(user) or user_has_role(user, Role.HR)
+
+
+def can_approve_payroll(user):
+    """Payroll approval is available to Manager/Leader and Admin/Superuser."""
+    return has_admin_business_access(user) or user_has_role(user, Role.MANAGER, Role.LEADER)
 
 # =============================================================================
 # PUBLIC VIEWS: Registration, Login, Logout, Dashboard
@@ -123,6 +167,7 @@ def dashboard_view(request):
     ensure_profile(request.user)
     return render(request, 'accounts/dashboard.html', {
         'active_page': 'dashboard',  # Sidebar highlight
+        'can_access_hr_stats': can_access_hr_stats(request.user),
     })
 
 
@@ -190,8 +235,7 @@ def contract_view(request):
     - HR có quyền được hiển thị nút Tạo/Sửa.
     """
     ensure_profile(request.user)
-    role_name = request.user.profile.role.name if request.user.profile.role else ''
-    is_hr = role_name == 'hr'
+    is_hr = user_has_role(request.user, Role.HR)
     
     # Cảnh báo: mọi role TRỪ admin
     show_warning = not is_admin_user(request.user)
@@ -224,13 +268,7 @@ def leave_view(request):
     """
     ensure_profile(request.user)
     
-    # Kiểm tra quyền duyệt nghỉ phép (HR, Manager, Leader, Admin)
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     return render(request, 'accounts/leave.html', {
         'active_page': 'leave',
@@ -246,13 +284,7 @@ def leave_approval_view(request):
     """
     ensure_profile(request.user)
     
-    # Kiểm tra lại quyền truy cập trang này
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     if not can_approve:
         messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt!')
@@ -272,12 +304,7 @@ def overtime_view(request):
     """
     ensure_profile(request.user)
     
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     return render(request, 'accounts/overtime.html', {
         'active_page': 'overtime',
@@ -292,12 +319,7 @@ def overtime_approval_view(request):
     """
     ensure_profile(request.user)
     
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     if not can_approve:
         messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt!')
@@ -316,9 +338,7 @@ def statistics_view(request):
     """
     ensure_profile(request.user)
     
-    # Chỉ cho phép HR
-    is_hr = hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'HR'
-    if not is_hr:
+    if not can_access_hr_stats(request.user):
         messages.error(request, 'Bạn không đủ thẩm quyền (Bắt buộc Khối HR) để xem Báo cáo Thống kê!')
         return redirect('dashboard')
         
@@ -335,12 +355,7 @@ def report_view(request):
     """
     ensure_profile(request.user)
     
-    is_manager = False
-    if is_admin_user(request.user):
-        is_manager = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            is_manager = True
+    is_manager = can_manage_requests(request.user)
             
     return render(request, 'accounts/report.html', {
         'active_page': 'reports',
@@ -355,12 +370,7 @@ def report_inbox_view(request):
     """
     ensure_profile(request.user)
     
-    is_manager = False
-    if is_admin_user(request.user):
-        is_manager = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            is_manager = True
+    is_manager = can_manage_requests(request.user)
             
     if not is_manager:
         messages.error(request, 'Bạn không có quyền xem hộp thư báo cáo!')
@@ -380,12 +390,7 @@ def ticket_list_view(request):
     """
     ensure_profile(request.user)
     
-    can_process = False
-    if is_admin_user(request.user):
-        can_process = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_process = True
+    can_process = can_manage_requests(request.user)
             
     return render(request, 'accounts/tickets.html', {
         'active_page': 'tickets',
@@ -399,12 +404,7 @@ def ticket_process_view(request):
     """
     ensure_profile(request.user)
     
-    can_process = False
-    if is_admin_user(request.user):
-        can_process = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_process = True
+    can_process = can_manage_requests(request.user)
             
     if not can_process:
         messages.error(request, 'Bạn không có quyền truy cập trang xử lý ticket!')
@@ -423,12 +423,7 @@ def rewards_penalties_view(request):
     """
     ensure_profile(request.user)
     
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     return render(request, 'accounts/rewards_penalties.html', {
         'active_page': 'rewards',
@@ -442,12 +437,7 @@ def rewards_penalties_approval_view(request):
     """
     ensure_profile(request.user)
     
-    can_approve = False
-    if is_admin_user(request.user):
-        can_approve = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR', 'Manager', 'Leader']:
-            can_approve = True
+    can_approve = can_manage_requests(request.user)
             
     if not can_approve:
         messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt!')
@@ -465,18 +455,8 @@ def payroll_view(request):
     """
     ensure_profile(request.user)
     
-    is_hr = False
-    is_director = False
-    
-    if is_admin_user(request.user):
-        is_hr = True
-        is_director = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR']:
-            is_hr = True
-        elif request.user.role.name in ['Manager', 'Leader']:
-            # Trong thực tế, Manager có thể xem tổng quan lương phòng ban, Giám đốc mới được duyệt.
-            is_director = True 
+    is_hr = can_calculate_payroll(request.user)
+    is_director = can_approve_payroll(request.user)
             
     return render(request, 'accounts/payroll.html', {
         'active_page': 'payroll',
@@ -491,12 +471,7 @@ def payroll_calc_view(request):
     """
     ensure_profile(request.user)
     
-    is_hr = False
-    if is_admin_user(request.user):
-        is_hr = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['HR']:
-            is_hr = True
+    is_hr = can_calculate_payroll(request.user)
             
     if not is_hr:
         messages.error(request, 'Chỉ bộ phận HR/Kế toán mới được truy cập công cụ tính lương!')
@@ -513,12 +488,7 @@ def payroll_approval_view(request):
     """
     ensure_profile(request.user)
     
-    is_director = False
-    if is_admin_user(request.user):
-        is_director = True
-    elif hasattr(request.user, 'role') and request.user.role:
-        if request.user.role.name in ['Manager', 'Leader']:
-            is_director = True
+    is_director = can_approve_payroll(request.user)
             
     if not is_director:
         messages.error(request, 'Chỉ Giám Đốc/Quản lý cấp cao mới có quyền phê duyệt Quỹ lương!')
@@ -537,13 +507,8 @@ def settings_view(request):
     """
     ensure_profile(request.user)
     
-    is_admin = False
-    is_hr = False
-    
-    if is_admin_user(request.user):
-        is_admin = True
-    if hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'HR':
-        is_hr = True
+    is_admin = user_has_role(request.user, Role.ADMIN)
+    is_hr = user_has_role(request.user, Role.HR)
         
     return render(request, 'accounts/settings.html', {
         'active_page': 'settings',
