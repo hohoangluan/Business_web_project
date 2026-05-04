@@ -1,7 +1,8 @@
 {% extends 'accounts/base_dashboard.html' %}
 {# TRANG HỒ SƠ CÁ NHÂN - profile.html
    View: profile_view. Data: request.user + request.user.profile
-   Field CHƯA CÓ trong model được đánh dấu "MOCK DATA" trong template #}
+   Field CHƯA CÓ trong model được đánh dấu "MOCK DATA" trong template.
+   Các field công việc cơ bản như department / position / manager / leader / work status đã có dữ liệu thật. #}
 {% load static %}
 
 {% block title %}Hồ sơ cá nhân - HR Studio{% endblock %}
@@ -25,8 +26,7 @@
             {% else %}
                 <span class="badge badge-none">Chưa có vai trò</span>
             {% endif %}
-            <!-- MOCK DATA: chức vụ chưa có trong model -->
-            <span>• Nhân viên</span>
+            <span>• {{ request.user.profile.position|default:"Chưa cập nhật chức vụ" }}</span>
         </div>
         <div class="profile-meta">
             <span><i class="fa-solid fa-id-badge"></i> {{ request.user.profile.employee_id|default:"Chưa có" }}</span>
@@ -50,9 +50,6 @@
     </button>
     <button class="profile-tab" data-tab="work">
         <i class="fa-solid fa-briefcase"></i>&nbsp; Công việc
-    </button>
-    <button class="profile-tab" data-tab="bank">
-        <i class="fa-solid fa-building-columns"></i>&nbsp; Ngân hàng & Thuế
     </button>
     <button class="profile-tab" data-tab="contact">
         <i class="fa-solid fa-address-book"></i>&nbsp; Liên hệ
@@ -151,6 +148,9 @@
                 <h3><i class="fa-solid fa-briefcase" style="color:var(--primary);"></i>&nbsp; Thông tin công việc</h3>
             </div>
             <div class="card-body">
+                <div class="alert alert-info" style="margin-bottom: 1rem;">
+                    Thông tin trong mục này do HR/Admin cập nhật để đồng bộ hồ sơ công việc.
+                </div>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Vai trò hệ thống</div>
@@ -162,89 +162,68 @@
                             {% endif %}
                         </div>
                     </div>
-                    <!-- Tất cả các field dưới đây là MOCK DATA -->
                     <div class="info-item">
                         <div class="info-label">Phòng ban</div>
-                        <!-- MOCK: Thay bằng {{ profile.department }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.profile.department|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Chức vụ</div>
-                        <!-- MOCK: Thay bằng {{ profile.position }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.profile.position|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Quản lý trực tiếp</div>
-                        <!-- MOCK: Thay bằng {{ profile.manager }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Loại nhân viên</div>
-                        <!-- MOCK: Thay bằng {{ profile.employee_type }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Nơi làm việc</div>
-                        <!-- MOCK: Thay bằng {{ profile.workplace }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Ngày bắt đầu thử việc</div>
-                        <!-- MOCK: Thay bằng {{ profile.probation_start }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Ngày làm việc chính thức</div>
-                        <!-- MOCK: Thay bằng {{ profile.official_start_date }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Trạng thái làm việc</div>
-                        <!-- MOCK: Thay bằng badge hiển thị {{ profile.work_status }} -->
                         <div class="info-value">
-                            <span class="badge badge-active">Đang làm việc</span>
+                            {% if request.user.profile.manager_user %}
+                                {{ request.user.profile.manager_user.profile.full_name|default:request.user.profile.manager_user.username }}
+                            {% else %}
+                                <span class="empty">Chưa cập nhật</span>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Hình thức trả lương</div>
-                        <!-- MOCK: Thay bằng {{ profile.salary_type }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-label">Leader phụ trách</div>
+                        <div class="info-value">
+                            {% if request.user.profile.leader_user %}
+                                {{ request.user.profile.leader_user.profile.full_name|default:request.user.profile.leader_user.username }}
+                            {% else %}
+                                <span class="empty">Chưa cập nhật</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Loại nhân viên</div>
+                        <div class="info-value">{{ request.user.profile.employee_type|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nơi làm việc</div>
+                        <div class="info-value">{{ request.user.profile.workplace|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày bắt đầu thử việc</div>
+                        <div class="info-value">{{ request.user.profile.probation_start|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày làm việc chính thức</div>
+                        <div class="info-value">{{ request.user.profile.official_start_date|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Trạng thái làm việc</div>
+                        <div class="info-value">
+                            {% if request.user.profile.work_status %}
+                                <span class="badge {% if request.user.profile.work_status == 'working' or request.user.profile.work_status == 'probation' %}badge-active{% else %}badge-inactive{% endif %}">
+                                    {{ request.user.profile.get_work_status_display }}
+                                </span>
+                            {% else %}
+                                <span class="empty">Chưa cập nhật</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- --- Section 3: Ngân hàng & Thuế --- -->
-    <div class="profile-section" id="section-bank">
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fa-solid fa-building-columns" style="color:var(--primary);"></i>&nbsp; Ngân hàng & Thuế</h3>
-            </div>
-            <div class="card-body">
-                <div class="info-grid">
-                    <!-- Tất cả MOCK DATA -->
-                    <div class="info-item">
-                        <div class="info-label">Tên ngân hàng</div>
-                        <!-- MOCK: Thay bằng {{ profile.bank_name }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Số tài khoản ngân hàng</div>
-                        <!-- MOCK: Thay bằng {{ profile.bank_account }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Mã số thuế cá nhân</div>
-                        <!-- MOCK: Thay bằng {{ profile.tax_id }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- --- Section 4: Người liên hệ --- -->
+    <!-- --- Section 3: Người liên hệ --- -->
     <div class="profile-section" id="section-contact">
         <div class="card">
             <div class="card-header">
@@ -278,7 +257,7 @@
         </div>
     </div>
 
-    <!-- --- Section 5: Học vấn & Năng lực --- -->
+    <!-- --- Section 4: Học vấn & Năng lực --- -->
     <div class="profile-section" id="section-education">
         <div class="card">
             <div class="card-header">
@@ -316,7 +295,7 @@
         </div>
     </div>
 
-    <!-- --- Section 6: Tệp minh chứng --- -->
+    <!-- --- Section 5: Tệp minh chứng --- -->
     <div class="profile-section" id="section-files">
         <div class="card">
             <div class="card-header">

@@ -88,14 +88,20 @@ Blocks có thể override:
                     <i class="fa-solid fa-business-time"></i>
                     <span>Tăng ca</span>
                 </a>
-                {% if request.user.profile.role.name == 'hr' %}
+                {% if request.user.profile.role.name == 'hr' or request.user.profile.role.name == 'manager' or request.user.profile.role.name == 'leader' %}
                 <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Thống kê</span>
                 </a>
+                {% endif %}
+                {% if request.user.profile.role.name == 'hr' %}
                 <a href="{% url 'hr_create_profile' %}" class="nav-item {% if active_page == 'hr_profiles' %}active{% endif %}">
                     <i class="fa-solid fa-user-plus"></i>
-                    <span>Tạo hồ sơ NV</span>
+                    <span>Tạo hồ sơ nhân sự</span>
+                </a>
+                <a href="{% url 'user_list' %}" class="nav-item {% if active_page == 'users' %}active{% endif %}">
+                    <i class="fa-solid fa-sitemap"></i>
+                    <span>Quản lý hồ sơ nhân sự</span>
                 </a>
                 {% endif %}
                 <a href="{% url 'reports' %}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
@@ -110,10 +116,6 @@ Blocks có thể override:
                     <i class="fa-solid fa-award"></i>
                     <span>Khen thưởng & Xử phạt</span>
                 </a>
-                <a href="{% url 'payroll' %}" class="nav-item {% if active_page == 'payroll' %}active{% endif %}">
-                    <i class="fa-solid fa-file-invoice-dollar"></i>
-                    <span>Tiền lương</span>
-                </a>
                 {% endif %}  <!-- End of Khối nghiệp vụ -->
 
 
@@ -121,11 +123,11 @@ Blocks có thể override:
                 {% if request.user.profile.is_admin %}
                 <div class="nav-section-title">Hệ thống</div>
 
-                <!-- Quản lý tài khoản -->
+                <!-- Quản lý hồ sơ nhân sự -->
                 <a href="{% url 'user_list' %}"
                    class="nav-item {% if active_page == 'users' %}active{% endif %}">
                     <i class="fa-solid fa-users-gear"></i>
-                    <span>Quản lý tài khoản</span>
+                    <span>Quản lý hồ sơ nhân sự</span>
                 </a>
 
                 <!-- Đăng ký tài khoản mới -->
@@ -135,12 +137,10 @@ Blocks có thể override:
                     <span>Tạo tài khoản</span>
                 </a>
 
-                {% if request.user.is_superuser %}
                 <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Thống kê</span>
                 </a>
-                {% endif %}
                 {% endif %}
 
                 <!-- Cài đặt -->

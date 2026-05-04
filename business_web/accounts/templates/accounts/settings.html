@@ -105,7 +105,7 @@
             <div class="st-tab" onclick="openTab('tab-company')"><i class="fa-solid fa-building"></i> Hồ sơ Công ty</div>
             {% endif %}
             {% if is_hr %}
-            <div class="st-tab" onclick="openTab('tab-hr')"><i class="fa-solid fa-scale-balanced"></i> Luật Nhân Sự & Thuế</div>
+            <div class="st-tab" onclick="openTab('tab-hr')"><i class="fa-solid fa-scale-balanced"></i> Quy định Nhân sự</div>
             {% endif %}
         </div>
 
@@ -133,7 +133,7 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; max-width: 500px; padding: 1rem 0; border-bottom: 1px solid #f1f5f9;">
                     <div>
                         <div style="font-weight: 600; color: var(--text-main);">Nhận Thông Báo Email</div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">Thông báo khi có phiếu lương mới hoặc đơn được duyệt</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Thông báo khi có đơn được duyệt hoặc statistics được cập nhật</div>
                     </div>
                     <label class="st-toggle">
                         <input type="checkbox" checked>
@@ -183,32 +183,36 @@
             {% if is_hr %}
             <div id="tab-hr" class="st-panel">
                 <div class="st-panel-header">
-                    <div class="st-panel-title">Luật Nhân Sự & Cấu hình Thuế</div>
-                    <div class="st-panel-desc">Tham chiếu luật tính toán dùng cho toàn bộ máy Tính Lương (Payroll).</div>
+                    <div class="st-panel-title">Quy định Nhân Sự Nội Bộ</div>
+                    <div class="st-panel-desc">Các thông số demo giúp thống nhất cách theo dõi chấm công, nghỉ phép và vận hành nhóm.</div>
                 </div>
                 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 600px;">
                     <div>
-                        <h4 style="margin-bottom: 1rem; color: #ef4444;"><i class="fa-solid fa-money-bill-transfer"></i> KHẤU TRỪ BẢO HIỂM NĂM 2026</h4>
+                        <h4 style="margin-bottom: 1rem; color: #ef4444;"><i class="fa-solid fa-calendar-check"></i> QUY ĐỊNH CHẤM CÔNG</h4>
                         <div class="st-form-group">
-                            <label class="st-label">Bảo Hiểm Xã Hội (BHXH) - % Lương</label>
-                            <input type="number" class="st-input" value="8.0" step="0.5" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">%</span>
+                            <label class="st-label">Giờ bắt đầu làm việc chuẩn</label>
+                            <input type="text" class="st-input" value="08:30" style="width: 120px; display: inline-block;">
                         </div>
                         <div class="st-form-group">
-                            <label class="st-label">Bảo Hiểm Y Tế (BHYT) - % Lương</label>
-                            <input type="number" class="st-input" value="1.5" step="0.5" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">%</span>
+                            <label class="st-label">Giờ kết thúc ca làm chuẩn</label>
+                            <input type="text" class="st-input" value="17:30" style="width: 120px; display: inline-block;">
+                        </div>
+                        <div class="st-form-group">
+                            <label class="st-label">Ngưỡng cảnh báo đi trễ</label>
+                            <input type="number" class="st-input" value="3" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">lần/tháng</span>
                         </div>
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 1rem; color: #f59e0b;"><i class="fa-solid fa-scale-balanced"></i> QUY ĐỊNH THUẾ TNCN</h4>
+                        <h4 style="margin-bottom: 1rem; color: #f59e0b;"><i class="fa-solid fa-people-group"></i> QUY ĐỊNH NGHỈ PHÉP & TĂNG CA</h4>
                         <div class="st-form-group">
-                            <label class="st-label">Mức giảm trừ gia cảnh Bản thân</label>
-                            <input type="text" class="st-input" value="11,000,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ</span>
+                            <label class="st-label">Số ngày nghỉ phép mặc định</label>
+                            <input type="text" class="st-input" value="12" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">ngày/năm</span>
                         </div>
                         <div class="st-form-group">
-                            <label class="st-label">Mức giảm trừ Người phụ thuộc</label>
-                            <input type="text" class="st-input" value="4,400,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ</span>
+                            <label class="st-label">Giới hạn tăng ca mỗi ngày</label>
+                            <input type="text" class="st-input" value="4" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">giờ/ngày</span>
                         </div>
                     </div>
                 </div>
@@ -216,11 +220,11 @@
                 <hr style="border:0; border-top: 1px dashed #cbd5e1; margin: 1.5rem 0; max-width: 600px;">
                 
                 <div class="st-form-group">
-                    <label class="st-label">Mức phạt chuẩn Nghỉ không phép (Trừ thẳng vào lương)</label>
-                    <input type="text" class="st-input" value="500,000" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">VNĐ/Ngày</span>
+                    <label class="st-label">SLA duyệt đơn chuẩn</label>
+                    <input type="text" class="st-input" value="24" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">giờ</span>
                 </div>
 
-                <button class="st-btn-save" style="background: var(--gradient-purple);" onclick="alert('Đã khởi tạo quy định Luật Thuế mới thành công!')">Cập nhật Luật Nhân Sự</button>
+                <button class="st-btn-save" style="background: var(--gradient-purple);" onclick="alert('Đã cập nhật bộ quy định nhân sự demo thành công!')">Cập nhật Quy định</button>
             </div>
             {% endif %}
 

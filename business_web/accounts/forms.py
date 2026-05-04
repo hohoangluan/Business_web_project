@@ -188,3 +188,157 @@ class AssignPermissionsForm(forms.Form):
         help_text="Select permissions to grant. These are independent of the user's role.",
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'permission-checkbox'}),
     )
+
+
+class UserChoiceField(forms.ModelChoiceField):
+    """Show a friendly label instead of the raw username in dropdowns."""
+
+    def label_from_instance(self, obj):
+        profile = getattr(obj, 'profile', None)
+        full_name = getattr(profile, 'full_name', '') if profile else ''
+        employee_id = getattr(profile, 'employee_id', '') if profile else ''
+        name = full_name or obj.username
+        if employee_id:
+            return f"{name} ({employee_id})"
+        return name
+
+
+class EmployeeProfileForm(forms.Form):
+    """
+    Form chỉnh toàn bộ phần dữ liệu đang lưu trong hồ sơ nhân viên.
+    Phần role hệ thống vẫn để riêng để tránh nhầm giữa:
+    - role của hệ thống
+    - thông tin hồ sơ nhân sự
+    """
+
+    full_name = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: Nguyen Van A',
+        }),
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: nguyenvana@company.vn',
+        }),
+    )
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: 0901234567',
+        }),
+    )
+    date_of_birth = forms.CharField(
+        max_length=10,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: 15/06/1995',
+        }),
+    )
+    employee_id = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: NV001',
+        }),
+    )
+    department = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: Phòng Kinh doanh',
+        }),
+    )
+    employee_type = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: Toan thoi gian',
+        }),
+    )
+    position = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: Chuyên viên kinh doanh',
+        }),
+    )
+    workplace = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: Van phong Ha Noi',
+        }),
+    )
+    probation_start = forms.CharField(
+        max_length=10,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: 01/06/2026',
+        }),
+    )
+    official_start_date = forms.CharField(
+        max_length=10,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'VD: 01/08/2026',
+        }),
+    )
+    work_status = forms.ChoiceField(
+        required=False,
+        choices=[('', '-- Chưa chọn trạng thái --')] + list(UserProfile.WORK_STATUS_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    manager_user = UserChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label='-- Chưa gán quản lý --',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    leader_user = UserChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label='-- Chưa gán leader --',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
+    def __init__(
+        self,
+        *args,
+        manager_queryset=None,
+        leader_queryset=None,
+        current_user=None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.current_user = current_user
+        self.fields['manager_user'].queryset = manager_queryset or User.objects.none()
+        self.fields['leader_user'].queryset = leader_queryset or User.objects.none()
+
+    def clean_employee_id(self):
+        """Không cho trùng mã nhân viên với user khác."""
+        value = self.cleaned_data.get('employee_id', '').strip()
+        if not value:
+            return value
+
+        queryset = UserProfile.objects.filter(employee_id=value)
+        if self.current_user:
+            queryset = queryset.exclude(user=self.current_user)
+
+        if queryset.exists():
+            raise forms.ValidationError('Mã nhân viên này đã tồn tại.')
+        return value

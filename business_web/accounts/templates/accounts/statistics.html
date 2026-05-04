@@ -1,342 +1,492 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG THỐNG KÊ (Biểu đồ). View: statistics_view. #}
+{# TRANG STATISTICS MỚI - statistics.html #}
 {% load static %}
 
-{% block title %}Báo cáo & Thống kê - HR Studio{% endblock %}
+{% block title %}Statistics - HR Studio{% endblock %}
 
 {% block content %}
-<!-- IMPORT CHART.JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    /* CSS Tùy biến cho trang Thống kê */
-    .stat-val-big {
-        font-size: 1.5rem;
+    .stats-toolbar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .stats-toolbar-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .stats-toolbar-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    .stats-toolbar-note {
+        margin-top: 0.85rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+    .stats-select,
+    .stats-input {
+        width: 100%;
+        padding: 0.72rem 0.9rem;
+        border-radius: var(--radius);
+        border: 1.5px solid var(--border);
+        background: var(--bg-main);
+        color: var(--text-primary);
+    }
+    .stats-section {
+        margin-bottom: 2rem;
+    }
+    .stats-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    .stats-section-head p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+    .stats-card-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .stats-kpi {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.2rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .stats-kpi-label {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+    }
+    .stats-kpi-value {
+        font-size: 1.45rem;
         font-weight: 700;
         color: var(--text-primary);
     }
-    .stat-label {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-bottom: 0.25rem;
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
     }
-    
-    .btn-export {
-        background: #8b5cf6;
-        color: #fff;
-        border: none;
-        padding: 0.6rem 1.25rem;
-        border-radius: var(--radius);
-        font-weight: 600;
-        transition: all 0.2s;
-        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
-    }
-    .btn-export:hover {
-        background: #7c3aed;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(124, 58, 237, 0.3);
-    }
-
     .chart-box {
-        background: var(--bg-main);
+        background: var(--bg-card);
         border: 1px solid var(--border-light);
         border-radius: var(--radius-lg);
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    }
-    .chart-box-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-    .chart-box-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--text-main);
-    }
-    
-    .report-template-card {
-        background: var(--bg-main);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius);
         padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .chart-box h3 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    .chart-box canvas {
+        width: 100%;
+        height: 280px !important;
+    }
+    .stats-summary-list {
         display: flex;
-        align-items: center;
-        gap: 1rem;
-        transition: all 0.2s;
-        cursor: pointer;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
     }
-    .report-template-card:hover {
-        border-color: var(--primary-light);
-        box-shadow: 0 4px 12px rgba(139,92,246,0.1);
-        transform: translateY(-2px);
+    .stats-summary-chip {
+        padding: 0.45rem 0.8rem;
+        border-radius: var(--radius-full);
+        background: var(--info-bg);
+        color: var(--info);
+        font-size: 0.8rem;
+        font-weight: 600;
     }
-    .template-icon {
-        width: 45px; height: 45px;
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
+    .stats-empty {
+        background: var(--bg-card);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+    .stats-empty i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        color: var(--primary);
+    }
+
+    @media (max-width: 1024px) {
+        .stats-toolbar-grid,
+        .stats-card-grid,
+        .chart-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-toolbar-grid,
+        .stats-card-grid,
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
 <div class="animate-fade">
-
-    <!-- ===== HEADER ===== -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+    <div class="page-header">
         <div>
-            <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Báo cáo & Thống kê</h2>
-            <p style="color:var(--text-muted); font-size:0.95rem;">Phân tích dữ liệu nhân sự chi tiết</p>
+            <h1>Statistics</h1>
+            <p class="text-secondary">Báo cáo theo phòng ban, leader, nhân viên và khoảng thời gian</p>
         </div>
-        <div>
-            <button class="btn-export" onclick="alert('Đang tải xuống báo cáo dạng PDF...')">
-                <i class="fa-solid fa-download" style="margin-right: 5px;"></i> Xuất báo cáo
-            </button>
+        <div class="header-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'statistics_export_csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-secondary">
+                <i class="fa-solid fa-file-csv"></i> Xuất Excel (CSV)
+            </a>
+            <a href="{% url 'statistics_print' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-primary" target="_blank">
+                <i class="fa-solid fa-print"></i> In / Lưu PDF
+            </a>
         </div>
     </div>
 
-    <!-- ===== STATS GRID ===== -->
-    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-        <!-- Card 1 -->
-        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
-            <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                <i class="fa-solid fa-users"></i>
+    <form method="get" class="stats-toolbar animate-fade">
+        <div class="stats-toolbar-grid">
+            <div class="form-group">
+                <label class="form-label">Phòng ban</label>
+                <select name="department" class="stats-select" {% if filters.department_locked %}disabled{% endif %}>
+                    <option value="">Tất cả phòng ban</option>
+                    {% for department in filters.department_options %}
+                    <option value="{{ department }}" {% if filters.selected_department == department %}selected{% endif %}>{{ department }}</option>
+                    {% endfor %}
+                </select>
+                {% if filters.department_locked %}
+                <input type="hidden" name="department" value="{{ filters.selected_department }}">
+                {% endif %}
             </div>
-            <div>
-                <div class="stat-label">Tỷ lệ chấm công</div>
-                <div class="stat-val-big">94.5%</div>
-            </div>
-        </div>
-        
-        <!-- Card 2 -->
-        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
-            <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                <i class="fa-solid fa-arrow-trend-up"></i>
-            </div>
-            <div>
-                <div class="stat-label">Hiệu suất TB</div>
-                <div class="stat-val-big">91.6%</div>
-            </div>
-        </div>
-        
-        <!-- Card 3 -->
-        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
-            <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                <i class="fa-regular fa-calendar-minus"></i>
-            </div>
-            <div>
-                <div class="stat-label">Nghỉ phép TB</div>
-                <div class="stat-val-big">8.2 ngày</div>
-            </div>
-        </div>
-        
-        <!-- Card 4 -->
-        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
-            <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                <i class="fa-solid fa-dollar-sign"></i>
-            </div>
-            <div>
-                <div class="stat-label">Chi phí lương</div>
-                <div class="stat-val-big">520M</div>
-            </div>
-        </div>
-    </div>
 
-    <!-- ===== CHARTS ROW 1 ===== -->
-    <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-        
-        <!-- Line Chart: Xu hướng chấm công -->
-        <div class="chart-box">
-            <div class="chart-box-header">
-                <div class="chart-box-title">Xu hướng chấm công</div>
-                <select style="padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #475569;">
-                    <option>4 tháng gần nhất</option>
-                    <option>Năm nay</option>
+            <div class="form-group">
+                <label class="form-label">Manager</label>
+                <select name="manager" class="stats-select">
+                    <option value="">Tất cả manager</option>
+                    {% for item in filters.manager_options %}
+                    <option value="{{ item.value }}" {% if filters.selected_manager == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="lineChart"></canvas>
+
+            <div class="form-group">
+                <label class="form-label">Leader</label>
+                <select name="leader" class="stats-select" {% if filters.leader_locked %}disabled{% endif %}>
+                    <option value="">Tất cả leader</option>
+                    {% for item in filters.leader_options %}
+                    <option value="{{ item.value }}" {% if filters.selected_leader == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+                {% if filters.leader_locked %}
+                <input type="hidden" name="leader" value="{{ filters.selected_leader }}">
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nhân viên</label>
+                <select name="employee" class="stats-select">
+                    <option value="">Tất cả nhân viên</option>
+                    {% for item in filters.employee_options %}
+                    <option value="{{ item.value }}" {% if filters.selected_employee == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Khoảng thời gian</label>
+                <select name="period" class="stats-select">
+                    <option value="last_7_days" {% if time_range.period == 'last_7_days' %}selected{% endif %}>7 ngày gần nhất</option>
+                    <option value="last_30_days" {% if time_range.period == 'last_30_days' %}selected{% endif %}>30 ngày gần nhất</option>
+                    <option value="this_month" {% if time_range.period == 'this_month' %}selected{% endif %}>Tháng này</option>
+                    <option value="this_quarter" {% if time_range.period == 'this_quarter' %}selected{% endif %}>Quý này</option>
+                    <option value="this_year" {% if time_range.period == 'this_year' %}selected{% endif %}>Năm nay</option>
+                    <option value="custom" {% if time_range.period == 'custom' %}selected{% endif %}>Tùy chọn</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Từ ngày</label>
+                <input type="date" name="from_date" value="{{ time_range.from_date }}" class="stats-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Đến ngày</label>
+                <input type="date" name="to_date" value="{{ time_range.to_date }}" class="stats-input">
             </div>
         </div>
 
-        <!-- Pie Chart: Hiệu suất phòng ban -->
-        <div class="chart-box">
-            <div class="chart-box-header">
-                <div class="chart-box-title">Hiệu suất theo phòng ban</div>
-            </div>
-            <div style="position: relative; height: 260px; width: 100%; display: flex; justify-content: center;">
-                <canvas id="pieChart"></canvas>
+        <div class="stats-toolbar-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-filter"></i> Áp dụng
+            </button>
+            <a href="{% url 'statistics' %}" class="btn btn-outline">
+                <i class="fa-solid fa-rotate-left"></i> Đặt lại
+            </a>
+        </div>
+        <div class="stats-toolbar-note">
+            Phạm vi hiện tại: <strong>{{ scope.scope_label|default:"Không xác định" }}</strong> • Thời gian: <strong>{{ time_range.date_range_text }}</strong>
+        </div>
+    </form>
+
+    {% if statistics_sections.filter_summary %}
+    <div class="stats-summary-list animate-fade">
+        {% for item in statistics_sections.filter_summary %}
+        <div class="stats-summary-chip">{{ item }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if statistics_error_message %}
+    <div class="stats-empty animate-fade">
+        <i class="fa-solid fa-chart-column"></i>
+        <h3 style="margin-bottom:0.4rem;">Chưa thể hiển thị statistics</h3>
+        <p>{{ statistics_error_message }}</p>
+    </div>
+    {% else %}
+    <div class="stats-section animate-fade">
+        <div class="stats-section-head">
+            <div>
+                <h2>Nghỉ phép</h2>
+                <p>Theo dõi ngày nghỉ theo phòng ban, leader và nhân viên</p>
             </div>
         </div>
-
+        <div class="stats-card-grid">
+            {% for card in statistics_sections.leave_cards %}
+            <div class="stats-kpi">
+                <div class="stats-kpi-label">{{ card.label }}</div>
+                <div class="stats-kpi-value">{{ card.value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chart-grid">
+            <div class="chart-box">
+                <h3>Ngày nghỉ theo phòng ban</h3>
+                <canvas id="leaveDepartmentChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Ngày nghỉ theo leader</h3>
+                <canvas id="leaveLeaderChart"></canvas>
+            </div>
+            <div class="chart-box" style="grid-column: 1 / -1;">
+                <h3>Ngày nghỉ theo nhân viên</h3>
+                <canvas id="leaveEmployeeChart"></canvas>
+            </div>
+        </div>
     </div>
 
-    <!-- ===== CHARTS ROW 2 ===== -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-        
-        <!-- Bar Chart: Phân tích nghỉ phép -->
-        <div class="chart-box">
-            <div class="chart-box-header">
-                <div class="chart-box-title">Phân tích nghỉ phép</div>
-            </div>
-            <div style="position: relative; height: 220px; width: 100%;">
-                <canvas id="barLeaveChart"></canvas>
+    <div class="stats-section animate-fade">
+        <div class="stats-section-head">
+            <div>
+                <h2>Chấm công</h2>
+                <p>Tổng hợp giờ tăng ca, đi trễ, nghỉ làm và tỷ lệ đúng giờ</p>
             </div>
         </div>
-
-        <!-- Bar Chart: Tổng quan chi phí lương -->
-        <div class="chart-box">
-            <div class="chart-box-header">
-                <div class="chart-box-title">Tổng quan chi phí lương</div>
+        <div class="stats-card-grid">
+            {% for card in statistics_sections.attendance_cards %}
+            <div class="stats-kpi">
+                <div class="stats-kpi-label">{{ card.label }}</div>
+                <div class="stats-kpi-value">{{ card.value }}</div>
             </div>
-            <div style="position: relative; height: 220px; width: 100%;">
-                <canvas id="barSalaryChart"></canvas>
+            {% endfor %}
+        </div>
+        <div class="chart-grid">
+            <div class="chart-box">
+                <h3>Số giờ tăng ca theo nhân viên</h3>
+                <canvas id="overtimeEmployeeChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Đi trễ và nghỉ làm theo nhân viên</h3>
+                <canvas id="disciplineEmployeeChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- ===== MẪU BÁO CÁO ===== -->
-    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-main);">Mẫu báo cáo có sẵn</h3>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-        
-        <div class="report-template-card">
-            <div class="template-icon" style="background:#eff6ff; color:#3b82f6;">
-                <i class="fa-solid fa-file-lines"></i>
-            </div>
+    <div class="stats-section animate-fade">
+        <div class="stats-section-head">
             <div>
-                <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">Báo cáo chấm công</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Chi tiết giờ làm việc theo tháng</div>
+                <h2>Tổng hợp</h2>
+                <p>Bảng tổng hợp toàn bộ chỉ số đang hiển thị trong phạm vi hiện tại</p>
             </div>
         </div>
-
-        <div class="report-template-card">
-            <div class="template-icon" style="background:#ecfdf5; color:#10b981;">
-                <i class="fa-solid fa-people-group"></i>
+        <div class="stats-card-grid">
+            {% for card in statistics_sections.summary_cards %}
+            <div class="stats-kpi">
+                <div class="stats-kpi-label">{{ card.label }}</div>
+                <div class="stats-kpi-value">{{ card.value }}</div>
             </div>
-            <div>
-                <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">Báo cáo nhân sự</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Thống kê tổng quan nhân viên</div>
-            </div>
+            {% endfor %}
         </div>
 
-        <div class="report-template-card">
-            <div class="template-icon" style="background:#faf5ff; color:#a855f7;">
-                <i class="fa-solid fa-file-invoice-dollar"></i>
-            </div>
-            <div>
-                <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">Báo cáo lương</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Chi phí lương và phúc lợi</div>
+        <div class="card">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Phòng ban</th>
+                            <th>Quản lý</th>
+                            <th>Leader</th>
+                            <th>Ngày nghỉ</th>
+                            <th>Đơn nghỉ</th>
+                            <th>Tăng ca</th>
+                            <th>Đi trễ</th>
+                            <th>Nghỉ làm</th>
+                            <th>Tỷ lệ chấm công</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in statistics_sections.summary_rows %}
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;">{{ row.employee_name }}</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">@{{ row.employee_username }}</div>
+                            </td>
+                            <td>{{ row.department }}</td>
+                            <td>{{ row.manager_name }}</td>
+                            <td>{{ row.leader_name }}</td>
+                            <td>{{ row.leave_days }}</td>
+                            <td>{{ row.leave_requests }}</td>
+                            <td>{{ row.overtime_hours }}h</td>
+                            <td>{{ row.late_count }}</td>
+                            <td>{{ row.absence_days }}</td>
+                            <td>{{ row.attendance_rate }}%</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">Chưa có dữ liệu tổng hợp trong phạm vi đang chọn.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-
     </div>
-
+    {% endif %}
 </div>
 
-<!-- SCRIPT VẼ CHART.JS MOCK DATA Y HỆT HÌNH -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // 1. Line Chart Xu hướng chấm công
-    const ctxLine = document.getElementById('lineChart').getContext('2d');
-    new Chart(ctxLine, {
-        type: 'line',
-        data: {
-            labels: ['T1', 'T2', 'T3', 'T4'],
-            datasets: [
-                {
-                    label: 'Đúng giờ %',
-                    data: [98, 95, 99, 97],
-                    borderColor: '#10b981',
-                    backgroundColor: '#10b981',
-                    tension: 0.1,
-                    pointBackgroundColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4
+document.addEventListener('DOMContentLoaded', function () {
+    const leaveByDepartment = JSON.parse('{{ statistics_sections.leave_by_department_json|escapejs }}');
+    const leaveByLeader = JSON.parse('{{ statistics_sections.leave_by_leader_json|escapejs }}');
+    const leaveByEmployee = JSON.parse('{{ statistics_sections.leave_by_employee_json|escapejs }}');
+    const overtimeByEmployee = JSON.parse('{{ statistics_sections.overtime_by_employee_json|escapejs }}');
+    const disciplineByEmployee = JSON.parse('{{ statistics_sections.discipline_by_employee_json|escapejs }}');
+
+    function createSimpleBarChart(canvasId, labels, values, label, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            return;
+        }
+
+        new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: values,
+                    backgroundColor: color,
+                    borderRadius: 8,
+                    maxBarThickness: 42,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
                 },
-                {
-                    label: 'Trễ %',
-                    data: [2, 5, 1, 3],
-                    borderColor: '#ef4444',
-                    backgroundColor: '#ef4444',
-                    tension: 0.1,
-                    pointBackgroundColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } } },
-            scales: {
-                y: { min: 0, max: 100, ticks: { stepSize: 25 } }
             }
-        }
-    });
+        });
+    }
 
-    // 2. Pie Chart Hiệu suất phòng ban
-    const ctxPie = document.getElementById('pieChart').getContext('2d');
-    new Chart(ctxPie, {
-        type: 'pie',
-        data: {
-            labels: ['IT', 'Finance', 'Marketing', 'HR', 'Sales'],
-            datasets: [{
-                data: [92, 93, 90, 95, 88],
-                backgroundColor: ['#a855f7', '#ef4444', '#f59e0b', '#10b981', '#3b82f6'],
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right' }
-            }
-        }
-    });
+    createSimpleBarChart(
+        'leaveDepartmentChart',
+        leaveByDepartment.labels,
+        leaveByDepartment.values,
+        'Ngày nghỉ',
+        '#8b5cf6'
+    );
 
-    // 3. Bar Chart Phân tích nghỉ phép (Stacked/Grouped)
-    const ctxBarLeave = document.getElementById('barLeaveChart').getContext('2d');
-    new Chart(ctxBarLeave, {
-        type: 'bar',
-        data: {
-            labels: ['T1', 'T2', 'T3', 'T4'],
-            datasets: [
-                { label: 'Nghỉ ốm', data: [1, 2, 0, 1], backgroundColor: '#ef4444', maxBarThickness: 30 },
-                { label: 'Nghỉ phép', data: [5, 4, 3, 6], backgroundColor: '#8b5cf6', maxBarThickness: 30 },
-                { label: 'Khác', data: [12, 15, 10, 18], backgroundColor: '#f59e0b', maxBarThickness: 30 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: {
-                y: { max: 32, ticks: { stepSize: 8 } }
-            }
-        }
-    });
+    createSimpleBarChart(
+        'leaveLeaderChart',
+        leaveByLeader.labels,
+        leaveByLeader.values,
+        'Ngày nghỉ',
+        '#3b82f6'
+    );
 
-    // 4. Bar Chart Chi phí lương
-    const ctxBarSalary = document.getElementById('barSalaryChart').getContext('2d');
-    new Chart(ctxBarSalary, {
-        type: 'bar',
-        data: {
-            labels: ['T1', 'T2', 'T3', 'T4'],
-            datasets: [
-                { label: 'Lương cơ bản (triệu)', data: [450, 450, 450, 450], backgroundColor: '#3b82f6', maxBarThickness: 50 },
-                { label: 'Tăng ca (triệu)', data: [20, 35, 100, 50], backgroundColor: '#10b981', maxBarThickness: 50 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: {
-                x: { stacked: true },
-                y: { stacked: true, max: 600, ticks: { stepSize: 150 } }
+    createSimpleBarChart(
+        'leaveEmployeeChart',
+        leaveByEmployee.labels,
+        leaveByEmployee.values,
+        'Ngày nghỉ',
+        '#f59e0b'
+    );
+
+    createSimpleBarChart(
+        'overtimeEmployeeChart',
+        overtimeByEmployee.labels,
+        overtimeByEmployee.values,
+        'Giờ tăng ca',
+        '#10b981'
+    );
+
+    const disciplineCanvas = document.getElementById('disciplineEmployeeChart');
+    if (disciplineCanvas) {
+        new Chart(disciplineCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: disciplineByEmployee.labels,
+                datasets: [
+                    {
+                        label: 'Đi trễ',
+                        data: disciplineByEmployee.late_values,
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 8,
+                        maxBarThickness: 42,
+                    },
+                    {
+                        label: 'Nghỉ làm',
+                        data: disciplineByEmployee.absence_values,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 8,
+                        maxBarThickness: 42,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
-        }
-    });
+        });
+    }
 });
 </script>
-
 {% endblock %}

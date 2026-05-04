@@ -217,7 +217,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load nội dung động vào modal (cho xem chi tiết user)
   // ============================================================
   window.openUserDetail = function(userId, username, email, fullName,
-                                     employeeId, role, status, dateJoined) {
+                                     employeeId, role, status, dateJoined,
+                                     department, position, employeeType, workplace,
+                                     probationStart, officialStartDate, workStatus,
+                                     managerName, leaderName) {
     var modal = document.getElementById('userDetailModal');
     if (!modal) return;
 
@@ -233,6 +236,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setContent('detail-role', role);
     setContent('detail-status', status);
     setContent('detail-date-joined', dateJoined);
+    setContent('detail-department', department);
+    setContent('detail-position', position);
+    setContent('detail-employee-type', employeeType);
+    setContent('detail-workplace', workplace);
+    setContent('detail-probation-start', probationStart);
+    setContent('detail-official-start-date', officialStartDate);
+    setContent('detail-work-status', workStatus);
+    setContent('detail-manager-name', managerName);
+    setContent('detail-leader-name', leaderName);
 
     modal.classList.add('show');
   };

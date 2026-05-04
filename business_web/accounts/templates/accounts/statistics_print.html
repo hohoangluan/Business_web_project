@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics Print</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #0f172a;
+            margin: 24px;
+        }
+        .print-header {
+            margin-bottom: 20px;
+        }
+        .print-header h1 {
+            margin-bottom: 6px;
+            font-size: 24px;
+        }
+        .summary-list {
+            margin: 0 0 20px;
+            padding-left: 18px;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .card {
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .card-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        .card-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: #f8fafc;
+        }
+        .empty-box {
+            border: 1px dashed #cbd5e1;
+            padding: 20px;
+            border-radius: 10px;
+            color: #475569;
+        }
+        @media print {
+            body {
+                margin: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h1>Statistics Report</h1>
+        <div>Phạm vi: {{ scope.scope_label|default:"Không xác định" }}</div>
+        <div>Thời gian: {{ time_range.date_range_text }}</div>
+    </div>
+
+    {% if statistics_sections.filter_summary %}
+    <ul class="summary-list">
+        {% for item in statistics_sections.filter_summary %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if statistics_error_message %}
+    <div class="empty-box">{{ statistics_error_message }}</div>
+    {% else %}
+    <div class="card-grid">
+        {% for card in statistics_sections.summary_cards %}
+        <div class="card">
+            <div class="card-label">{{ card.label }}</div>
+            <div class="card-value">{{ card.value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Phòng ban</th>
+                <th>Quản lý</th>
+                <th>Leader</th>
+                <th>Ngày nghỉ</th>
+                <th>Đơn nghỉ</th>
+                <th>Tăng ca</th>
+                <th>Đi trễ</th>
+                <th>Nghỉ làm</th>
+                <th>Tỷ lệ chấm công</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in statistics_sections.summary_rows %}
+            <tr>
+                <td>{{ row.employee_name }} (@{{ row.employee_username }})</td>
+                <td>{{ row.department }}</td>
+                <td>{{ row.manager_name }}</td>
+                <td>{{ row.leader_name }}</td>
+                <td>{{ row.leave_days }}</td>
+                <td>{{ row.leave_requests }}</td>
+                <td>{{ row.overtime_hours }}h</td>
+                <td>{{ row.late_count }}</td>
+                <td>{{ row.absence_days }}</td>
+                <td>{{ row.attendance_rate }}%</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10">Chưa có dữ liệu để in.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <script>
+        window.addEventListener('load', function () {
+            window.print();
+        });
+    </script>
+</body>
+</html>

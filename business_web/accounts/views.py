@@ -21,14 +21,28 @@ VIEWS MỚI:
 ==============================================================================
 """
 
+import csv
+import json
+from datetime import datetime, timedelta
+
+from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
-from django.contrib import messages
-from .forms import RegisterForm, AssignRoleForm, AssignPermissionsForm
+from django.db.models import Q
+from django.http import HttpResponse
+from django.utils import timezone
+
+from .forms import (
+    RegisterForm,
+    AssignRoleForm,
+    AssignPermissionsForm,
+    EmployeeProfileForm,
+)
 from .models import UserProfile, Role
+from .statistics_data import build_statistics_records
 
 
 # =============================================================================
@@ -115,21 +129,548 @@ def can_manage_requests(user):
     )
 
 
-def can_access_hr_stats(user):
-    """Only HR and superuser can access the HR statistics page."""
-    return user.is_authenticated and (
-        user.is_superuser or user_has_role(user, Role.HR)
-    )
-
-
-def can_calculate_payroll(user):
-    """Payroll calculation is available to HR and Admin/Superuser."""
+def can_manage_work_info(user):
+    """HR/Admin có thể cập nhật hồ sơ nhân sự đang lưu cho nhân viên."""
     return has_admin_business_access(user) or user_has_role(user, Role.HR)
 
 
-def can_approve_payroll(user):
-    """Payroll approval is available to Manager/Leader and Admin/Superuser."""
-    return has_admin_business_access(user) or user_has_role(user, Role.MANAGER, Role.LEADER)
+def can_access_statistics(user):
+    """HR/Admin/Manager/Leader có thể xem statistics theo phạm vi phù hợp."""
+    return has_admin_business_access(user) or user_has_role(
+        user, Role.HR, Role.MANAGER, Role.LEADER
+    )
+
+
+def get_user_display_name(user):
+    """Ưu tiên full name để giao diện thân thiện hơn cho người mới đọc."""
+    profile = ensure_profile(user)
+    return profile.full_name or user.username
+
+
+def get_department_label(profile):
+    """Giữ nhãn phòng ban nhất quán giữa view, template và export."""
+    return profile.department or 'Chưa phân phòng ban'
+
+
+def get_manager_display_name(profile):
+    manager_user = getattr(profile, 'manager_user', None)
+    if not manager_user:
+        return 'Chưa gán quản lý'
+    return get_user_display_name(manager_user)
+
+
+def get_leader_display_name(profile):
+    leader_user = getattr(profile, 'leader_user', None)
+    if not leader_user:
+        return 'Chưa gán leader'
+    return get_user_display_name(leader_user)
+
+
+def get_manager_user_queryset():
+    """Danh sách user có thể được chọn làm quản lý trực tiếp."""
+    return User.objects.select_related('profile__role').filter(
+        Q(is_superuser=True) | Q(profile__role__name__in=[Role.ADMIN, Role.MANAGER])
+    ).order_by('profile__full_name', 'username')
+
+
+def get_leader_user_queryset():
+    """Danh sách user có thể được chọn làm leader trực tiếp."""
+    return User.objects.select_related('profile__role').filter(
+        Q(profile__role__name__in=[Role.LEADER, Role.MANAGER])
+    ).order_by('profile__full_name', 'username')
+
+
+def build_hr_create_profile_context(form_data=None):
+    """Context chung cho trang tạo hồ sơ để chỗ GET/POST không bị lặp nhiều."""
+    return {
+        'active_page': 'hr_profiles',
+        'form_data': form_data or {},
+        'manager_choices': get_manager_user_queryset(),
+        'leader_choices': get_leader_user_queryset(),
+    }
+
+
+def get_statistics_scope(user):
+    """
+    Xác định phạm vi dữ liệu mà user được quyền xem.
+    Hàm này cố tình trả về dict dễ đọc để người mới debug thuận tiện.
+    """
+    profile = ensure_profile(user)
+
+    if has_admin_business_access(user) or user_has_role(user, Role.HR):
+        return {
+            'scope_name': 'company',
+            'scope_label': 'Toàn công ty',
+            'locked_department': '',
+            'locked_leader': '',
+            'error_message': '',
+        }
+
+    if user_has_role(user, Role.MANAGER):
+        if not profile.department:
+            return {
+                'scope_name': 'manager',
+                'scope_label': '',
+                'locked_department': '',
+                'locked_leader': '',
+                'error_message': 'Tài khoản Manager này chưa được gán phòng ban nên chưa thể xem thống kê.',
+            }
+        return {
+            'scope_name': 'manager',
+            'scope_label': f'Phòng ban: {profile.department}',
+            'locked_department': profile.department,
+            'locked_leader': '',
+            'error_message': '',
+        }
+
+    if user_has_role(user, Role.LEADER):
+        return {
+            'scope_name': 'leader',
+            'scope_label': f'Nhóm do {get_user_display_name(user)} phụ trách',
+            'locked_department': '',
+            'locked_leader': user.username,
+            'error_message': '',
+        }
+
+    return {
+        'scope_name': 'none',
+        'scope_label': '',
+        'locked_department': '',
+        'locked_leader': '',
+        'error_message': 'Bạn không có quyền truy cập statistics.',
+    }
+
+
+def get_scope_users(user, scope):
+    """
+    Lấy danh sách user nằm trong phạm vi statistics mà người hiện tại được xem.
+    """
+    users = User.objects.select_related(
+        'profile__role',
+        'profile__manager_user__profile',
+        'profile__leader_user__profile',
+    ).order_by('profile__full_name', 'username')
+
+    for item in users:
+        ensure_profile(item)
+
+    if scope['scope_name'] == 'company':
+        return [
+            item for item in users
+            if get_user_role_name(item) != Role.ADMIN
+        ]
+
+    if scope['scope_name'] == 'manager':
+        return [
+            item for item in users
+            if item.pk != user.pk and item.profile.department == scope['locked_department']
+        ]
+
+    if scope['scope_name'] == 'leader':
+        return [
+            item for item in users
+            if item.pk != user.pk and item.profile.leader_user_id == user.id
+        ]
+
+    return []
+
+
+def parse_date_input(raw_value):
+    """Đọc giá trị YYYY-MM-DD từ query string. Sai format thì trả None."""
+    if not raw_value:
+        return None
+    try:
+        return datetime.strptime(raw_value, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def get_time_range_from_params(params):
+    """
+    Xử lý bộ lọc thời gian.
+    Nếu preset là 'custom' thì dùng from_date / to_date.
+    """
+    today = timezone.localdate()
+    period = params.get('period', 'this_month')
+    from_date_raw = params.get('from_date', '')
+    to_date_raw = params.get('to_date', '')
+
+    if period == 'last_7_days':
+        start_date = today - timedelta(days=6)
+        end_date = today
+        label = '7 ngày gần nhất'
+    elif period == 'last_30_days':
+        start_date = today - timedelta(days=29)
+        end_date = today
+        label = '30 ngày gần nhất'
+    elif period == 'this_quarter':
+        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
+        start_date = today.replace(month=quarter_start_month, day=1)
+        end_date = today
+        label = 'Quý này'
+    elif period == 'this_year':
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+        label = 'Năm nay'
+    elif period == 'custom':
+        start_date = parse_date_input(from_date_raw)
+        end_date = parse_date_input(to_date_raw)
+        if not start_date or not end_date or start_date > end_date:
+            start_date = today.replace(day=1)
+            end_date = today
+            period = 'this_month'
+            label = 'Tháng này'
+        else:
+            label = 'Khoảng thời gian tùy chọn'
+    else:
+        start_date = today.replace(day=1)
+        end_date = today
+        period = 'this_month'
+        label = 'Tháng này'
+
+    return {
+        'period': period,
+        'from_date': from_date_raw,
+        'to_date': to_date_raw,
+        'start_date': start_date,
+        'end_date': end_date,
+        'label': label,
+        'date_range_text': f'{start_date:%d/%m/%Y} - {end_date:%d/%m/%Y}',
+    }
+
+
+def build_statistics_filters(scope_users, scope, params):
+    """
+    Tạo option cho dropdown và lọc user theo từng cấp:
+    phòng ban -> manager -> leader -> nhân viên.
+    """
+    filtered_users = list(scope_users)
+    department_options = sorted({get_department_label(user.profile) for user in scope_users})
+
+    if scope['locked_department']:
+        selected_department = scope['locked_department']
+    else:
+        selected_department = params.get('department', '')
+        if selected_department not in department_options:
+            selected_department = ''
+
+    if selected_department:
+        filtered_users = [
+            user for user in filtered_users
+            if get_department_label(user.profile) == selected_department
+        ]
+
+    manager_map = {}
+    for user in filtered_users:
+        manager_user = user.profile.manager_user
+        if manager_user:
+            manager_map[manager_user.username] = get_user_display_name(manager_user)
+    manager_options = [
+        {'value': username, 'label': manager_map[username]}
+        for username in sorted(manager_map.keys())
+    ]
+
+    selected_manager = params.get('manager', '')
+    if selected_manager not in manager_map:
+        selected_manager = ''
+
+    if selected_manager:
+        filtered_users = [
+            user for user in filtered_users
+            if user.profile.manager_user and user.profile.manager_user.username == selected_manager
+        ]
+
+    leader_map = {}
+    for user in filtered_users:
+        leader_user = user.profile.leader_user
+        if leader_user:
+            leader_map[leader_user.username] = get_user_display_name(leader_user)
+    leader_options = [
+        {'value': username, 'label': leader_map[username]}
+        for username in sorted(leader_map.keys())
+    ]
+
+    if scope['locked_leader']:
+        selected_leader = scope['locked_leader']
+    else:
+        selected_leader = params.get('leader', '')
+        if selected_leader not in leader_map:
+            selected_leader = ''
+
+    if selected_leader:
+        filtered_users = [
+            user for user in filtered_users
+            if user.profile.leader_user and user.profile.leader_user.username == selected_leader
+        ]
+
+    employee_map = {
+        user.username: get_user_display_name(user)
+        for user in filtered_users
+    }
+    employee_options = [
+        {'value': username, 'label': employee_map[username]}
+        for username in sorted(employee_map.keys())
+    ]
+
+    selected_employee = params.get('employee', '')
+    if selected_employee not in employee_map:
+        selected_employee = ''
+
+    if selected_employee:
+        filtered_users = [
+            user for user in filtered_users
+            if user.username == selected_employee
+        ]
+
+    return {
+        'department_options': department_options,
+        'manager_options': manager_options,
+        'leader_options': leader_options,
+        'employee_options': employee_options,
+        'selected_department': selected_department,
+        'selected_manager': selected_manager,
+        'selected_leader': selected_leader,
+        'selected_employee': selected_employee,
+        'selected_manager_label': manager_map.get(selected_manager, ''),
+        'selected_leader_label': leader_map.get(selected_leader, ''),
+        'selected_employee_label': employee_map.get(selected_employee, ''),
+        'filtered_users': filtered_users,
+        'department_locked': bool(scope['locked_department']),
+        'leader_locked': bool(scope['locked_leader']),
+    }
+
+
+def filter_statistics_records(records, filters, time_range):
+    """Lọc record theo nhân viên đã chọn và khoảng thời gian đang xem."""
+    allowed_usernames = {user.username for user in filters['filtered_users']}
+
+    return [
+        record for record in records
+        if record['employee_username'] in allowed_usernames
+        and time_range['start_date'] <= record['record_date'] <= time_range['end_date']
+    ]
+
+
+def build_statistics_summary_rows(filtered_users, filtered_records):
+    """
+    Gom record theo nhân viên để UI, CSV và print cùng dùng chung một bảng.
+    """
+    summary_map = {}
+
+    for user in filtered_users:
+        profile = ensure_profile(user)
+        summary_map[user.username] = {
+            'employee_name': get_user_display_name(user),
+            'employee_username': user.username,
+            'department': get_department_label(profile),
+            'manager_name': get_manager_display_name(profile),
+            'leader_name': get_leader_display_name(profile),
+            'leave_days': 0,
+            'leave_requests': 0,
+            'overtime_hours': 0,
+            'late_count': 0,
+            'absence_days': 0,
+            'attendance_total': 0,
+            'attendance_entries': 0,
+            'attendance_rate': 0,
+        }
+
+    for record in filtered_records:
+        row = summary_map.get(record['employee_username'])
+        if not row:
+            continue
+        row['leave_days'] += record['leave_days']
+        row['leave_requests'] += record['leave_requests']
+        row['overtime_hours'] += record['overtime_hours']
+        row['late_count'] += record['late_count']
+        row['absence_days'] += record['absence_days']
+        row['attendance_total'] += record['attendance_rate']
+        row['attendance_entries'] += 1
+
+    rows = []
+    for row in summary_map.values():
+        if row['attendance_entries']:
+            row['attendance_rate'] = round(
+                row['attendance_total'] / row['attendance_entries'],
+                1,
+            )
+        rows.append(row)
+
+    rows.sort(key=lambda item: item['employee_name'].lower())
+    return rows
+
+
+def aggregate_rows(rows, label_key, value_key, empty_label):
+    """Helper nhỏ để gom dữ liệu chart theo từng nhãn."""
+    totals = {}
+    for row in rows:
+        label = row[label_key] or empty_label
+        totals[label] = totals.get(label, 0) + row[value_key]
+
+    sorted_items = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+    return {
+        'labels': [item[0] for item in sorted_items],
+        'values': [item[1] for item in sorted_items],
+    }
+
+
+def build_statistics_sections(summary_rows, time_range, filters, scope):
+    """
+    Chuẩn bị toàn bộ card, chart và bảng cho statistics.
+    Tách hàm riêng để export CSV / print / màn hình web dùng chung dữ liệu.
+    """
+    employee_count = len(summary_rows)
+    total_leave_days = sum(row['leave_days'] for row in summary_rows)
+    total_leave_requests = sum(row['leave_requests'] for row in summary_rows)
+    total_overtime_hours = sum(row['overtime_hours'] for row in summary_rows)
+    total_late_count = sum(row['late_count'] for row in summary_rows)
+    total_absence_days = sum(row['absence_days'] for row in summary_rows)
+    average_attendance_rate = 0
+
+    if employee_count:
+        average_attendance_rate = round(
+            sum(row['attendance_rate'] for row in summary_rows) / employee_count,
+            1,
+        )
+
+    leave_by_department = aggregate_rows(
+        summary_rows, 'department', 'leave_days', 'Chưa phân phòng ban'
+    )
+    leave_by_leader = aggregate_rows(
+        summary_rows, 'leader_name', 'leave_days', 'Chưa gán leader'
+    )
+    leave_by_employee = {
+        'labels': [row['employee_name'] for row in summary_rows[:8]],
+        'values': [row['leave_days'] for row in summary_rows[:8]],
+    }
+    overtime_by_employee = {
+        'labels': [row['employee_name'] for row in summary_rows[:8]],
+        'values': [row['overtime_hours'] for row in summary_rows[:8]],
+    }
+    discipline_by_employee = {
+        'labels': [row['employee_name'] for row in summary_rows[:8]],
+        'late_values': [row['late_count'] for row in summary_rows[:8]],
+        'absence_values': [row['absence_days'] for row in summary_rows[:8]],
+    }
+
+    filter_summary = [
+        f"Phạm vi: {scope['scope_label'] or 'Không xác định'}",
+        f"Thời gian: {time_range['label']} ({time_range['date_range_text']})",
+    ]
+    if filters['selected_department']:
+        filter_summary.append(f"Phòng ban: {filters['selected_department']}")
+    if filters['selected_manager']:
+        filter_summary.append(
+            f"Manager: {filters['selected_manager_label'] or filters['selected_manager']}"
+        )
+    if filters['selected_leader']:
+        filter_summary.append(
+            f"Leader: {filters['selected_leader_label'] or filters['selected_leader']}"
+        )
+    if filters['selected_employee']:
+        filter_summary.append(
+            f"Nhân viên: {filters['selected_employee_label'] or filters['selected_employee']}"
+        )
+
+    return {
+        'summary_rows': summary_rows,
+        'summary_cards': [
+            {'label': 'Số nhân viên trong phạm vi', 'value': employee_count},
+            {'label': 'Tổng giờ tăng ca', 'value': total_overtime_hours},
+            {'label': 'Số lần đi trễ', 'value': total_late_count},
+            {'label': 'Tỷ lệ chấm công trung bình', 'value': f'{average_attendance_rate}%'},
+        ],
+        'leave_cards': [
+            {'label': 'Tổng ngày nghỉ', 'value': total_leave_days},
+            {'label': 'Số đơn nghỉ', 'value': total_leave_requests},
+            {'label': 'Leader đang có dữ liệu', 'value': len(leave_by_leader['labels'])},
+            {'label': 'Phòng ban đang có dữ liệu', 'value': len(leave_by_department['labels'])},
+        ],
+        'attendance_cards': [
+            {'label': 'Tổng giờ tăng ca', 'value': total_overtime_hours},
+            {'label': 'Số lần đi trễ', 'value': total_late_count},
+            {'label': 'Số ngày nghỉ làm', 'value': total_absence_days},
+            {'label': 'Tỷ lệ đúng giờ trung bình', 'value': f'{average_attendance_rate}%'},
+        ],
+        'leave_by_department_json': json.dumps(leave_by_department),
+        'leave_by_leader_json': json.dumps(leave_by_leader),
+        'leave_by_employee_json': json.dumps(leave_by_employee),
+        'overtime_by_employee_json': json.dumps(overtime_by_employee),
+        'discipline_by_employee_json': json.dumps(discipline_by_employee),
+        'filter_summary': filter_summary,
+    }
+
+
+def build_statistics_page_context(user, params):
+    """
+    Hàm trung tâm cho statistics.
+    Màn hình web, CSV export và print view đều gọi lại hàm này để tránh lệch dữ liệu.
+    """
+    scope = get_statistics_scope(user)
+    if scope['error_message']:
+        return {
+            'scope': scope,
+            'time_range': get_time_range_from_params(params),
+            'filters': {
+                'department_options': [],
+                'manager_options': [],
+                'leader_options': [],
+                'employee_options': [],
+                'selected_department': '',
+                'selected_manager': '',
+                'selected_leader': scope['locked_leader'],
+                'selected_employee': '',
+                'selected_manager_label': '',
+                'selected_leader_label': '',
+                'selected_employee_label': '',
+                'filtered_users': [],
+                'department_locked': bool(scope['locked_department']),
+                'leader_locked': bool(scope['locked_leader']),
+            },
+            'statistics_error_message': scope['error_message'],
+            'statistics_sections': {
+                'summary_rows': [],
+                'summary_cards': [],
+                'leave_cards': [],
+                'attendance_cards': [],
+                'leave_by_department_json': json.dumps({'labels': [], 'values': []}),
+                'leave_by_leader_json': json.dumps({'labels': [], 'values': []}),
+                'leave_by_employee_json': json.dumps({'labels': [], 'values': []}),
+                'overtime_by_employee_json': json.dumps({'labels': [], 'values': []}),
+                'discipline_by_employee_json': json.dumps({
+                    'labels': [],
+                    'late_values': [],
+                    'absence_values': [],
+                }),
+                'filter_summary': [],
+            },
+        }
+
+    scope_users = get_scope_users(user, scope)
+    filters = build_statistics_filters(scope_users, scope, params)
+    time_range = get_time_range_from_params(params)
+    records = build_statistics_records(filters['filtered_users'])
+    filtered_records = filter_statistics_records(records, filters, time_range)
+    statistics_sections = build_statistics_sections(
+        build_statistics_summary_rows(filters['filtered_users'], filtered_records),
+        time_range,
+        filters,
+        scope,
+    )
+
+    statistics_error_message = ''
+    if not scope_users:
+        statistics_error_message = 'Chưa có nhân viên nào thuộc phạm vi quản lý của bạn để thống kê.'
+    elif not filters['filtered_users']:
+        statistics_error_message = 'Không tìm thấy nhân viên phù hợp với bộ lọc hiện tại.'
+
+    return {
+        'scope': scope,
+        'time_range': time_range,
+        'filters': filters,
+        'statistics_sections': statistics_sections,
+        'statistics_error_message': statistics_error_message,
+    }
 
 # =============================================================================
 # PUBLIC VIEWS: Registration, Login, Logout, Dashboard
@@ -239,7 +780,9 @@ def dashboard_view(request):
     ensure_profile(request.user)
     return render(request, 'accounts/dashboard.html', {
         'active_page': 'dashboard',  # Sidebar highlight
-        'can_access_hr_stats': can_access_hr_stats(request.user),
+        'can_access_statistics': can_access_statistics(request.user),
+        'can_manage_work_info': can_manage_work_info(request.user),
+        'is_system_admin': is_admin_user(request.user),
     })
 
 
@@ -264,8 +807,10 @@ def profile_view(request):
     Các trường CÓ THỂ chỉnh sửa (đã có trong model):
       - full_name, email, phone_number, date_of_birth
 
-    Các trường khác (giới tính, CCCD, phòng ban, ngân hàng...)
-    CHƯA CÓ trong model → hiển thị mock data trên template.
+    Các trường tổ chức như department / position / manager / leader
+    đã có trong model nhưng được quản trị bởi HR/Admin ở màn hình riêng.
+    Các nhóm dữ liệu cá nhân khác (giới tính, CCCD, ngân hàng...)
+    vẫn đang là mock data trên template.
     → Khi thêm field vào model, chỉ cần thêm vào form xử lý bên dưới.
 
     Template: accounts/profile.html
@@ -405,18 +950,89 @@ def overtime_approval_view(request):
 @login_required
 def statistics_view(request):
     """
-    Trang Thống kê quản trị (Biểu đồ).
-    MOCK DATA. Trực tiếp chống lại các truy cập không phải HR.
+    Trang statistics mới:
+    - hỗ trợ filter theo tổ chức
+    - hỗ trợ filter theo thời gian
+    - giới hạn dữ liệu theo role đang đăng nhập
     """
     ensure_profile(request.user)
     
-    if not can_access_hr_stats(request.user):
-        messages.error(request, 'Bạn không đủ thẩm quyền (Bắt buộc Khối HR) để xem Báo cáo Thống kê!')
+    if not can_access_statistics(request.user):
+        messages.error(request, 'Bạn không có quyền xem trang statistics.')
         return redirect('dashboard')
-        
-    return render(request, 'accounts/statistics.html', {
-        'active_page': 'statistics',
-    })
+
+    context = build_statistics_page_context(request.user, request.GET)
+    context['active_page'] = 'statistics'
+    return render(request, 'accounts/statistics.html', context)
+
+
+@login_required
+def statistics_export_csv_view(request):
+    """Xuất bảng tổng hợp statistics ra CSV để Excel mở trực tiếp."""
+    ensure_profile(request.user)
+
+    if not can_access_statistics(request.user):
+        messages.error(request, 'Bạn không có quyền xuất statistics.')
+        return redirect('dashboard')
+
+    context = build_statistics_page_context(request.user, request.GET)
+    time_range = context['time_range']
+    file_name = (
+        f"statistics_{time_range['start_date']:%Y%m%d}_{time_range['end_date']:%Y%m%d}.csv"
+    )
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    response.write('\ufeff')
+
+    writer = csv.writer(response)
+    writer.writerow(['Bao cao statistics'])
+    for item in context['statistics_sections']['filter_summary']:
+        writer.writerow([item])
+    writer.writerow([])
+    writer.writerow([
+        'Nhan vien',
+        'Username',
+        'Phong ban',
+        'Quan ly',
+        'Leader',
+        'Ngay nghi',
+        'So don nghi',
+        'Gio tang ca',
+        'Di tre',
+        'Nghi lam',
+        'Ty le cham cong',
+    ])
+
+    for row in context['statistics_sections']['summary_rows']:
+        writer.writerow([
+            row['employee_name'],
+            row['employee_username'],
+            row['department'],
+            row['manager_name'],
+            row['leader_name'],
+            row['leave_days'],
+            row['leave_requests'],
+            row['overtime_hours'],
+            row['late_count'],
+            row['absence_days'],
+            row['attendance_rate'],
+        ])
+
+    return response
+
+
+@login_required
+def statistics_print_view(request):
+    """Trang in tối giản để người dùng lưu PDF từ trình duyệt."""
+    ensure_profile(request.user)
+
+    if not can_access_statistics(request.user):
+        messages.error(request, 'Bạn không có quyền in statistics.')
+        return redirect('dashboard')
+
+    context = build_statistics_page_context(request.user, request.GET)
+    return render(request, 'accounts/statistics_print.html', context)
 
 @login_required
 def report_view(request):
@@ -520,56 +1136,6 @@ def rewards_penalties_approval_view(request):
     })
 
 
-@login_required
-def payroll_view(request):
-    """
-    Trang Tiền lương / Phiếu lương cá nhân (Payslip).
-    """
-    ensure_profile(request.user)
-    
-    is_hr = can_calculate_payroll(request.user)
-    is_director = can_approve_payroll(request.user)
-            
-    return render(request, 'accounts/payroll.html', {
-        'active_page': 'payroll',
-        'is_hr': is_hr,
-        'is_director': is_director,
-    })
-
-@login_required
-def payroll_calc_view(request):
-    """
-    Trang Tính lương tự động (Dành cho HR/Kế toán).
-    """
-    ensure_profile(request.user)
-    
-    is_hr = can_calculate_payroll(request.user)
-            
-    if not is_hr:
-        messages.error(request, 'Chỉ bộ phận HR/Kế toán mới được truy cập công cụ tính lương!')
-        return redirect('payroll')
-        
-    return render(request, 'accounts/payroll_calc.html', {
-        'active_page': 'payroll', 
-    })
-
-@login_required
-def payroll_approval_view(request):
-    """
-    Trang Phê duyệt Bảng lương Tổng (Dành cho Manager/Giám đốc).
-    """
-    ensure_profile(request.user)
-    
-    is_director = can_approve_payroll(request.user)
-            
-    if not is_director:
-        messages.error(request, 'Chỉ Giám Đốc/Quản lý cấp cao mới có quyền phê duyệt Quỹ lương!')
-        return redirect('payroll')
-        
-    return render(request, 'accounts/payroll_approval.html', {
-        'active_page': 'payroll', 
-    })
-
 
 @login_required
 def settings_view(request):
@@ -623,9 +1189,11 @@ def switch_role_view(request):
 @user_passes_test(is_hr_user)
 def hr_create_profile_view(request):
     """
-    Trang tạo hồ sơ nhân viên mới (dành cho HR).
+    Trang tạo hồ sơ nhan su moi (danh cho HR).
     - GET: hiển thị form tạo hồ sơ
     - POST: tạo UserProfile + tài khoản Django tự động
+    - Thông tin công việc là bắt buộc
+    - Thông tin cá nhân có thể để trống để nhân viên tự bổ sung sau
     """
     ensure_profile(request.user)
     
@@ -635,27 +1203,53 @@ def hr_create_profile_view(request):
         phone = request.POST.get('phone_number', '').strip()
         dob = request.POST.get('date_of_birth', '').strip()
         employee_id = request.POST.get('employee_id', '').strip()
+        employee_type = request.POST.get('employee_type', '').strip()
         department = request.POST.get('department', '').strip()
         position = request.POST.get('position', '').strip()
+        workplace = request.POST.get('workplace', '').strip()
+        probation_start = request.POST.get('probation_start', '').strip()
+        official_start_date = request.POST.get('official_start_date', '').strip()
+        work_status = request.POST.get('work_status', '').strip()
+        manager_user_id = request.POST.get('manager_user', '').strip()
+        leader_user_id = request.POST.get('leader_user', '').strip()
         role_name = request.POST.get('role', '').strip()
         auto_create = request.POST.get('auto_create_account') == 'on'
+        manager_user = User.objects.filter(pk=manager_user_id).first() if manager_user_id else None
+        leader_user = User.objects.filter(pk=leader_user_id).first() if leader_user_id else None
         
         # Validation
         errors = []
-        if not full_name:
-            errors.append('Họ và tên không được để trống.')
         if not employee_id:
             errors.append('Mã nhân viên không được để trống.')
         elif UserProfile.objects.filter(employee_id=employee_id).exists():
             errors.append(f'Mã nhân viên "{employee_id}" đã tồn tại.')
-        
+        if not department:
+            errors.append('Phòng ban không được để trống.')
+        if not position:
+            errors.append('Chức vụ không được để trống.')
+        if not employee_type:
+            errors.append('Loại nhân viên không được để trống.')
+        if not workplace:
+            errors.append('Nơi làm việc không được để trống.')
+        if not probation_start:
+            errors.append('Ngày bắt đầu thử việc không được để trống.')
+        if not official_start_date:
+            errors.append('Ngày làm việc chính thức không được để trống.')
+        if not work_status:
+            errors.append('Trạng thái làm việc không được để trống.')
+        if not manager_user:
+            errors.append('Cần gán quản lý trực tiếp.')
+        if not leader_user:
+            errors.append('Cần gán leader phụ trách.')
+
         if errors:
             for e in errors:
                 messages.error(request, e)
-            return render(request, 'accounts/hr_create_profile.html', {
-                'active_page': 'hr_profiles',
-                'form_data': request.POST,
-            })
+            return render(
+                request,
+                'accounts/hr_create_profile.html',
+                build_hr_create_profile_context(request.POST),
+            )
         
         if auto_create:
             # Tự động tạo tài khoản Django
@@ -664,10 +1258,11 @@ def hr_create_profile_view(request):
             
             if User.objects.filter(username=username).exists():
                 messages.error(request, f'Username "{username}" đã tồn tại. Vui lòng đổi Mã NV.')
-                return render(request, 'accounts/hr_create_profile.html', {
-                    'active_page': 'hr_profiles',
-                    'form_data': request.POST,
-                })
+                return render(
+                    request,
+                    'accounts/hr_create_profile.html',
+                    build_hr_create_profile_context(request.POST),
+                )
             
             user = User.objects.create_user(username=username, email=email, password=password)
             profile = ensure_profile(user)
@@ -675,6 +1270,15 @@ def hr_create_profile_view(request):
             profile.phone_number = phone
             profile.date_of_birth = dob
             profile.employee_id = employee_id
+            profile.employee_type = employee_type
+            profile.department = department
+            profile.position = position
+            profile.workplace = workplace
+            profile.probation_start = probation_start
+            profile.official_start_date = official_start_date
+            profile.work_status = work_status
+            profile.manager_user = manager_user
+            profile.leader_user = leader_user
             
             if role_name:
                 role, _ = Role.objects.get_or_create(name=role_name)
@@ -682,18 +1286,27 @@ def hr_create_profile_view(request):
             
             profile.save()
             
-            messages.success(request,
-                f'✅ Đã tạo hồ sơ và tài khoản cho "{full_name}" thành công! '
+            display_name = full_name or employee_id
+            messages.success(
+                request,
+                f'✅ Đã tạo hồ sơ và tài khoản cho "{display_name}" thành công! '
                 f'Username: {username} | Mật khẩu: {password}'
             )
         else:
-            messages.success(request, f'✅ Đã lưu hồ sơ "{full_name}" (Chưa tạo tài khoản).')
+            display_name = full_name or employee_id or 'nhân viên mới'
+            messages.success(
+                request,
+                f'✅ Đã mô phỏng lưu hồ sơ "{display_name}". '
+                'Chế độ chưa tạo tài khoản hiện vẫn là demo UI nên chưa ghi dữ liệu thật.'
+            )
         
         return redirect('hr_create_profile')
     
-    return render(request, 'accounts/hr_create_profile.html', {
-        'active_page': 'hr_profiles',
-    })
+    return render(
+        request,
+        'accounts/hr_create_profile.html',
+        build_hr_create_profile_context(),
+    )
 
 
 # =============================================================================
@@ -701,11 +1314,11 @@ def hr_create_profile_view(request):
 # =============================================================================
 
 @login_required
-@user_passes_test(is_admin_user)
+@user_passes_test(can_manage_work_info)
 def user_list_view(request):
     """
-    Danh sách tất cả tài khoản trong hệ thống.
-    Chỉ admin (Master/superuser) mới truy cập được.
+    Danh sách tất cả hồ sơ nhân sự trong hệ thống.
+    HR/Admin có thể xem. Riêng thao tác nhạy cảm vẫn chỉ dành cho Admin.
 
     Template MỚI: accounts/user_management.html (thay vì user_list.html cũ)
     Context:
@@ -723,6 +1336,79 @@ def user_list_view(request):
     return render(request, 'accounts/user_management.html', {
         'users': users,
         'active_page': 'users',  # Sidebar highlight
+        'can_manage_system_users': is_admin_user(request.user),
+        'can_manage_work_info': can_manage_work_info(request.user),
+    })
+
+
+@login_required
+@user_passes_test(can_manage_work_info)
+def edit_work_info_view(request, user_id):
+    """
+    Cập nhật toàn bộ dữ liệu đang lưu trong hồ sơ nhân viên.
+    HR/Admin có thể sửa cả thông tin cá nhân đang lưu và thông tin công việc.
+    Vai trò hệ thống vẫn được giữ ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
+    """
+    target_user = get_object_or_404(User, pk=user_id)
+    profile = ensure_profile(target_user)
+
+    manager_queryset = get_manager_user_queryset()
+    leader_queryset = get_leader_user_queryset()
+
+    if request.method == 'POST':
+        form = EmployeeProfileForm(
+            request.POST,
+            manager_queryset=manager_queryset,
+            leader_queryset=leader_queryset,
+            current_user=target_user,
+        )
+        if form.is_valid():
+            target_user.email = form.cleaned_data['email']
+            target_user.save()
+            profile.full_name = form.cleaned_data['full_name']
+            profile.phone_number = form.cleaned_data['phone_number']
+            profile.date_of_birth = form.cleaned_data['date_of_birth']
+            profile.employee_id = form.cleaned_data['employee_id']
+            profile.department = form.cleaned_data['department']
+            profile.employee_type = form.cleaned_data['employee_type']
+            profile.position = form.cleaned_data['position']
+            profile.workplace = form.cleaned_data['workplace']
+            profile.probation_start = form.cleaned_data['probation_start']
+            profile.official_start_date = form.cleaned_data['official_start_date']
+            profile.work_status = form.cleaned_data['work_status']
+            profile.manager_user = form.cleaned_data['manager_user']
+            profile.leader_user = form.cleaned_data['leader_user']
+            profile.save()
+            messages.success(request, f'Đã cập nhật hồ sơ nhân sự cho "{target_user.username}".')
+            return redirect('user_list')
+    else:
+        form = EmployeeProfileForm(
+            initial={
+                'full_name': profile.full_name,
+                'email': target_user.email,
+                'phone_number': profile.phone_number,
+                'date_of_birth': profile.date_of_birth,
+                'employee_id': profile.employee_id,
+                'department': profile.department,
+                'employee_type': profile.employee_type,
+                'position': profile.position,
+                'workplace': profile.workplace,
+                'probation_start': profile.probation_start,
+                'official_start_date': profile.official_start_date,
+                'work_status': profile.work_status,
+                'manager_user': profile.manager_user,
+                'leader_user': profile.leader_user,
+            },
+            manager_queryset=manager_queryset,
+            leader_queryset=leader_queryset,
+            current_user=target_user,
+        )
+
+    return render(request, 'accounts/edit_work_info.html', {
+        'form': form,
+        'target_user': target_user,
+        'active_page': 'users',
+        'can_manage_system_users': is_admin_user(request.user),
     })
 
 

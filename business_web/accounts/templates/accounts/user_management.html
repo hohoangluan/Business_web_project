@@ -1,22 +1,28 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG QUẢN LÝ TÀI KHOẢN - user_management.html
-   Extends base_dashboard.html. Chỉ admin (superuser/Admin) mới truy cập được.
+{# TRANG QUẢN LÝ HỒ SƠ NHÂN SỰ - user_management.html
+   Extends base_dashboard.html. HR/Admin có thể truy cập.
    View xử lý: user_list_view tại accounts/views.py #}
 {% load static %}
 
-{% block title %}Quản lý tài khoản - HR Studio{% endblock %}
+{% block title %}Quản lý hồ sơ nhân sự - HR Studio{% endblock %}
 
 {% block content %}
 <!-- ===== PAGE HEADER ===== -->
 <div class="page-header animate-fade">
     <div>
-        <h1>Quản lý tài khoản</h1>
-        <p class="text-secondary">Quản lý tất cả tài khoản người dùng trong hệ thống</p>
+        <h1>Quản lý hồ sơ nhân sự</h1>
+        <p class="text-secondary">Xem danh sách nhân sự và cập nhật toàn bộ thông tin công việc khi cần</p>
     </div>
     <div class="header-actions">
+        {% if can_manage_system_users %}
         <a href="{% url 'register' %}" class="btn btn-primary">
             <i class="fa-solid fa-user-plus"></i> Tạo tài khoản mới
         </a>
+        {% else %}
+        <a href="{% url 'hr_create_profile' %}" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus"></i> Tạo hồ sơ nhân sự
+        </a>
+        {% endif %}
     </div>
 </div>
 
@@ -128,35 +134,53 @@
                                     title="Xem chi tiết"
                                     onclick="openUserDetail(
                                         '{{ u.id }}',
-                                        '{{ u.username }}',
-                                        '{{ u.email|default:"" }}',
-                                        '{{ u.profile.full_name|default:"" }}',
-                                        '{{ u.profile.employee_id|default:"" }}',
-                                        '{% if u.profile.role %}{{ u.profile.role.get_name_display }}{% else %}Chưa gán{% endif %}',
+                                        '{{ u.username|escapejs }}',
+                                        '{{ u.email|default:""|escapejs }}',
+                                        '{{ u.profile.full_name|default:""|escapejs }}',
+                                        '{{ u.profile.employee_id|default:""|escapejs }}',
+                                        '{% if u.profile.role %}{{ u.profile.role.get_name_display|escapejs }}{% else %}Chưa gán{% endif %}',
                                         '{% if u.is_active %}Hoạt động{% else %}Đã khóa{% endif %}',
-                                        '{{ u.date_joined|date:"d/m/Y H:i" }}'
+                                        '{{ u.date_joined|date:"d/m/Y H:i"|escapejs }}',
+                                        '{{ u.profile.department|default:""|escapejs }}',
+                                        '{{ u.profile.position|default:""|escapejs }}',
+                                        '{{ u.profile.employee_type|default:""|escapejs }}',
+                                        '{{ u.profile.workplace|default:""|escapejs }}',
+                                        '{{ u.profile.probation_start|default:""|escapejs }}',
+                                        '{{ u.profile.official_start_date|default:""|escapejs }}',
+                                        '{% if u.profile.work_status %}{{ u.profile.get_work_status_display|escapejs }}{% endif %}',
+                                        '{% if u.profile.manager_user %}{{ u.profile.manager_user.profile.full_name|default:u.profile.manager_user.username|escapejs }}{% endif %}',
+                                        '{% if u.profile.leader_user %}{{ u.profile.leader_user.profile.full_name|default:u.profile.leader_user.username|escapejs }}{% endif %}'
                                     )">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
 
-                            <!-- Nút chỉnh sửa vai trò -->
-                            <a href="{% url 'assign_role' u.id %}"
-                               class="btn btn-icon btn-sm btn-outline" title="Chỉnh sửa vai trò">
-                                <i class="fa-solid fa-pen"></i>
+                            {% if can_manage_work_info %}
+                            <a href="{% url 'edit_work_info' u.id %}"
+                               class="btn btn-icon btn-sm btn-outline" title="Chỉnh hồ sơ nhân sự">
+                                <i class="fa-solid fa-sitemap"></i>
                             </a>
+                            {% endif %}
 
-                            <!-- Nút phân quyền -->
-                            <a href="{% url 'assign_permissions' u.id %}"
-                               class="btn btn-icon btn-sm btn-outline" title="Phân quyền">
-                                <i class="fa-solid fa-shield-halved"></i>
-                            </a>
+                            {% if can_manage_system_users %}
+                                <!-- Nút chỉnh sửa vai trò -->
+                                <a href="{% url 'assign_role' u.id %}"
+                                   class="btn btn-icon btn-sm btn-outline" title="Chỉnh sửa vai trò">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+
+                                <!-- Nút phân quyền -->
+                                <a href="{% url 'assign_permissions' u.id %}"
+                                   class="btn btn-icon btn-sm btn-outline" title="Phân quyền">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </a>
+                            {% endif %}
 
                             {% comment %}
                             Nút khóa/mở khóa tài khoản
                             Gọi JS function confirmAction() để hiện modal xác nhận
                             Không cho phép khóa chính mình
                             {% endcomment %}
-                            {% if u != request.user %}
+                            {% if can_manage_system_users and u != request.user %}
                                 {% if u.is_active %}
                                 <button class="btn btn-icon btn-sm btn-outline"
                                         title="Khóa tài khoản"
@@ -201,7 +225,7 @@
 <div class="modal-overlay" id="userDetailModal">
     <div class="modal">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-user"></i>&nbsp; Chi tiết tài khoản</h3>
+            <h3><i class="fa-solid fa-user"></i>&nbsp; Chi tiết hồ sơ nhân sự</h3>
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
@@ -233,6 +257,42 @@
                 <div class="info-item">
                     <div class="info-label">Ngày tạo</div>
                     <div class="info-value" id="detail-date-joined">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phòng ban</div>
+                    <div class="info-value" id="detail-department">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Chức vụ</div>
+                    <div class="info-value" id="detail-position">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Loại nhân viên</div>
+                    <div class="info-value" id="detail-employee-type">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Nơi làm việc</div>
+                    <div class="info-value" id="detail-workplace">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Bắt đầu thử việc</div>
+                    <div class="info-value" id="detail-probation-start">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ngày chính thức</div>
+                    <div class="info-value" id="detail-official-start-date">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Trạng thái làm việc</div>
+                    <div class="info-value" id="detail-work-status">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Quản lý trực tiếp</div>
+                    <div class="info-value" id="detail-manager-name">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Leader phụ trách</div>
+                    <div class="info-value" id="detail-leader-name">—</div>
                 </div>
             </div>
         </div>

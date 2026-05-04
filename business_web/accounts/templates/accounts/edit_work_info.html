@@ -1,0 +1,142 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# CHỈNH HỒ SƠ NHÂN SỰ - edit_work_info.html #}
+
+{% block title %}Hồ sơ nhân sự - {{ target_user.username }} - HR Studio{% endblock %}
+
+{% block content %}
+<div class="page-header animate-fade">
+    <div>
+        <h1>Hồ sơ nhân sự</h1>
+        <p class="text-secondary">HR/Admin có thể cập nhật toàn bộ dữ liệu đang lưu cho <strong>{{ target_user.username }}</strong></p>
+    </div>
+    <a href="{% url 'user_list' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại
+    </a>
+</div>
+
+<div class="card animate-fade" style="max-width: 820px;">
+    <div class="card-header">
+        <h3><i class="fa-solid fa-sitemap" style="color:var(--primary);"></i>&nbsp; Hồ sơ nhân sự đang lưu</h3>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                Màn hình này gom toàn bộ dữ liệu đang lưu trong hồ sơ cá nhân của nhân viên. Vai trò hệ thống vẫn đổi ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
+            </div>
+
+            <h4 style="margin-bottom: 1rem;">Thông tin cá nhân đang lưu</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Họ và tên</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ngày sinh</label>
+                    {{ form.date_of_birth }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Mã nhân viên</label>
+                    {{ form.employee_id }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username tài khoản</label>
+                    <input type="text"
+                           class="form-control"
+                           value="{{ target_user.username }}"
+                           disabled>
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
+
+            <h4 style="margin-bottom: 1rem;">Thông tin công việc</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Vai trò hệ thống hiện tại</label>
+                    <input type="text"
+                           class="form-control"
+                           value="{% if target_user.profile.role %}{{ target_user.profile.role.get_name_display }}{% else %}Chưa gán vai trò{% endif %}"
+                           disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phòng ban</label>
+                    {{ form.department }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Loại nhân viên</label>
+                    {{ form.employee_type }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chức vụ</label>
+                    {{ form.position }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nơi làm việc</label>
+                    {{ form.workplace }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Trạng thái làm việc</label>
+                    {{ form.work_status }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ngày bắt đầu thử việc</label>
+                    {{ form.probation_start }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ngày làm việc chính thức</label>
+                    {{ form.official_start_date }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Quản lý trực tiếp</label>
+                    {{ form.manager_user }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Leader phụ trách</label>
+                    {{ form.leader_user }}
+                </div>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                Vui lòng kiểm tra lại thông tin vừa nhập.
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'user_list' %}" class="btn btn-secondary">Hủy</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-check"></i> Lưu hồ sơ nhân sự
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

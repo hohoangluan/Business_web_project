@@ -27,7 +27,26 @@ class UserProfileAdmin(admin.ModelAdmin):
     Registers UserProfile in Django's admin panel.
     Lets you see and edit user profiles at /admin/accounts/userprofile/.
     """
-    list_display = ('user', 'role')
-    list_filter = ('role',)
-    search_fields = ('user__username', 'user__email')
+    list_display = (
+        'user',
+        'role',
+        'department',
+        'position',
+        'employee_type',
+        'work_status',
+        'manager_user',
+        'leader_user',
+    )
+    list_filter = ('role', 'department', 'work_status')
+    search_fields = (
+        'user__username',
+        'user__email',
+        'full_name',
+        'employee_id',
+        'department',
+        'position',
+        'employee_type',
+        'workplace',
+    )
     filter_horizontal = ('permissions',)
+    raw_id_fields = ('manager_user', 'leader_user')

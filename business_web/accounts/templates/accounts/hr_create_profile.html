@@ -2,7 +2,7 @@
 {# TẠO HỒ SƠ NHÂN VIÊN MỚI (HR Only) #}
 {% load static %}
 
-{% block title %}Tạo hồ sơ nhân viên - HRMS Portal{% endblock %}
+{% block title %}Tạo hồ sơ nhân sự - HRMS Portal{% endblock %}
 
 {% block content %}
 <style>
@@ -157,8 +157,8 @@
 <div class="hrc-wrapper animate-fade">
     <div class="hrc-header">
         <div>
-            <div class="hrc-title"><i class="fa-solid fa-user-plus" style="color:var(--primary);"></i> Tạo hồ sơ nhân viên mới</div>
-            <div class="hrc-subtitle">Nhập thông tin cá nhân — hệ thống sẽ tự động tạo tài khoản đăng nhập.</div>
+            <div class="hrc-title"><i class="fa-solid fa-user-plus" style="color:var(--primary);"></i> Tạo hồ sơ nhân sự mới</div>
+            <div class="hrc-subtitle">Thông tin công việc là bắt buộc. Thông tin cá nhân có thể bổ sung sau bởi chính nhân viên.</div>
         </div>
         <a href="{% url 'dashboard' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
     </div>
@@ -173,14 +173,14 @@
                     <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);"><i class="fa-solid fa-id-card"></i></div>
                     <div>
                         <div class="hrc-sec-title">Thông tin Cá nhân</div>
-                        <div class="hrc-sec-desc">Các trường đánh dấu <span style="color:#ef4444;">*</span> là bắt buộc</div>
+                        <div class="hrc-sec-desc">Các trường này có thể để trống và nhân viên sẽ tự bổ sung sau</div>
                     </div>
                 </div>
 
                 <div class="hrc-grid">
                     <div class="hrc-field">
-                        <label>Họ và tên <span class="req">*</span></label>
-                        <input type="text" name="full_name" placeholder="VD: Nguyễn Văn A" value="{{ form_data.full_name|default:'' }}" required>
+                        <label>Họ và tên</label>
+                        <input type="text" name="full_name" placeholder="VD: Nguyễn Văn A" value="{{ form_data.full_name|default:'' }}">
                     </div>
                     <div class="hrc-field">
                         <label>Mã nhân viên <span class="req">*</span></label>
@@ -201,24 +201,72 @@
                 </div>
             </div>
 
-            <!-- Section 2: Vị trí & Vai trò -->
+            <!-- Section 2: Thông tin công việc -->
             <div class="hrc-section">
                 <div class="hrc-section-head">
                     <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-briefcase"></i></div>
                     <div>
-                        <div class="hrc-sec-title">Vị trí & Vai trò</div>
-                        <div class="hrc-sec-desc">Bộ phận và cấp thẩm quyền ban đầu</div>
+                        <div class="hrc-sec-title">Thông tin Công việc</div>
+                        <div class="hrc-sec-desc">Các trường trong khối này là bắt buộc để hoàn tất hồ sơ ban đầu</div>
                     </div>
                 </div>
 
                 <div class="hrc-grid">
                     <div class="hrc-field">
-                        <label>Phòng ban / Bộ phận</label>
-                        <input type="text" name="department" placeholder="VD: Phòng Kinh doanh" value="{{ form_data.department|default:'' }}">
+                        <label>Phòng ban / Bộ phận <span class="req">*</span></label>
+                        <input type="text" name="department" placeholder="VD: Phòng Kinh doanh" value="{{ form_data.department|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
-                        <label>Chức vụ</label>
-                        <input type="text" name="position" placeholder="VD: Chuyên viên" value="{{ form_data.position|default:'' }}">
+                        <label>Chức vụ <span class="req">*</span></label>
+                        <input type="text" name="position" placeholder="VD: Chuyên viên" value="{{ form_data.position|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Loại nhân viên <span class="req">*</span></label>
+                        <input type="text" name="employee_type" placeholder="VD: Toàn thời gian" value="{{ form_data.employee_type|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Nơi làm việc <span class="req">*</span></label>
+                        <input type="text" name="workplace" placeholder="VD: Văn phòng Hà Nội" value="{{ form_data.workplace|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày bắt đầu thử việc <span class="req">*</span></label>
+                        <input type="text" name="probation_start" placeholder="DD/MM/YYYY" value="{{ form_data.probation_start|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày làm việc chính thức <span class="req">*</span></label>
+                        <input type="text" name="official_start_date" placeholder="DD/MM/YYYY" value="{{ form_data.official_start_date|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Trạng thái làm việc <span class="req">*</span></label>
+                        <select name="work_status" required>
+                            <option value="">-- Chưa chọn trạng thái --</option>
+                            <option value="working" {% if form_data.work_status == 'working' %}selected{% endif %}>Đang làm việc</option>
+                            <option value="probation" {% if form_data.work_status == 'probation' %}selected{% endif %}>Đang thử việc</option>
+                            <option value="paused" {% if form_data.work_status == 'paused' %}selected{% endif %}>Tạm nghỉ</option>
+                            <option value="resigned" {% if form_data.work_status == 'resigned' %}selected{% endif %}>Đã nghỉ việc</option>
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Quản lý trực tiếp <span class="req">*</span></label>
+                        <select name="manager_user" required>
+                            <option value="">-- Chưa gán quản lý --</option>
+                            {% for manager in manager_choices %}
+                            <option value="{{ manager.id }}" {% if form_data.manager_user == manager.id|stringformat:"s" %}selected{% endif %}>
+                                {{ manager.profile.full_name|default:manager.username }}{% if manager.profile.employee_id %} ({{ manager.profile.employee_id }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Leader phụ trách <span class="req">*</span></label>
+                        <select name="leader_user" required>
+                            <option value="">-- Chưa gán leader --</option>
+                            {% for leader in leader_choices %}
+                            <option value="{{ leader.id }}" {% if form_data.leader_user == leader.id|stringformat:"s" %}selected{% endif %}>
+                                {{ leader.profile.full_name|default:leader.username }}{% if leader.profile.employee_id %} ({{ leader.profile.employee_id }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="hrc-field full">
                         <label>Vai trò hệ thống</label>
@@ -281,7 +329,7 @@
                 <div style="display: flex; gap: 0.75rem;">
                     <a href="{% url 'dashboard' %}" class="btn btn-secondary">Hủy</a>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-sparkles"></i> Tạo hồ sơ
+                        <i class="fa-solid fa-sparkles"></i> Tạo hồ sơ nhân sự
                     </button>
                 </div>
             </div>

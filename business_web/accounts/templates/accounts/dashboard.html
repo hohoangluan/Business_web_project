@@ -103,12 +103,12 @@
                 </a>
 
                 <!-- Phân nhanh cho Admin -->
-                {% if request.user.profile.is_admin %}
+                {% if is_system_admin %}
                     <a href="{% url 'user_list' %}" class="feature-card">
                         <div class="fc-icon bg-rose"><i class="fa-solid fa-users-gear"></i></div>
                         <div>
-                            <div class="fc-title">Quản lý User</div>
-                            <div class="fc-desc">Danh sách và cấp quyền</div>
+                            <div class="fc-title">Hồ sơ nhân sự</div>
+                            <div class="fc-desc">Danh sách hồ sơ và phân quyền</div>
                         </div>
                     </a>
                     <a href="{% url 'settings' %}" class="feature-card">
@@ -118,12 +118,12 @@
                             <div class="fc-desc">Cấu hình CTY toàn cầu</div>
                         </div>
                     </a>
-                    {% if can_access_hr_stats %}
+                    {% if can_access_statistics %}
                     <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
                         <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
                         <div>
-                            <div class="fc-title">Thống kê HR</div>
-                            <div class="fc-desc">Báo cáo dữ liệu độc quyền</div>
+                            <div class="fc-title">Statistics</div>
+                            <div class="fc-desc">Theo dõi dữ liệu toàn hệ thống</div>
                         </div>
                     </a>
                     {% endif %}
@@ -145,11 +145,11 @@
                         </div>
                     </a>
 
-                    <a href="{% url 'payroll' %}" class="feature-card">
-                        <div class="fc-icon bg-cyan"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <a href="{% url 'contract' %}" class="feature-card">
+                        <div class="fc-icon bg-cyan"><i class="fa-solid fa-file-contract"></i></div>
                         <div>
-                            <div class="fc-title">Tiền lương (Payslip)</div>
-                            <div class="fc-desc">Tra cứu thu nhập hàng tháng</div>
+                            <div class="fc-title">Hợp đồng lao động</div>
+                            <div class="fc-desc">Theo dõi thông tin hợp đồng hiện tại</div>
                         </div>
                     </a>
 
@@ -161,12 +161,21 @@
                         </div>
                     </a>
 
-                    {% if can_access_hr_stats %}
+                    {% if can_access_statistics %}
                     <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
                         <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
                         <div>
-                            <div class="fc-title">Thống kê HR</div>
-                            <div class="fc-desc">Báo cáo dữ liệu độc quyền</div>
+                            <div class="fc-title">Statistics</div>
+                            <div class="fc-desc">Xem dữ liệu theo phạm vi quản lý</div>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% if can_manage_work_info %}
+                    <a href="{% url 'user_list' %}" class="feature-card">
+                        <div class="fc-icon bg-slate"><i class="fa-solid fa-sitemap"></i></div>
+                        <div>
+                            <div class="fc-title">Quản lý hồ sơ nhân sự</div>
+                            <div class="fc-desc">Cập nhật đầy đủ thông tin công việc</div>
                         </div>
                     </a>
                     {% endif %}
@@ -184,13 +193,13 @@
             <div class="np-list">
                 <div class="np-item">
                     <div class="np-time"><i class="fa-regular fa-clock"></i> 2 giờ trước</div>
-                    <div class="np-msg">Hệ thống đã cập nhật chức năng Tính thuế thu nhập trọn gói trong "Cài đặt Chung".</div>
+                    <div class="np-msg">Hệ thống đã cập nhật bộ lọc statistics theo phòng ban, leader và thời gian.</div>
                 </div>
                 
-                {% if not request.user.profile.is_admin %}
+                {% if not is_system_admin %}
                 <div class="np-item" style="border-left-color: #10b981;">
                     <div class="np-time"><i class="fa-regular fa-clock"></i> Hôm qua</div>
-                    <div class="np-msg">Phiếu lương Tháng 4/2026 của bạn đã được xuất bản. Vui lòng kiểm tra mục "Tiền lương".</div>
+                    <div class="np-msg">Bạn có thể xem thống kê mới theo phạm vi quản lý và xuất báo cáo CSV ngay trên hệ thống.</div>
                 </div>
                 {% endif %}
 

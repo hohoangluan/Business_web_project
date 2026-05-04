@@ -53,7 +53,10 @@ class PermissionManagementTests(TestCase):
             username='admin', password='adminpass123', email='admin@example.com'
         )
         self.admin_profile = UserProfile.objects.create(
-            user=self.admin_user, role=self.role_admin
+            user=self.admin_user,
+            role=self.role_admin,
+            full_name='System Admin',
+            department='Ban điều hành',
         )
 
         # Create an Admin-role user (not superuser, but has Admin role)
@@ -61,7 +64,10 @@ class PermissionManagementTests(TestCase):
             username='admin_role_user', password='adminrolepass123', email='adminrole@example.com'
         )
         self.admin_role_profile = UserProfile.objects.create(
-            user=self.admin_role_user, role=self.role_admin
+            user=self.admin_role_user,
+            role=self.role_admin,
+            full_name='Admin Role User',
+            department='Ban điều hành',
         )
 
         # Create an HR user for HR-only pages.
@@ -69,7 +75,34 @@ class PermissionManagementTests(TestCase):
             username='hr1', password='hrpass123', email='hr@example.com'
         )
         self.hr_profile = UserProfile.objects.create(
-            user=self.hr_user, role=self.role_hr
+            user=self.hr_user,
+            role=self.role_hr,
+            full_name='Ha HR',
+            department='Phòng Nhân sự',
+            position='HR Executive',
+        )
+
+        self.manager_user = User.objects.create_user(
+            username='manager1', password='managerpass123', email='manager@example.com'
+        )
+        self.manager_profile = UserProfile.objects.create(
+            user=self.manager_user,
+            role=self.role_manager,
+            full_name='Minh Manager',
+            department='Khối Vận hành',
+            position='Trưởng bộ phận',
+        )
+
+        self.leader_user = User.objects.create_user(
+            username='leader1', password='leaderpass123', email='leader@example.com'
+        )
+        self.leader_profile = UserProfile.objects.create(
+            user=self.leader_user,
+            role=self.role_leader,
+            full_name='Lan Leader',
+            department='Khối Vận hành',
+            position='Team Leader',
+            manager_user=self.manager_user,
         )
 
         # Create a regular employee (should NOT be able to access admin pages)
@@ -77,14 +110,37 @@ class PermissionManagementTests(TestCase):
             username='employee1', password='emppass123', email='employee1@gmail.com'
         )
         self.regular_profile = UserProfile.objects.create(
-            user=self.regular_user, role=self.role_employee
+            user=self.regular_user,
+            role=self.role_employee,
+            full_name='Nam Employee',
+            department='Khối Vận hành',
+            position='Nhân viên vận hành',
+            manager_user=self.manager_user,
+            leader_user=self.leader_user,
+        )
+
+        self.outside_user = User.objects.create_user(
+            username='employee2', password='employee2pass123', email='employee2@gmail.com'
+        )
+        self.outside_profile = UserProfile.objects.create(
+            user=self.outside_user,
+            role=self.role_employee,
+            full_name='Hoa Outside',
+            department='Khối Kinh doanh',
+            position='Nhân viên kinh doanh',
         )
 
         # Create a target user to assign roles/permissions to
         self.target_user = User.objects.create_user(
             username='target', password='targetpass123', email='target@example.com'
         )
-        self.target_profile = UserProfile.objects.create(user=self.target_user)
+        self.target_profile = UserProfile.objects.create(
+            user=self.target_user,
+            role=self.role_employee,
+            full_name='Target User',
+            department='Khối Hỗ trợ',
+            position='Nhân viên hỗ trợ',
+        )
 
         # Django test client — simulates a web browser
         self.client = Client()
@@ -118,11 +174,102 @@ class PermissionManagementTests(TestCase):
         response = self.client.get('/users/')
         self.assertEqual(response.status_code, 200)
 
+    def test_user_list_accessible_by_hr(self):
+        """HR should be able to open the organization management page."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/users/')
+        self.assertEqual(response.status_code, 200)
+
     def test_assign_role_blocked_for_regular_user(self):
         """Regular employees should NOT be able to change roles."""
         self.client.login(username='employee1', password='emppass123')
         response = self.client.get(f'/users/{self.target_user.id}/role/')
         self.assertEqual(response.status_code, 302)
+
+    def test_work_info_page_accessible_by_hr(self):
+        """HR should be able to edit work info."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get(f'/users/{self.target_user.id}/work-info/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_work_info_saves_correctly(self):
+        """Submitting the HR edit form should update all stored profile fields."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.post(
+            f'/users/{self.target_user.id}/work-info/',
+            {
+                'full_name': 'Target Updated',
+                'email': 'target-updated@example.com',
+                'phone_number': '0911222333',
+                'date_of_birth': '10/10/1998',
+                'employee_id': 'EMP-TARGET-NEW',
+                'department': 'Khối Sản phẩm',
+                'employee_type': 'Toàn thời gian',
+                'position': 'Business Analyst',
+                'workplace': 'Văn phòng Hồ Chí Minh',
+                'probation_start': '01/06/2026',
+                'official_start_date': '01/08/2026',
+                'work_status': 'working',
+                'manager_user': self.manager_user.id,
+                'leader_user': self.leader_user.id,
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.target_user.refresh_from_db()
+        self.target_profile.refresh_from_db()
+        self.assertEqual(self.target_profile.full_name, 'Target Updated')
+        self.assertEqual(self.target_user.email, 'target-updated@example.com')
+        self.assertEqual(self.target_profile.phone_number, '0911222333')
+        self.assertEqual(self.target_profile.date_of_birth, '10/10/1998')
+        self.assertEqual(self.target_profile.employee_id, 'EMP-TARGET-NEW')
+        self.assertEqual(self.target_profile.department, 'Khối Sản phẩm')
+        self.assertEqual(self.target_profile.employee_type, 'Toàn thời gian')
+        self.assertEqual(self.target_profile.position, 'Business Analyst')
+        self.assertEqual(self.target_profile.workplace, 'Văn phòng Hồ Chí Minh')
+        self.assertEqual(self.target_profile.probation_start, '01/06/2026')
+        self.assertEqual(self.target_profile.official_start_date, '01/08/2026')
+        self.assertEqual(self.target_profile.work_status, 'working')
+        self.assertEqual(self.target_profile.manager_user, self.manager_user)
+        self.assertEqual(self.target_profile.leader_user, self.leader_user)
+
+    def test_hr_create_profile_allows_blank_personal_info_when_work_info_present(self):
+        """HR can create a profile with required work info even if personal info is blank."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.post(
+            '/hr/create-profile/',
+            {
+                'full_name': '',
+                'email': '',
+                'phone_number': '',
+                'date_of_birth': '',
+                'employee_id': 'NV900',
+                'department': 'Khối Vận hành',
+                'employee_type': 'Toàn thời gian',
+                'position': 'Chuyên viên vận hành',
+                'workplace': 'Văn phòng Hà Nội',
+                'probation_start': '01/05/2026',
+                'official_start_date': '01/07/2026',
+                'work_status': 'working',
+                'manager_user': self.manager_user.id,
+                'leader_user': self.leader_user.id,
+                'role': 'employee',
+                'auto_create_account': 'on',
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        new_user = User.objects.get(username='nv900')
+        self.assertEqual(new_user.email, '')
+        self.assertEqual(new_user.profile.full_name, '')
+        self.assertEqual(new_user.profile.employee_id, 'NV900')
+        self.assertEqual(new_user.profile.department, 'Khối Vận hành')
+        self.assertEqual(new_user.profile.employee_type, 'Toàn thời gian')
+        self.assertEqual(new_user.profile.position, 'Chuyên viên vận hành')
+        self.assertEqual(new_user.profile.workplace, 'Văn phòng Hà Nội')
+        self.assertEqual(new_user.profile.probation_start, '01/05/2026')
+        self.assertEqual(new_user.profile.official_start_date, '01/07/2026')
+        self.assertEqual(new_user.profile.work_status, 'working')
+        self.assertEqual(new_user.profile.manager_user, self.manager_user)
+        self.assertEqual(new_user.profile.leader_user, self.leader_user)
 
     def test_assign_permissions_blocked_for_regular_user(self):
         """Regular employees should NOT be able to change permissions."""
@@ -151,7 +298,6 @@ class PermissionManagementTests(TestCase):
             '/reports/': ['Xem Hộp thư Báo cáo'],
             '/tickets/': ['Trang Xử lý Ticket'],
             '/rewards-penalties/': ['Phê duyệt Phiếu'],
-            '/payroll/': ['Tính Lương (HR)', 'Phê duyệt Quỹ'],
         }
 
         for path, hidden_buttons in hidden_buttons_by_path.items():
@@ -182,8 +328,6 @@ class PermissionManagementTests(TestCase):
             '/reports/inbox/',
             '/tickets/process/',
             '/rewards-penalties/approval/',
-            '/payroll/calc/',
-            '/payroll/approval/',
         ]
 
         for path in protected_urls:
@@ -203,6 +347,18 @@ class PermissionManagementTests(TestCase):
         response = self.client.get('/statistics/')
         self.assertEqual(response.status_code, 200)
 
+    def test_statistics_accessible_by_manager(self):
+        """Managers should be able to access the statistics page."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/statistics/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_statistics_accessible_by_leader(self):
+        """Leaders should be able to access the statistics page."""
+        self.client.login(username='leader1', password='leaderpass123')
+        response = self.client.get('/statistics/')
+        self.assertEqual(response.status_code, 200)
+
     def test_statistics_blocked_for_employee(self):
         """Employees should not be able to access the statistics page."""
         self.client.login(username='employee1', password='emppass123')
@@ -213,7 +369,38 @@ class PermissionManagementTests(TestCase):
         """HR users should see the statistics shortcut on the dashboard."""
         self.client.login(username='hr1', password='hrpass123')
         response = self.client.get('/dashboard/')
-        self.assertContains(response, 'Thống kê HR')
+        self.assertContains(response, 'Statistics')
+
+    def test_manager_statistics_scope_hides_other_departments(self):
+        """Managers should only see employees from their own department."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/statistics/')
+        self.assertContains(response, 'Nam Employee')
+        self.assertNotContains(response, 'Hoa Outside')
+
+    def test_leader_statistics_scope_hides_other_departments(self):
+        """Leaders should only see employees assigned to their team."""
+        self.client.login(username='leader1', password='leaderpass123')
+        response = self.client.get('/statistics/')
+        self.assertContains(response, 'Nam Employee')
+        self.assertNotContains(response, 'Hoa Outside')
+
+    def test_statistics_export_csv_respects_scope(self):
+        """CSV export should follow the same scope as the statistics page."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/statistics/export-csv/')
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('Nam Employee', content)
+        self.assertNotIn('Hoa Outside', content)
+
+    def test_payroll_routes_return_404(self):
+        """Legacy payroll URLs should no longer exist."""
+        self.client.login(username='admin', password='adminpass123')
+        for path in ['/payroll/', '/payroll/calc/', '/payroll/approval/']:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 404)
 
     def test_settings_company_profile_visible_for_admin_role(self):
         """Only the active Admin role should see the company profile settings."""
@@ -246,6 +433,18 @@ class PermissionManagementTests(TestCase):
         response = self.client.get('/settings/')
         self.assertNotContains(response, 'Hồ sơ Công ty')
         self.assertNotContains(response, 'Hồ sơ Doanh nghiệp')
+
+    def test_settings_hr_panel_shows_standard_shift_end_time_field(self):
+        """HR should see the standard shift end time field in settings."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/settings/')
+        self.assertContains(response, 'Giờ kết thúc ca làm chuẩn')
+
+    def test_profile_page_hides_bank_and_tax_tab(self):
+        """The personal profile page should no longer show the bank/tax section."""
+        self.client.login(username='employee1', password='emppass123')
+        response = self.client.get('/profile/')
+        self.assertNotContains(response, 'Ngân hàng & Thuế')
 
     # =========================================================================
     # USER LIST TESTS

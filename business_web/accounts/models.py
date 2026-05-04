@@ -128,6 +128,75 @@ class UserProfile(models.Model):
         blank=True,
         help_text="Unique employee ID. Each ID can only be used for one account."
     )
+    employee_type = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Employee type such as Full-time, Part-time or Intern."
+    )
+    department = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Department or business unit managed by HR/Admin."
+    )
+    position = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Job title managed by HR/Admin."
+    )
+    workplace = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Main workplace or office location."
+    )
+    probation_start = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Probation start date in DD/MM/YYYY format."
+    )
+    official_start_date = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Official working date in DD/MM/YYYY format."
+    )
+    WORKING = 'working'
+    PROBATION = 'probation'
+    PAUSED = 'paused'
+    RESIGNED = 'resigned'
+    WORK_STATUS_CHOICES = [
+        (WORKING, 'Đang làm việc'),
+        (PROBATION, 'Đang thử việc'),
+        (PAUSED, 'Tạm nghỉ'),
+        (RESIGNED, 'Đã nghỉ việc'),
+    ]
+    work_status = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        choices=WORK_STATUS_CHOICES,
+        help_text="Current working status managed by HR/Admin."
+    )
+    manager_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_team_members',
+        help_text="Direct manager of this employee."
+    )
+    leader_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='led_team_members',
+        help_text="Direct leader of this employee."
+    )
 
     def __str__(self):
         role_name = self.role.get_name_display() if self.role else 'No Role'

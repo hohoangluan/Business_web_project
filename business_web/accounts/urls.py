@@ -7,7 +7,7 @@ File này được include từ business_web/urls.py: path('', include('accounts
 
 Tổ chức:
   - Public routes: trang chủ, đăng ký, đăng nhập, đăng xuất, dashboard, hồ sơ
-  - Admin routes: quản lý user, gán vai trò, gán quyền, xóa, khóa/mở, reset mật khẩu
+  - Management routes: quản lý user, chỉnh work info, gán vai trò, gán quyền, xóa, khóa/mở, reset mật khẩu
 ==============================================================================
 """
 
@@ -27,19 +27,19 @@ from .views import (
     overtime_view,              # MỚI: tăng ca cá nhân
     overtime_approval_view,     # MỚI: duyệt tăng ca
     statistics_view,            # MỚI: thống kê biểu đồ
+    statistics_export_csv_view, # MỚI: xuất CSV statistics
+    statistics_print_view,      # MỚI: in / lưu PDF statistics
     report_view,                # MỚI: báo cáo cá nhân
     report_inbox_view,          # MỚI: hộp thư báo cáo
     ticket_list_view,           # MỚI: hỗ trợ khiếu nại (cá nhân)
     ticket_process_view,        # MỚI: xử lý khiếu nại (quản lý)
     rewards_penalties_view,         # MỚI: khen thưởng xử phạt
     rewards_penalties_approval_view,# MỚI: duyệt thưởng phạt
-    payroll_view,               # MỚI: phiếu lương cá nhân
-    payroll_calc_view,          # MỚI: tính lương HR
-    payroll_approval_view,      # MỚI: duyệt bảng lương GĐ
     settings_view,              # MỚI: cài đặt chung
     switch_role_view,           # DEV: đổi vai trò nhanh
     hr_create_profile_view,     # MỚI: HR tạo hồ sơ
     user_list_view,
+    edit_work_info_view,
     assign_role_view,
     assign_permissions_view,
     delete_user_view,
@@ -87,6 +87,8 @@ urlpatterns = [
 
     # Thống kê
     path('statistics/', statistics_view, name='statistics'),
+    path('statistics/export-csv/', statistics_export_csv_view, name='statistics_export_csv'),
+    path('statistics/print/', statistics_print_view, name='statistics_print'),
 
     # Báo cáo
     path('reports/', report_view, name='reports'),
@@ -99,11 +101,6 @@ urlpatterns = [
     # Khen thưởng & Xử phạt
     path('rewards-penalties/', rewards_penalties_view, name='rewards_penalties'),
     path('rewards-penalties/approval/', rewards_penalties_approval_view, name='rewards_penalties_approval'),
-
-    # Tiền Lương (Payroll)
-    path('payroll/', payroll_view, name='payroll'),
-    path('payroll/calc/', payroll_calc_view, name='payroll_calc'),
-    path('payroll/approval/', payroll_approval_view, name='payroll_approval'),
 
     # Cài đặt
     path('settings/', settings_view, name='settings'),
@@ -119,6 +116,9 @@ urlpatterns = [
 
     # Danh sách tài khoản
     path('users/', user_list_view, name='user_list'),
+
+    # Chỉnh hồ sơ nhân sự đang lưu cho user
+    path('users/<int:user_id>/work-info/', edit_work_info_view, name='edit_work_info'),
 
     # Gán vai trò cho user
     path('users/<int:user_id>/role/', assign_role_view, name='assign_role'),
