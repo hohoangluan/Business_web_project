@@ -24,6 +24,7 @@ VIEWS MỚI:
 import csv
 import json
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
@@ -42,7 +43,24 @@ from .forms import (
     EmployeeProfileForm,
 )
 from .models import UserProfile, Role
+from .evaluation_data import build_evaluation_records, build_reviewer_evaluation_records
+from .rewards_penalties_data import build_rewards_penalties_records
 from .statistics_data import build_statistics_records
+
+
+STATISTICS_TYPE_OPTIONS = [
+    {'value': 'all', 'label': 'Tất cả'},
+    {'value': 'leave', 'label': 'Nghỉ phép'},
+    {'value': 'attendance', 'label': 'Chấm công'},
+    {'value': 'summary', 'label': 'Tổng hợp'},
+    {'value': 'evaluation', 'label': 'Đánh giá'},
+    {'value': 'rewards', 'label': 'Khen thưởng & Xử phạt'},
+]
+
+STATISTICS_TYPE_LABEL_MAP = {
+    item['value']: item['label']
+    for item in STATISTICS_TYPE_OPTIONS
+}
 
 
 # =============================================================================
@@ -139,6 +157,16 @@ def can_access_statistics(user):
     return has_admin_business_access(user) or user_has_role(
         user, Role.HR, Role.MANAGER, Role.LEADER
     )
+
+
+def can_access_evaluations(user):
+    """Chỉ Manager và Leader có trang thao tác đánh giá riêng."""
+    return user_has_role(user, Role.MANAGER, Role.LEADER)
+
+
+def can_submit_evaluation_demo(user):
+    """Chỉ Manager/Leader có form tạo đánh giá ở bản demo hiện tại."""
+    return can_access_evaluations(user)
 
 
 def get_user_display_name(user):
@@ -414,6 +442,14 @@ def get_time_range_from_params(params):
     }
 
 
+def get_statistics_type_from_params(params):
+    """Loại thống kê nào đang được chọn trên trang statistics."""
+    selected_type = params.get('stats_type', 'all')
+    if selected_type not in STATISTICS_TYPE_LABEL_MAP:
+        selected_type = 'all'
+    return selected_type
+
+
 def build_statistics_filters(scope_users, scope, params):
     """
     Tạo option cho dropdown và lọc user theo từng cấp:
@@ -589,7 +625,212 @@ def aggregate_rows(rows, label_key, value_key, empty_label):
     }
 
 
-def build_statistics_sections(summary_rows, time_range, filters, scope):
+def aggregate_record_counts(records, label_key, empty_label):
+    """Gom số bản ghi theo một nhãn nhất định."""
+    totals = {}
+    for record in records:
+        label = record.get(label_key) or empty_label
+        totals[label] = totals.get(label, 0) + 1
+
+    sorted_items = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+    return {
+        'labels': [item[0] for item in sorted_items],
+        'values': [item[1] for item in sorted_items],
+    }
+
+
+def build_timeline_chart(records, date_key):
+    """Tạo chart xu hướng theo ngày từ danh sách record đã lọc."""
+    totals = {}
+    for record in records:
+        raw_date = record.get(date_key)
+        if not raw_date:
+            continue
+        label = raw_date.strftime('%d/%m')
+        totals[label] = totals.get(label, 0) + 1
+
+    sorted_items = sorted(
+        totals.items(),
+        key=lambda item: datetime.strptime(item[0], '%d/%m'),
+    )
+    return {
+        'labels': [item[0] for item in sorted_items],
+        'values': [item[1] for item in sorted_items],
+    }
+
+
+def filter_evaluation_records_by_time_range(records, time_range):
+    """Lọc đánh giá mock theo khoảng thời gian đang xem trên statistics."""
+    return [
+        record for record in records
+        if time_range['start_date'] <= record['evaluation_date'] <= time_range['end_date']
+    ]
+
+
+def build_evaluation_statistics_rows(records, filtered_employees):
+    """Chuẩn bị bảng chi tiết đánh giá cho statistics."""
+    employee_department_map = {
+        user.username: get_department_label(user.profile)
+        for user in filtered_employees
+    }
+    rows = []
+    for record in records:
+        rows.append({
+            'employee_name': record['employee_name'],
+            'employee_username': record['employee_username'],
+            'department': employee_department_map.get(
+                record['employee_username'],
+                'Chưa phân phòng ban',
+            ),
+            'reviewer_name': record['reviewer_name'],
+            'reviewer_role': record['reviewer_role'],
+            'evaluation_date_display': record['evaluation_date'].strftime('%d/%m/%Y'),
+            'evaluation_content': record['evaluation_content'],
+            'evidence_reference': record['evidence_reference'],
+        })
+    return rows
+
+
+def build_evaluation_statistics_sections(filtered_employees, filtered_records):
+    """Tạo card/chart/table cho loại thống kê đánh giá."""
+    reviewed_employee_count = len({record['employee_username'] for record in filtered_records})
+    evidence_count = sum(1 for record in filtered_records if record['evidence_reference'])
+    reviewer_count = len({record['reviewer_username'] for record in filtered_records})
+    detail_rows = build_evaluation_statistics_rows(filtered_records, filtered_employees)
+
+    for row in detail_rows:
+        row['reviewer_label'] = f"{row['reviewer_name']} ({row['reviewer_role']})"
+
+    reviewer_chart_source = [
+        {'reviewer_label': row['reviewer_label']}
+        for row in detail_rows
+    ]
+
+    return {
+        'cards': [
+            {'label': 'Tổng số đánh giá', 'value': len(filtered_records)},
+            {'label': 'Nhân viên đã có đánh giá', 'value': reviewed_employee_count},
+            {'label': 'Đánh giá có minh chứng', 'value': evidence_count},
+            {'label': 'Người đánh giá có dữ liệu', 'value': reviewer_count},
+        ],
+        'rows': detail_rows,
+        'by_department_json': json.dumps(
+            aggregate_record_counts(detail_rows, 'department', 'Chưa phân phòng ban')
+        ),
+        'by_reviewer_json': json.dumps(
+            aggregate_record_counts(reviewer_chart_source, 'reviewer_label', 'Chưa rõ')
+        ),
+        'by_employee_json': json.dumps(
+            aggregate_record_counts(detail_rows, 'employee_name', 'Chưa rõ')
+        ),
+        'trend_json': json.dumps(build_timeline_chart(filtered_records, 'evaluation_date')),
+    }
+
+
+def filter_rewards_penalties_records_by_time_range(records, time_range):
+    """Lọc phiếu thưởng/phạt mock theo khoảng thời gian đang xem."""
+    return [
+        record for record in records
+        if time_range['start_date'] <= record['application_date'] <= time_range['end_date']
+    ]
+
+
+def build_rewards_statistics_rows(records):
+    """Chuẩn bị bảng chi tiết thưởng/phạt cho statistics."""
+    rows = []
+    for record in records:
+        signed_amount = f"+{record['amount']:,}đ" if record['record_type'] == 'reward' else f"-{record['amount']:,}đ"
+        rows.append({
+            'employee_name': record['employee_name'],
+            'employee_username': record['employee_username'],
+            'department': record['department'],
+            'proposer_name': record['proposer_name'],
+            'proposer_role': record['proposer_role'],
+            'type_label': record['type_label'],
+            'amount_display': signed_amount,
+            'status': record['status'],
+            'application_date_display': record['application_date'].strftime('%d/%m/%Y'),
+            'reason_title': record['reason_title'],
+            'reason_detail': record['reason_detail'],
+        })
+    return rows
+
+
+def build_rewards_statistics_sections(filtered_records):
+    """Tạo card/chart/table cho loại thống kê khen thưởng và xử phạt."""
+    reward_total = sum(record['amount'] for record in filtered_records if record['record_type'] == 'reward')
+    penalty_total = sum(record['amount'] for record in filtered_records if record['record_type'] == 'penalty')
+    detail_rows = build_rewards_statistics_rows(filtered_records)
+    proposer_chart_source = [
+        {'proposer_label': f"{row['proposer_name']} ({row['proposer_role']})"}
+        for row in detail_rows
+    ]
+    employee_chart_source = [
+        {'employee_name': row['employee_name']}
+        for row in detail_rows
+    ]
+    type_chart_source = [
+        {'type_label': row['type_label']}
+        for row in detail_rows
+    ]
+
+    return {
+        'cards': [
+            {'label': 'Tổng số phiếu', 'value': len(filtered_records)},
+            {'label': 'Tổng tiền thưởng', 'value': f"+{reward_total:,}đ"},
+            {'label': 'Tổng tiền phạt', 'value': f"-{penalty_total:,}đ"},
+            {'label': 'Chênh lệch thực tế', 'value': f"{reward_total - penalty_total:+,}đ"},
+        ],
+        'rows': detail_rows,
+        'by_department_json': json.dumps(
+            aggregate_record_counts(detail_rows, 'department', 'Chưa phân phòng ban')
+        ),
+        'by_proposer_json': json.dumps(
+            aggregate_record_counts(proposer_chart_source, 'proposer_label', 'Chưa rõ')
+        ),
+        'by_employee_json': json.dumps(
+            aggregate_record_counts(employee_chart_source, 'employee_name', 'Chưa rõ')
+        ),
+        'by_type_json': json.dumps(
+            aggregate_record_counts(type_chart_source, 'type_label', 'Chưa rõ')
+        ),
+    }
+
+
+def build_empty_statistics_sections():
+    """Context rỗng để statistics không phải tự đoán thiếu key nào."""
+    empty_chart = json.dumps({'labels': [], 'values': []})
+    return {
+        'summary_rows': [],
+        'summary_cards': [],
+        'leave_cards': [],
+        'attendance_cards': [],
+        'evaluation_cards': [],
+        'evaluation_rows': [],
+        'rewards_cards': [],
+        'rewards_rows': [],
+        'leave_by_department_json': empty_chart,
+        'leave_by_leader_json': empty_chart,
+        'leave_by_employee_json': empty_chart,
+        'overtime_by_employee_json': empty_chart,
+        'discipline_by_employee_json': json.dumps({
+            'labels': [],
+            'late_values': [],
+            'absence_values': [],
+        }),
+        'evaluation_by_department_json': empty_chart,
+        'evaluation_by_reviewer_json': empty_chart,
+        'evaluation_by_employee_json': empty_chart,
+        'evaluation_trend_json': empty_chart,
+        'rewards_by_department_json': empty_chart,
+        'rewards_by_proposer_json': empty_chart,
+        'rewards_by_employee_json': empty_chart,
+        'rewards_by_type_json': empty_chart,
+        'filter_summary': [],
+    }
+
+
+def build_statistics_sections(summary_rows, evaluation_sections, rewards_sections, time_range, filters, scope):
     """
     Chuẩn bị toàn bộ card, chart và bảng cho statistics.
     Tách hàm riêng để export CSV / print / màn hình web dùng chung dữ liệu.
@@ -672,6 +913,18 @@ def build_statistics_sections(summary_rows, time_range, filters, scope):
         'leave_by_employee_json': json.dumps(leave_by_employee),
         'overtime_by_employee_json': json.dumps(overtime_by_employee),
         'discipline_by_employee_json': json.dumps(discipline_by_employee),
+        'evaluation_cards': evaluation_sections['cards'],
+        'evaluation_rows': evaluation_sections['rows'],
+        'evaluation_by_department_json': evaluation_sections['by_department_json'],
+        'evaluation_by_reviewer_json': evaluation_sections['by_reviewer_json'],
+        'evaluation_by_employee_json': evaluation_sections['by_employee_json'],
+        'evaluation_trend_json': evaluation_sections['trend_json'],
+        'rewards_cards': rewards_sections['cards'],
+        'rewards_rows': rewards_sections['rows'],
+        'rewards_by_department_json': rewards_sections['by_department_json'],
+        'rewards_by_proposer_json': rewards_sections['by_proposer_json'],
+        'rewards_by_employee_json': rewards_sections['by_employee_json'],
+        'rewards_by_type_json': rewards_sections['by_type_json'],
         'filter_summary': filter_summary,
     }
 
@@ -682,10 +935,14 @@ def build_statistics_page_context(user, params):
     Màn hình web, CSV export và print view đều gọi lại hàm này để tránh lệch dữ liệu.
     """
     scope = get_statistics_scope(user)
+    selected_stats_type = get_statistics_type_from_params(params)
     if scope['error_message']:
         return {
             'scope': scope,
             'time_range': get_time_range_from_params(params),
+            'selected_stats_type': selected_stats_type,
+            'selected_stats_type_label': STATISTICS_TYPE_LABEL_MAP[selected_stats_type],
+            'stats_type_options': STATISTICS_TYPE_OPTIONS,
             'filters': {
                 'department_options': [],
                 'manager_options': [],
@@ -703,22 +960,7 @@ def build_statistics_page_context(user, params):
                 'leader_locked': bool(scope['locked_leader']),
             },
             'statistics_error_message': scope['error_message'],
-            'statistics_sections': {
-                'summary_rows': [],
-                'summary_cards': [],
-                'leave_cards': [],
-                'attendance_cards': [],
-                'leave_by_department_json': json.dumps({'labels': [], 'values': []}),
-                'leave_by_leader_json': json.dumps({'labels': [], 'values': []}),
-                'leave_by_employee_json': json.dumps({'labels': [], 'values': []}),
-                'overtime_by_employee_json': json.dumps({'labels': [], 'values': []}),
-                'discipline_by_employee_json': json.dumps({
-                    'labels': [],
-                    'late_values': [],
-                    'absence_values': [],
-                }),
-                'filter_summary': [],
-            },
+            'statistics_sections': build_empty_statistics_sections(),
         }
 
     scope_users = get_scope_users(user, scope)
@@ -726,8 +968,28 @@ def build_statistics_page_context(user, params):
     time_range = get_time_range_from_params(params)
     records = build_statistics_records(filters['filtered_users'])
     filtered_records = filter_statistics_records(records, filters, time_range)
+    summary_rows = build_statistics_summary_rows(filters['filtered_users'], filtered_records)
+    filtered_employee_users = [
+        item for item in filters['filtered_users']
+        if get_user_role_name(item) == Role.EMPLOYEE
+    ]
+    evaluation_records = build_evaluation_records(filtered_employee_users)
+    filtered_evaluation_records = filter_evaluation_records_by_time_range(
+        evaluation_records,
+        time_range,
+    )
+    rewards_records = build_rewards_penalties_records(filtered_employee_users)
+    filtered_rewards_records = filter_rewards_penalties_records_by_time_range(
+        rewards_records,
+        time_range,
+    )
     statistics_sections = build_statistics_sections(
-        build_statistics_summary_rows(filters['filtered_users'], filtered_records),
+        summary_rows,
+        build_evaluation_statistics_sections(
+            filtered_employee_users,
+            filtered_evaluation_records,
+        ),
+        build_rewards_statistics_sections(filtered_rewards_records),
         time_range,
         filters,
         scope,
@@ -742,9 +1004,376 @@ def build_statistics_page_context(user, params):
     return {
         'scope': scope,
         'time_range': time_range,
+        'selected_stats_type': selected_stats_type,
+        'selected_stats_type_label': STATISTICS_TYPE_LABEL_MAP[selected_stats_type],
+        'stats_type_options': STATISTICS_TYPE_OPTIONS,
         'filters': filters,
         'statistics_sections': statistics_sections,
         'statistics_error_message': statistics_error_message,
+    }
+
+
+def get_evaluation_scope(user):
+    """
+    Đánh giá nhân viên dùng cùng phạm vi với statistics.
+    Cách này giúp người mới chỉ cần nhớ một bộ rule quản lý.
+    """
+    return get_statistics_scope(user)
+
+
+def get_scope_employees_for_evaluations(user, scope):
+    """
+    Trang đánh giá chỉ tập trung vào nhân viên.
+    HR/Admin/Manager/Leader không tự xuất hiện như đối tượng cần đánh giá ở đây.
+    """
+    scope_users = get_scope_users(user, scope)
+    return [
+        item for item in scope_users
+        if get_user_role_name(item) == Role.EMPLOYEE
+    ]
+
+
+def build_evaluation_filters(scope_employees, scope, params):
+    """Tái dùng bộ lọc tổ chức đang có để UI đồng nhất với statistics."""
+    return build_statistics_filters(scope_employees, scope, params)
+
+
+def get_evaluation_date_range(params):
+    """Bộ lọc ngày cho trang đánh giá chỉ dùng từ ngày / đến ngày."""
+    from_date_raw = params.get('from_date', '')
+    to_date_raw = params.get('to_date', '')
+    from_date = parse_date_input(from_date_raw)
+    to_date = parse_date_input(to_date_raw)
+    error_message = ''
+
+    if from_date and to_date and from_date > to_date:
+        error_message = 'Từ ngày không được lớn hơn đến ngày.'
+        from_date = None
+        to_date = None
+
+    if from_date and to_date:
+        date_range_text = f'{from_date:%d/%m/%Y} - {to_date:%d/%m/%Y}'
+    elif from_date:
+        date_range_text = f'Từ {from_date:%d/%m/%Y} đến hiện tại'
+    elif to_date:
+        date_range_text = f'Từ trước đến {to_date:%d/%m/%Y}'
+    else:
+        date_range_text = 'Tất cả thời gian'
+
+    return {
+        'from_date': from_date_raw,
+        'to_date': to_date_raw,
+        'from_date_value': from_date,
+        'to_date_value': to_date,
+        'date_range_text': date_range_text,
+        'error_message': error_message,
+    }
+
+
+def build_evaluation_statistics_query(params):
+    """
+    Từ trang đánh giá đi sang statistics và tự chọn sẵn loại thống kê đánh giá.
+    """
+    query = {'stats_type': 'evaluation'}
+    for key in ['department', 'manager', 'leader', 'employee']:
+        value = params.get(key, '').strip()
+        if value:
+            query[key] = value
+
+    from_date = params.get('from_date', '').strip()
+    to_date = params.get('to_date', '').strip()
+    if from_date and to_date:
+        query['period'] = 'custom'
+        query['from_date'] = from_date
+        query['to_date'] = to_date
+
+    return urlencode(query)
+
+
+def build_evaluation_page_query(params, employee_username=''):
+    """
+    Giữ lại bộ lọc hiện tại khi chuyển giữa danh sách nhân viên và form đánh giá.
+    """
+    query = {}
+    for key in ['department', 'manager', 'leader', 'from_date', 'to_date']:
+        value = params.get(key, '').strip()
+        if value:
+            query[key] = value
+
+    if employee_username:
+        query['employee'] = employee_username
+
+    return urlencode(query)
+
+
+def filter_evaluation_records(records, filters, date_range):
+    """Lọc đánh giá theo nhân viên đang được chọn và khoảng ngày đang xem."""
+    allowed_usernames = {user.username for user in filters['filtered_users']}
+    filtered_records = []
+
+    for record in records:
+        if record['employee_username'] not in allowed_usernames:
+            continue
+
+        if date_range['from_date_value'] and record['evaluation_date'] < date_range['from_date_value']:
+            continue
+
+        if date_range['to_date_value'] and record['evaluation_date'] > date_range['to_date_value']:
+            continue
+
+        filtered_records.append(record)
+
+    return filtered_records
+
+
+def build_evaluation_sections(filtered_employees, filtered_records, filters, scope, date_range):
+    """Chuẩn bị card, chip filter và danh sách hiển thị cho trang đánh giá."""
+    reviewed_employee_count = len({record['employee_username'] for record in filtered_records})
+    evidence_count = sum(1 for record in filtered_records if record['evidence_reference'])
+
+    filter_summary = [
+        f"Phạm vi: {scope['scope_label'] or 'Không xác định'}",
+        f"Thời gian: {date_range['date_range_text']}",
+    ]
+    if filters['selected_department']:
+        filter_summary.append(f"Phòng ban: {filters['selected_department']}")
+    if filters['selected_manager']:
+        filter_summary.append(
+            f"Manager: {filters['selected_manager_label'] or filters['selected_manager']}"
+        )
+    if filters['selected_leader']:
+        filter_summary.append(
+            f"Leader: {filters['selected_leader_label'] or filters['selected_leader']}"
+        )
+    if filters['selected_employee']:
+        filter_summary.append(
+            f"Nhân viên: {filters['selected_employee_label'] or filters['selected_employee']}"
+        )
+
+    display_records = []
+    for record in filtered_records:
+        display_records.append({
+            **record,
+            'evaluation_date_display': record['evaluation_date'].strftime('%d/%m/%Y'),
+        })
+
+    return {
+        'summary_cards': [
+            {'label': 'Nhân viên trong phạm vi', 'value': len(filtered_employees)},
+            {'label': 'Số đánh giá đang hiển thị', 'value': len(filtered_records)},
+            {'label': 'Nhân viên đã có đánh giá', 'value': reviewed_employee_count},
+            {'label': 'Đánh giá có minh chứng', 'value': evidence_count},
+        ],
+        'filter_summary': filter_summary,
+        'records': display_records,
+    }
+
+
+def build_evaluation_employee_cards(available_users, reviewer_records, params):
+    """
+    Danh sách nhân viên để manager/leader chọn trước khi mở form đánh giá.
+    """
+    review_count_map = {}
+    for record in reviewer_records:
+        username = record['employee_username']
+        review_count_map[username] = review_count_map.get(username, 0) + 1
+
+    cards = []
+    for user in available_users:
+        profile = ensure_profile(user)
+        cards.append({
+            'username': user.username,
+            'display_name': get_user_display_name(user),
+            'department': get_department_label(profile),
+            'position': profile.position or 'Chưa cập nhật chức danh',
+            'review_count': review_count_map.get(user.username, 0),
+            'select_query': build_evaluation_page_query(params, user.username),
+        })
+    return cards
+
+
+def get_selected_employee_user(filtered_users, selected_employee_username):
+    """Lấy nhân viên đang được chọn để hiển thị form đánh giá."""
+    if not selected_employee_username:
+        return None
+
+    for user in filtered_users:
+        if user.username == selected_employee_username:
+            return user
+    return None
+
+
+def build_evaluation_form_state(current_user, selected_employee_user, post_data=None, uploaded_file=None):
+    """
+    Form đánh giá ở bản đầu chỉ là demo UI.
+    Hàm này validate dữ liệu và trả ra preview để template hiển thị lại.
+    """
+    form_state = {
+        'can_submit': can_submit_evaluation_demo(current_user),
+        'form_data': {
+            'evaluation_content': '',
+            'evaluation_date': '',
+        },
+        'errors': {},
+        'preview': None,
+        'success_message': '',
+        'selected_file_name': '',
+        'selected_employee_username': selected_employee_user.username if selected_employee_user else '',
+        'selected_employee_name': get_user_display_name(selected_employee_user) if selected_employee_user else '',
+    }
+
+    if not selected_employee_user:
+        if not post_data:
+            return form_state
+        form_state['errors']['employee_username'] = 'Vui lòng chọn nhân viên trước khi nhập đánh giá.'
+        return form_state
+
+    if not form_state['can_submit']:
+        return form_state
+
+    if post_data is None:
+        form_state['form_data']['evaluation_date'] = timezone.localdate().isoformat()
+        return form_state
+
+    form_state['form_data'] = {
+        'evaluation_content': post_data.get('evaluation_content', '').strip(),
+        'evaluation_date': post_data.get('evaluation_date', '').strip(),
+    }
+    if uploaded_file:
+        form_state['selected_file_name'] = uploaded_file.name
+
+    evaluation_content = form_state['form_data']['evaluation_content']
+    evaluation_date_raw = form_state['form_data']['evaluation_date']
+    evaluation_date = parse_date_input(evaluation_date_raw)
+    posted_employee_username = post_data.get('employee_username', '').strip()
+
+    if posted_employee_username != selected_employee_user.username:
+        form_state['errors']['employee_username'] = 'Nhân viên được gửi lên không khớp với nhân viên đang chọn.'
+
+    if not evaluation_content:
+        form_state['errors']['evaluation_content'] = 'Nội dung đánh giá không được để trống.'
+
+    if not evaluation_date:
+        form_state['errors']['evaluation_date'] = 'Vui lòng chọn ngày đánh giá hợp lệ.'
+
+    if form_state['errors']:
+        return form_state
+
+    form_state['preview'] = {
+        'employee_name': get_user_display_name(selected_employee_user),
+        'reviewer_name': get_user_display_name(current_user),
+        'reviewer_role': get_user_role_name(current_user).title(),
+        'evaluation_date_display': evaluation_date.strftime('%d/%m/%Y'),
+        'evaluation_content': evaluation_content,
+        'evidence_reference': form_state['selected_file_name'],
+    }
+    form_state['success_message'] = (
+        'Đã hoàn thành bản đánh giá demo trên giao diện. Dữ liệu này chưa lưu vào cơ sở dữ liệu thật.'
+    )
+    return form_state
+
+
+def build_evaluations_page_context(user, params, post_data=None, uploaded_file=None):
+    """Hàm trung tâm cho trang đánh giá nhân viên."""
+    scope = get_evaluation_scope(user)
+    if scope['error_message']:
+        return {
+            'scope': scope,
+            'filters': {
+                'department_options': [],
+                'manager_options': [],
+                'leader_options': [],
+                'employee_options': [],
+                'selected_department': '',
+                'selected_manager': '',
+                'selected_leader': scope['locked_leader'],
+                'selected_employee': '',
+                'selected_manager_label': '',
+                'selected_leader_label': '',
+                'selected_employee_label': '',
+                'filtered_users': [],
+                'department_locked': bool(scope['locked_department']),
+                'leader_locked': bool(scope['locked_leader']),
+            },
+            'evaluation_date_range': {
+                'from_date': params.get('from_date', ''),
+                'to_date': params.get('to_date', ''),
+                'from_date_value': None,
+                'to_date_value': None,
+                'date_range_text': 'Tất cả thời gian',
+                'error_message': '',
+            },
+            'evaluation_sections': {
+                'summary_cards': [],
+                'filter_summary': [],
+                'records': [],
+            },
+            'employee_cards': [],
+            'selected_employee_user': None,
+            'show_employee_selection': True,
+            'back_to_employee_list_query': build_evaluation_page_query(params),
+            'evaluation_error_message': scope['error_message'],
+            'evaluation_warning_message': '',
+            'evaluation_empty_message': '',
+            'form_state': build_evaluation_form_state(user, None, post_data, uploaded_file),
+            'evaluation_statistics_query': build_evaluation_statistics_query(params),
+        }
+
+    scope_employees = get_scope_employees_for_evaluations(user, scope)
+    filters = build_evaluation_filters(scope_employees, scope, params)
+    evaluation_date_range = get_evaluation_date_range(params)
+    selected_employee_user = get_selected_employee_user(
+        filters['filtered_users'],
+        filters['selected_employee'],
+    )
+    records = build_reviewer_evaluation_records(filters['filtered_users'], user)
+    filtered_records = filter_evaluation_records(records, filters, evaluation_date_range)
+    evaluation_sections = build_evaluation_sections(
+        filters['filtered_users'],
+        filtered_records,
+        filters,
+        scope,
+        evaluation_date_range,
+    )
+    form_state = build_evaluation_form_state(
+        user,
+        selected_employee_user,
+        post_data,
+        uploaded_file,
+    )
+    employee_cards = build_evaluation_employee_cards(
+        filters['filtered_users'],
+        records,
+        params,
+    )
+
+    evaluation_error_message = ''
+    evaluation_empty_message = ''
+    if not scope_employees:
+        evaluation_error_message = 'Chưa có nhân viên nào thuộc phạm vi quản lý hiện tại để đánh giá.'
+    elif not filters['filtered_users']:
+        evaluation_error_message = 'Không tìm thấy nhân viên phù hợp với bộ lọc hiện tại.'
+    elif filters['selected_employee'] and not selected_employee_user:
+        evaluation_error_message = 'Nhân viên đang chọn không còn nằm trong phạm vi hiện tại.'
+    elif selected_employee_user and not filtered_records:
+        evaluation_empty_message = 'Nhân viên này chưa có đánh giá mock nào. Bạn có thể hoàn thành đánh giá mới ngay bên dưới.'
+    elif not selected_employee_user:
+        evaluation_empty_message = 'Hãy chọn một nhân viên trong danh sách để bắt đầu đánh giá.'
+
+    return {
+        'scope': scope,
+        'filters': filters,
+        'evaluation_date_range': evaluation_date_range,
+        'evaluation_sections': evaluation_sections,
+        'employee_cards': employee_cards,
+        'selected_employee_user': selected_employee_user,
+        'show_employee_selection': not bool(selected_employee_user),
+        'back_to_employee_list_query': build_evaluation_page_query(params),
+        'evaluation_error_message': evaluation_error_message,
+        'evaluation_warning_message': evaluation_date_range['error_message'],
+        'evaluation_empty_message': evaluation_empty_message,
+        'form_state': form_state,
+        'evaluation_statistics_query': build_evaluation_statistics_query(params),
     }
 
 # =============================================================================
@@ -856,6 +1485,7 @@ def dashboard_view(request):
     return render(request, 'accounts/dashboard.html', {
         'active_page': 'dashboard',  # Sidebar highlight
         'can_access_statistics': can_access_statistics(request.user),
+        'can_access_evaluations': can_access_evaluations(request.user),
         'can_manage_work_info': can_manage_work_info(request.user),
         'is_system_admin': is_admin_user(request.user),
     })
@@ -1038,6 +1668,39 @@ def statistics_view(request):
 
 
 @login_required
+def evaluations_view(request):
+    """
+    Trang đánh giá nhân viên ở mức frontend/demo.
+    - Chỉ Manager/Leader được truy cập
+    - Submit chỉ tạo bản xem trước, chưa lưu dữ liệu thật
+    """
+    if not can_access_evaluations(request.user):
+        messages.error(request, 'Bạn không có quyền xem trang đánh giá nhân viên.')
+        return redirect('dashboard')
+
+    post_data = None
+    uploaded_file = None
+    if request.method == 'POST':
+        if can_submit_evaluation_demo(request.user):
+            post_data = request.POST
+            uploaded_file = request.FILES.get('evidence_file')
+        else:
+            messages.error(request, 'Vai trò hiện tại chỉ được xem thông tin đánh giá.')
+
+    context = build_evaluations_page_context(
+        request.user,
+        request.GET,
+        post_data,
+        uploaded_file,
+    )
+    if context['form_state']['success_message']:
+        messages.success(request, context['form_state']['success_message'])
+
+    context['active_page'] = 'evaluations'
+    return render(request, 'accounts/evaluations.html', context)
+
+
+@login_required
 def statistics_export_csv_view(request):
     """Xuất bảng tổng hợp statistics ra CSV để Excel mở trực tiếp."""
     ensure_profile(request.user)
@@ -1048,8 +1711,9 @@ def statistics_export_csv_view(request):
 
     context = build_statistics_page_context(request.user, request.GET)
     time_range = context['time_range']
+    selected_stats_type = context['selected_stats_type']
     file_name = (
-        f"statistics_{time_range['start_date']:%Y%m%d}_{time_range['end_date']:%Y%m%d}.csv"
+        f"statistics_{selected_stats_type}_{time_range['start_date']:%Y%m%d}_{time_range['end_date']:%Y%m%d}.csv"
     )
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -1058,9 +1722,103 @@ def statistics_export_csv_view(request):
 
     writer = csv.writer(response)
     writer.writerow(['Bao cao statistics'])
+    writer.writerow(['Loai thong ke', context['selected_stats_type_label']])
     for item in context['statistics_sections']['filter_summary']:
         writer.writerow([item])
     writer.writerow([])
+
+    if selected_stats_type == 'evaluation':
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Nguoi danh gia',
+            'Ngay danh gia',
+            'Noi dung',
+            'Minh chung',
+        ])
+        for row in context['statistics_sections']['evaluation_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                f"{row['reviewer_name']} ({row['reviewer_role']})",
+                row['evaluation_date_display'],
+                row['evaluation_content'],
+                row['evidence_reference'],
+            ])
+        return response
+
+    if selected_stats_type == 'rewards':
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Nguoi de xuat',
+            'Phan loai',
+            'So tien',
+            'Ngay ap dung',
+            'Trang thai',
+            'Ly do',
+        ])
+        for row in context['statistics_sections']['rewards_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                f"{row['proposer_name']} ({row['proposer_role']})",
+                row['type_label'],
+                row['amount_display'],
+                row['application_date_display'],
+                row['status'],
+                row['reason_title'],
+            ])
+        return response
+
+    if selected_stats_type == 'leave':
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Quan ly',
+            'Leader',
+            'Ngay nghi',
+            'So don nghi',
+        ])
+        for row in context['statistics_sections']['summary_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                row['manager_name'],
+                row['leader_name'],
+                row['leave_days'],
+                row['leave_requests'],
+            ])
+        return response
+
+    if selected_stats_type == 'attendance':
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Gio tang ca',
+            'Di tre',
+            'Nghi lam',
+            'Ty le cham cong',
+        ])
+        for row in context['statistics_sections']['summary_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                row['overtime_hours'],
+                row['late_count'],
+                row['absence_days'],
+                row['attendance_rate'],
+            ])
+        return response
+
     writer.writerow([
         'Nhan vien',
         'Username',
@@ -1089,6 +1847,55 @@ def statistics_export_csv_view(request):
             row['absence_days'],
             row['attendance_rate'],
         ])
+
+    if selected_stats_type == 'all':
+        writer.writerow([])
+        writer.writerow(['Thong ke danh gia'])
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Nguoi danh gia',
+            'Ngay danh gia',
+            'Noi dung',
+            'Minh chung',
+        ])
+        for row in context['statistics_sections']['evaluation_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                f"{row['reviewer_name']} ({row['reviewer_role']})",
+                row['evaluation_date_display'],
+                row['evaluation_content'],
+                row['evidence_reference'],
+            ])
+
+        writer.writerow([])
+        writer.writerow(['Thong ke khen thuong va xu phat'])
+        writer.writerow([
+            'Nhan vien',
+            'Username',
+            'Phong ban',
+            'Nguoi de xuat',
+            'Phan loai',
+            'So tien',
+            'Ngay ap dung',
+            'Trang thai',
+            'Ly do',
+        ])
+        for row in context['statistics_sections']['rewards_rows']:
+            writer.writerow([
+                row['employee_name'],
+                row['employee_username'],
+                row['department'],
+                f"{row['proposer_name']} ({row['proposer_role']})",
+                row['type_label'],
+                row['amount_display'],
+                row['application_date_display'],
+                row['status'],
+                row['reason_title'],
+            ])
 
     return response
 

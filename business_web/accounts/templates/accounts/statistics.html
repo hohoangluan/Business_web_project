@@ -163,6 +163,15 @@
     <form method="get" class="stats-toolbar animate-fade">
         <div class="stats-toolbar-grid">
             <div class="form-group">
+                <label class="form-label">Loại thống kê</label>
+                <select name="stats_type" class="stats-select">
+                    {% for item in stats_type_options %}
+                    <option value="{{ item.value }}" {% if selected_stats_type == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Phòng ban</label>
                 <select name="department" class="stats-select" {% if filters.department_locked %}disabled{% endif %}>
                     <option value="">Tất cả phòng ban</option>
@@ -240,7 +249,9 @@
             </a>
         </div>
         <div class="stats-toolbar-note">
-            Phạm vi hiện tại: <strong>{{ scope.scope_label|default:"Không xác định" }}</strong> • Thời gian: <strong>{{ time_range.date_range_text }}</strong>
+            Phạm vi hiện tại: <strong>{{ scope.scope_label|default:"Không xác định" }}</strong> •
+            Loại thống kê: <strong>{{ selected_stats_type_label }}</strong> •
+            Thời gian: <strong>{{ time_range.date_range_text }}</strong>
         </div>
     </form>
 
@@ -259,6 +270,7 @@
         <p>{{ statistics_error_message }}</p>
     </div>
     {% else %}
+    {% if selected_stats_type == 'all' or selected_stats_type == 'leave' %}
     <div class="stats-section animate-fade">
         <div class="stats-section-head">
             <div>
@@ -289,7 +301,9 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
+    {% if selected_stats_type == 'all' or selected_stats_type == 'attendance' %}
     <div class="stats-section animate-fade">
         <div class="stats-section-head">
             <div>
@@ -316,7 +330,9 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
+    {% if selected_stats_type == 'all' or selected_stats_type == 'summary' %}
     <div class="stats-section animate-fade">
         <div class="stats-section-head">
             <div>
@@ -378,6 +394,176 @@
         </div>
     </div>
     {% endif %}
+
+    {% if selected_stats_type == 'all' or selected_stats_type == 'evaluation' %}
+    <div class="stats-section animate-fade">
+        <div class="stats-section-head">
+            <div>
+                <h2>{% if selected_stats_type == 'evaluation' %}Thống kê đánh giá{% else %}Đánh giá{% endif %}</h2>
+                <p>
+                    {% if selected_stats_type == 'evaluation' %}
+                    Theo dõi toàn bộ đánh giá theo phòng ban, người đánh giá và nhân viên
+                    {% else %}
+                    Tóm tắt nhanh dữ liệu đánh giá trong phạm vi hiện tại
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="stats-card-grid">
+            {% for card in statistics_sections.evaluation_cards %}
+            <div class="stats-kpi">
+                <div class="stats-kpi-label">{{ card.label }}</div>
+                <div class="stats-kpi-value">{{ card.value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chart-grid">
+            <div class="chart-box">
+                <h3>Số đánh giá theo phòng ban</h3>
+                <canvas id="evaluationDepartmentChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Số đánh giá theo người đánh giá</h3>
+                <canvas id="evaluationReviewerChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Số đánh giá theo nhân viên</h3>
+                <canvas id="evaluationEmployeeChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Xu hướng đánh giá theo ngày</h3>
+                <canvas id="evaluationTrendChart"></canvas>
+            </div>
+        </div>
+
+        {% if selected_stats_type == 'evaluation' %}
+        <div class="card" style="margin-top:1.25rem;">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Phòng ban</th>
+                            <th>Người đánh giá</th>
+                            <th>Ngày đánh giá</th>
+                            <th>Nội dung đánh giá</th>
+                            <th>Minh chứng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in statistics_sections.evaluation_rows %}
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;">{{ row.employee_name }}</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">@{{ row.employee_username }}</div>
+                            </td>
+                            <td>{{ row.department }}</td>
+                            <td>{{ row.reviewer_name }} ({{ row.reviewer_role }})</td>
+                            <td>{{ row.evaluation_date_display }}</td>
+                            <td style="white-space:pre-line;">{{ row.evaluation_content }}</td>
+                            <td>{{ row.evidence_reference|default:"Không có" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Chưa có dữ liệu đánh giá trong phạm vi đang chọn.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if selected_stats_type == 'all' or selected_stats_type == 'rewards' %}
+    <div class="stats-section animate-fade">
+        <div class="stats-section-head">
+            <div>
+                <h2>{% if selected_stats_type == 'rewards' %}Thống kê khen thưởng & Xử phạt{% else %}Khen thưởng & Xử phạt{% endif %}</h2>
+                <p>
+                    {% if selected_stats_type == 'rewards' %}
+                    Theo dõi phiếu thưởng/phạt theo phòng ban, người đề xuất và nhân viên
+                    {% else %}
+                    Tóm tắt nhanh dữ liệu thưởng/phạt trong phạm vi hiện tại
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="stats-card-grid">
+            {% for card in statistics_sections.rewards_cards %}
+            <div class="stats-kpi">
+                <div class="stats-kpi-label">{{ card.label }}</div>
+                <div class="stats-kpi-value">{{ card.value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chart-grid">
+            <div class="chart-box">
+                <h3>Số phiếu theo phòng ban</h3>
+                <canvas id="rewardsDepartmentChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Số phiếu theo người đề xuất</h3>
+                <canvas id="rewardsProposerChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Số phiếu theo nhân viên</h3>
+                <canvas id="rewardsEmployeeChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Tỷ trọng thưởng và phạt</h3>
+                <canvas id="rewardsTypeChart"></canvas>
+            </div>
+        </div>
+
+        {% if selected_stats_type == 'rewards' %}
+        <div class="card" style="margin-top:1.25rem;">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Phòng ban</th>
+                            <th>Người đề xuất</th>
+                            <th>Phân loại</th>
+                            <th>Số tiền</th>
+                            <th>Ngày áp dụng</th>
+                            <th>Trạng thái</th>
+                            <th>Lý do</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in statistics_sections.rewards_rows %}
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;">{{ row.employee_name }}</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">@{{ row.employee_username }}</div>
+                            </td>
+                            <td>{{ row.department }}</td>
+                            <td>{{ row.proposer_name }} ({{ row.proposer_role }})</td>
+                            <td>{{ row.type_label }}</td>
+                            <td>{{ row.amount_display }}</td>
+                            <td>{{ row.application_date_display }}</td>
+                            <td>{{ row.status }}</td>
+                            <td>
+                                <div style="font-weight:600;">{{ row.reason_title }}</div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);">{{ row.reason_detail }}</div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">Chưa có dữ liệu thưởng/phạt trong phạm vi đang chọn.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
 </div>
 
 <script>
@@ -387,6 +573,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const leaveByEmployee = JSON.parse('{{ statistics_sections.leave_by_employee_json|escapejs }}');
     const overtimeByEmployee = JSON.parse('{{ statistics_sections.overtime_by_employee_json|escapejs }}');
     const disciplineByEmployee = JSON.parse('{{ statistics_sections.discipline_by_employee_json|escapejs }}');
+    const evaluationByDepartment = JSON.parse('{{ statistics_sections.evaluation_by_department_json|escapejs }}');
+    const evaluationByReviewer = JSON.parse('{{ statistics_sections.evaluation_by_reviewer_json|escapejs }}');
+    const evaluationByEmployee = JSON.parse('{{ statistics_sections.evaluation_by_employee_json|escapejs }}');
+    const evaluationTrend = JSON.parse('{{ statistics_sections.evaluation_trend_json|escapejs }}');
+    const rewardsByDepartment = JSON.parse('{{ statistics_sections.rewards_by_department_json|escapejs }}');
+    const rewardsByProposer = JSON.parse('{{ statistics_sections.rewards_by_proposer_json|escapejs }}');
+    const rewardsByEmployee = JSON.parse('{{ statistics_sections.rewards_by_employee_json|escapejs }}');
+    const rewardsByType = JSON.parse('{{ statistics_sections.rewards_by_type_json|escapejs }}');
 
     function createSimpleBarChart(canvasId, labels, values, label, color) {
         const canvas = document.getElementById(canvasId);
@@ -404,6 +598,40 @@ document.addEventListener('DOMContentLoaded', function () {
                     backgroundColor: color,
                     borderRadius: 8,
                     maxBarThickness: 42,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    function createSimpleLineChart(canvasId, labels, values, label, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            return;
+        }
+
+        new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: values,
+                    borderColor: color,
+                    backgroundColor: color + '33',
+                    fill: true,
+                    tension: 0.35,
                 }]
             },
             options: {
@@ -487,6 +715,70 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    createSimpleBarChart(
+        'evaluationDepartmentChart',
+        evaluationByDepartment.labels,
+        evaluationByDepartment.values,
+        'Số đánh giá',
+        '#f97316'
+    );
+
+    createSimpleBarChart(
+        'evaluationReviewerChart',
+        evaluationByReviewer.labels,
+        evaluationByReviewer.values,
+        'Số đánh giá',
+        '#0ea5e9'
+    );
+
+    createSimpleBarChart(
+        'evaluationEmployeeChart',
+        evaluationByEmployee.labels,
+        evaluationByEmployee.values,
+        'Số đánh giá',
+        '#14b8a6'
+    );
+
+    createSimpleLineChart(
+        'evaluationTrendChart',
+        evaluationTrend.labels,
+        evaluationTrend.values,
+        'Xu hướng đánh giá',
+        '#ef4444'
+    );
+
+    createSimpleBarChart(
+        'rewardsDepartmentChart',
+        rewardsByDepartment.labels,
+        rewardsByDepartment.values,
+        'Số phiếu',
+        '#8b5cf6'
+    );
+
+    createSimpleBarChart(
+        'rewardsProposerChart',
+        rewardsByProposer.labels,
+        rewardsByProposer.values,
+        'Số phiếu',
+        '#10b981'
+    );
+
+    createSimpleBarChart(
+        'rewardsEmployeeChart',
+        rewardsByEmployee.labels,
+        rewardsByEmployee.values,
+        'Số phiếu',
+        '#f59e0b'
+    );
+
+    createSimpleBarChart(
+        'rewardsTypeChart',
+        rewardsByType.labels,
+        rewardsByType.values,
+        'Số phiếu',
+        '#6366f1'
+    );
 });
 </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from datetime import timedelta
 from .models import Role, CustomPermission, UserProfile
@@ -467,6 +468,166 @@ class PermissionManagementTests(TestCase):
         content = response.content.decode('utf-8-sig')
         self.assertIn('Nam Employee', content)
         self.assertNotIn('Hoa Outside', content)
+
+    def test_evaluations_blocked_for_hr(self):
+        """HR should only view evaluations inside statistics, not the evaluations page."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/evaluations/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_evaluations_blocked_for_admin_role(self):
+        """Admin role users should not access the manager/leader evaluation workspace."""
+        self.client.login(username='admin_role_user', password='adminrolepass123')
+        response = self.client.get('/evaluations/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_evaluations_accessible_by_manager(self):
+        """Managers should be able to access the evaluations page."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/evaluations/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_evaluations_accessible_by_leader(self):
+        """Leaders should be able to access the evaluations page."""
+        self.client.login(username='leader1', password='leaderpass123')
+        response = self.client.get('/evaluations/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_evaluations_blocked_for_employee(self):
+        """Employees should not be able to access the evaluations page."""
+        self.client.login(username='employee1', password='emppass123')
+        response = self.client.get('/evaluations/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_manager_dashboard_shows_evaluations_menu(self):
+        """Managers should see the evaluations menu in the sidebar."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/dashboard/')
+        self.assertContains(response, 'Đánh giá nhân viên')
+
+    def test_employee_dashboard_hides_evaluations_menu(self):
+        """Employees should not see the evaluations menu in the sidebar."""
+        self.client.login(username='employee1', password='emppass123')
+        response = self.client.get('/dashboard/')
+        self.assertNotContains(response, 'Đánh giá nhân viên')
+
+    def test_hr_dashboard_hides_evaluations_menu(self):
+        """HR should not see the evaluations menu or shortcut."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/dashboard/')
+        self.assertNotContains(response, 'Đánh giá nhân viên')
+
+    def test_manager_evaluations_scope_hides_other_departments(self):
+        """Managers should only see evaluations for employees in their own department."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/evaluations/')
+        self.assertContains(response, 'Nam Employee')
+        self.assertNotContains(response, 'Hoa Outside')
+
+    def test_evaluations_page_has_statistics_link(self):
+        """Manager/Leader should be able to jump to evaluation statistics from the page."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/evaluations/')
+        self.assertContains(response, 'Xem thống kê đánh giá')
+        self.assertContains(response, 'stats_type=evaluation')
+
+    def test_manager_can_open_form_after_selecting_employee(self):
+        """Selecting an employee should switch the page into the evaluation form step."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/evaluations/?employee=employee1')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Form đánh giá nhân viên')
+        self.assertContains(response, 'Nam Employee')
+        self.assertContains(response, 'Hoàn thành đánh giá')
+        self.assertNotContains(response, 'Chọn nhân viên để đánh giá')
+
+    def test_manager_can_submit_demo_evaluation_preview(self):
+        """Managers should be able to submit the demo form and see the preview block."""
+        self.client.login(username='manager1', password='managerpass123')
+        evidence_file = SimpleUploadedFile(
+            'meeting-note.pdf',
+            b'demo evidence file',
+            content_type='application/pdf',
+        )
+        response = self.client.post(
+            '/evaluations/?employee=employee1',
+            {
+                'employee_username': 'employee1',
+                'evaluation_content': 'Nhân viên hoàn thành đúng tiến độ và phối hợp nhóm tốt.',
+                'evaluation_date': '2026-05-04',
+                'evidence_file': evidence_file,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Đã hoàn thành bản đánh giá demo trên giao diện')
+        self.assertContains(response, 'Bản xem trước đánh giá vừa hoàn thành')
+        self.assertContains(response, 'Nhân viên hoàn thành đúng tiến độ và phối hợp nhóm tốt.')
+        self.assertContains(response, 'meeting-note.pdf')
+
+    def test_hr_can_view_evaluation_statistics(self):
+        """HR should view evaluation data inside statistics."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/?stats_type=evaluation')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Thống kê đánh giá')
+        self.assertContains(response, 'Nam Employee')
+
+    def test_statistics_type_evaluation_shows_only_evaluation_section(self):
+        """Choosing the evaluation stats type should hide the other statistics blocks."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/statistics/?stats_type=evaluation')
+        self.assertContains(response, 'Thống kê đánh giá')
+        self.assertContains(response, 'Số đánh giá theo người đánh giá')
+        self.assertNotContains(response, 'Ngày nghỉ theo phòng ban')
+        self.assertNotContains(response, 'Số giờ tăng ca theo nhân viên')
+
+    def test_statistics_type_rewards_shows_rewards_section(self):
+        """Choosing rewards stats type should render only the rewards/penalties section."""
+        self.client.login(username='manager1', password='managerpass123')
+        response = self.client.get('/statistics/?stats_type=rewards')
+        self.assertContains(response, 'Khen thưởng & Xử phạt')
+        self.assertContains(response, 'Tỷ trọng thưởng và phạt')
+        self.assertNotContains(response, 'Ngày nghỉ theo phòng ban')
+        self.assertNotContains(response, 'Số đánh giá theo người đánh giá')
+
+    def test_statistics_export_csv_supports_evaluation_type(self):
+        """CSV export should support the evaluation stats type."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/export-csv/?stats_type=evaluation')
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('Loai thong ke', content)
+        self.assertIn('Đánh giá', content)
+        self.assertIn('Nam Employee', content)
+
+    def test_statistics_export_csv_supports_rewards_type(self):
+        """CSV export should support the rewards stats type."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/export-csv/?stats_type=rewards')
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('Khen thưởng & Xử phạt', content)
+        self.assertIn('Nam Employee', content)
+
+    def test_statistics_print_supports_evaluation_type(self):
+        """Print view should render only the evaluation block when requested."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/print/?stats_type=evaluation')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Loại thống kê: Đánh giá')
+        self.assertContains(response, 'Nội dung')
+        self.assertContains(response, 'Nam Employee')
+        self.assertNotContains(response, 'Số ngày nghỉ')
+
+    def test_statistics_print_supports_rewards_type(self):
+        """Print view should render the rewards/penalties block when requested."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/statistics/print/?stats_type=rewards')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Loại thống kê: Khen thưởng &amp; Xử phạt')
+        self.assertContains(response, 'Người đề xuất')
+        self.assertContains(response, 'Nam Employee')
+        self.assertNotContains(response, 'Số ngày nghỉ')
 
     def test_payroll_routes_return_404(self):
         """Legacy payroll URLs should no longer exist."""

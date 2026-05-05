@@ -27,6 +27,7 @@ from .views import (
     overtime_view,              # MỚI: tăng ca cá nhân
     overtime_approval_view,     # MỚI: duyệt tăng ca
     statistics_view,            # MỚI: thống kê biểu đồ
+    evaluations_view,           # MỚI: đánh giá nhân viên demo
     statistics_export_csv_view, # MỚI: xuất CSV statistics
     statistics_print_view,      # MỚI: in / lưu PDF statistics
     report_view,                # MỚI: báo cáo cá nhân
@@ -87,6 +88,7 @@ urlpatterns = [
 
     # Thống kê
     path('statistics/', statistics_view, name='statistics'),
+    path('evaluations/', evaluations_view, name='evaluations'),
     path('statistics/export-csv/', statistics_export_csv_view, name='statistics_export_csv'),
     path('statistics/print/', statistics_print_view, name='statistics_print'),
 

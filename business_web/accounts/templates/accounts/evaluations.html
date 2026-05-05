@@ -1,0 +1,511 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Đánh giá nhân viên - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    .evaluation-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .evaluation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .evaluation-toolbar,
+    .evaluation-card,
+    .employee-choice,
+    .preview-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+    .evaluation-toolbar {
+        padding: 1.25rem;
+    }
+    .evaluation-toolbar-grid,
+    .summary-grid,
+    .employee-picker-grid {
+        display: grid;
+        gap: 1rem;
+    }
+    .evaluation-toolbar-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .employee-picker-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .summary-card {
+        padding: 1rem 1.1rem;
+    }
+    .summary-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+    }
+    .summary-value {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+    .toolbar-actions,
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .toolbar-note,
+    .helper-note {
+        margin-top: 0.9rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+    .chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.8rem;
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 999px;
+        color: #9a3412;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+    .section-card-header {
+        padding: 1.15rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .section-card-body {
+        padding: 1.25rem;
+    }
+    .employee-choice {
+        padding: 1rem 1.05rem;
+    }
+    .employee-choice-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .employee-choice-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.25rem;
+    }
+    .employee-choice-meta {
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        line-height: 1.6;
+    }
+    .employee-choice-footer {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .selected-employee-card {
+        margin-bottom: 1rem;
+        padding: 1rem 1.05rem;
+        background: #f8fafc;
+        border: 1px solid #dbeafe;
+        border-radius: 14px;
+    }
+    .selected-employee-card h3 {
+        margin-bottom: 0.35rem;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.45rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 0.75rem 0.85rem;
+        background: #ffffff;
+        color: var(--text-main);
+    }
+    .form-group textarea {
+        min-height: 160px;
+        resize: vertical;
+    }
+    .field-error {
+        margin-top: 0.35rem;
+        color: #dc2626;
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+    .preview-card {
+        margin-top: 1rem;
+        padding: 1rem 1.05rem;
+        background: linear-gradient(135deg, #fff7ed, #fffbeb);
+        border-color: #fdba74;
+    }
+    .preview-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #9a3412;
+        margin-bottom: 0.75rem;
+    }
+    .empty-panel {
+        padding: 2rem 1.25rem;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .empty-panel i {
+        font-size: 2rem;
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+    }
+    .badge-soft {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+    .success-box {
+        margin-bottom: 1rem;
+        padding: 0.95rem 1rem;
+        border-radius: 12px;
+        background: #ecfdf5;
+        border: 1px solid #86efac;
+        color: #166534;
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+    @media (max-width: 1200px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 900px) {
+        .evaluation-toolbar-grid,
+        .employee-picker-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media (max-width: 640px) {
+        .evaluation-toolbar-grid,
+        .summary-grid,
+        .employee-picker-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="evaluation-page animate-fade">
+    <div class="evaluation-header">
+        <div>
+            <h1 style="font-size:1.8rem; font-weight:800; margin-bottom:0.35rem; color:var(--text-main);">
+                Đánh giá nhân viên
+            </h1>
+            <p style="color:var(--text-muted);">
+                Chọn nhân viên trước, sau đó hoàn thành form đánh giá theo phạm vi quản lý hiện tại
+            </p>
+        </div>
+        <a href="{% url 'statistics' %}?{{ evaluation_statistics_query }}" class="btn btn-secondary">
+            <i class="fa-solid fa-chart-column"></i> Xem thống kê đánh giá
+        </a>
+    </div>
+
+    <form method="get" class="evaluation-toolbar">
+        <div class="evaluation-toolbar-grid">
+            <div class="form-group">
+                <label>Phòng ban</label>
+                <select name="department" {% if filters.department_locked %}disabled{% endif %}>
+                    <option value="">Tất cả phòng ban</option>
+                    {% for department in filters.department_options %}
+                    <option value="{{ department }}" {% if filters.selected_department == department %}selected{% endif %}>{{ department }}</option>
+                    {% endfor %}
+                </select>
+                {% if filters.department_locked %}
+                <input type="hidden" name="department" value="{{ filters.selected_department }}">
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label>Manager</label>
+                <select name="manager">
+                    <option value="">Tất cả manager</option>
+                    {% for item in filters.manager_options %}
+                    <option value="{{ item.value }}" {% if filters.selected_manager == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Leader</label>
+                <select name="leader" {% if filters.leader_locked %}disabled{% endif %}>
+                    <option value="">Tất cả leader</option>
+                    {% for item in filters.leader_options %}
+                    <option value="{{ item.value }}" {% if filters.selected_leader == item.value %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+                {% if filters.leader_locked %}
+                <input type="hidden" name="leader" value="{{ filters.selected_leader }}">
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label>Từ ngày</label>
+                <input type="date" name="from_date" value="{{ evaluation_date_range.from_date }}">
+            </div>
+
+            <div class="form-group">
+                <label>Đến ngày</label>
+                <input type="date" name="to_date" value="{{ evaluation_date_range.to_date }}">
+            </div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-filter"></i> Áp dụng
+            </button>
+            <a href="{% url 'evaluations' %}" class="btn btn-outline">
+                <i class="fa-solid fa-rotate-left"></i> Đặt lại
+            </a>
+        </div>
+        <div class="toolbar-note">
+            Phạm vi hiện tại: <strong>{{ scope.scope_label|default:"Không xác định" }}</strong> •
+            Thời gian: <strong>{{ evaluation_date_range.date_range_text }}</strong>
+        </div>
+    </form>
+
+    {% if evaluation_warning_message %}
+    <div class="alert alert-warning" style="display:flex; gap:0.75rem; align-items:flex-start;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>{{ evaluation_warning_message }}</div>
+    </div>
+    {% endif %}
+
+    {% if evaluation_sections.filter_summary %}
+    <div class="chip-list">
+        {% for item in evaluation_sections.filter_summary %}
+        <div class="chip"><i class="fa-solid fa-tag"></i> {{ item }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if evaluation_error_message %}
+    <div class="evaluation-card">
+        <div class="empty-panel">
+            <i class="fa-solid fa-clipboard-question"></i>
+            <h3 style="margin-bottom:0.35rem; color:var(--text-main);">Chưa thể hiển thị đánh giá</h3>
+            <p>{{ evaluation_error_message }}</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="summary-grid">
+        {% for card in evaluation_sections.summary_cards %}
+        <div class="evaluation-card summary-card">
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value">{{ card.value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if show_employee_selection %}
+    <div class="evaluation-card">
+        <div class="section-card-header">
+            <div>
+                <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:0.3rem;">
+                    Chọn nhân viên để đánh giá
+                </h3>
+                <p style="color:var(--text-muted); font-size:0.92rem;">
+                    Bước 1: chọn một nhân viên trong danh sách rồi chuyển sang form đánh giá
+                </p>
+            </div>
+            <span class="badge-soft">
+                <i class="fa-solid fa-users"></i>
+                {{ employee_cards|length }} nhân viên
+            </span>
+        </div>
+        <div class="section-card-body">
+            {% if employee_cards %}
+            <div class="employee-picker-grid">
+                {% for employee in employee_cards %}
+                <div class="employee-choice">
+                    <div class="employee-choice-top">
+                        <div>
+                            <div class="employee-choice-title">{{ employee.display_name }}</div>
+                            <div class="employee-choice-meta">@{{ employee.username }}</div>
+                        </div>
+                        <span class="badge-soft">
+                            <i class="fa-solid fa-star-half-stroke"></i> {{ employee.review_count }} đánh giá mock
+                        </span>
+                    </div>
+                    <div class="employee-choice-meta" style="margin-top:0.8rem;">
+                        <div><strong>Phòng ban:</strong> {{ employee.department }}</div>
+                        <div><strong>Chức danh:</strong> {{ employee.position }}</div>
+                    </div>
+                    <div class="employee-choice-footer">
+                        <div class="helper-note" style="margin-top:0;">
+                            Ấn vào nút bên phải để mở form đánh giá cho nhân viên này.
+                        </div>
+                        <a href="{% url 'evaluations' %}?{{ employee.select_query }}" class="btn btn-primary">
+                            <i class="fa-solid fa-pen-to-square"></i> Chọn đánh giá
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-panel">
+                <i class="fa-solid fa-user-slash"></i>
+                <h3 style="margin-bottom:0.35rem; color:var(--text-main);">Không có nhân viên phù hợp</h3>
+                <p>{{ evaluation_empty_message }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="evaluation-card">
+        <div class="section-card-header">
+            <div>
+                <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:0.3rem;">
+                    Form đánh giá nhân viên
+                </h3>
+                <p style="color:var(--text-muted); font-size:0.92rem;">
+                    Bước 2: nhập nội dung đánh giá rồi hoàn thành biểu mẫu
+                </p>
+            </div>
+            <a href="{% url 'evaluations' %}{% if back_to_employee_list_query %}?{{ back_to_employee_list_query }}{% endif %}" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-left"></i> Chọn nhân viên khác
+            </a>
+        </div>
+        <div class="section-card-body">
+            <div class="selected-employee-card">
+                <h3>{{ selected_employee_user.profile.full_name|default:selected_employee_user.username }}</h3>
+                <div class="employee-choice-meta">@{{ selected_employee_user.username }}</div>
+                <div class="employee-choice-meta" style="margin-top:0.6rem;">
+                    <div><strong>Phòng ban:</strong> {{ selected_employee_user.profile.department|default:"Chưa phân phòng ban" }}</div>
+                    <div><strong>Chức danh:</strong> {{ selected_employee_user.profile.position|default:"Chưa cập nhật chức danh" }}</div>
+                </div>
+            </div>
+
+            {% if evaluation_empty_message %}
+            <div class="helper-note" style="margin-bottom:1rem;">
+                {{ evaluation_empty_message }}
+            </div>
+            {% endif %}
+
+            {% if form_state.success_message %}
+            <div class="success-box">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>{{ form_state.success_message }}</div>
+            </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" action="{% url 'evaluations' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="employee_username" value="{{ form_state.selected_employee_username }}">
+                {% if form_state.errors.employee_username %}
+                <div class="field-error" style="margin-bottom:1rem;">{{ form_state.errors.employee_username }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label>Nhân viên đang đánh giá</label>
+                    <input type="text" value="{{ form_state.selected_employee_name }}" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Nội dung đánh giá</label>
+                    <textarea name="evaluation_content" placeholder="Ví dụ: Hoàn thành công việc đúng hạn, phối hợp nhóm tốt, cần cải thiện phần cập nhật tiến độ...">{{ form_state.form_data.evaluation_content }}</textarea>
+                    {% if form_state.errors.evaluation_content %}
+                    <div class="field-error">{{ form_state.errors.evaluation_content }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Minh chứng (nếu có)</label>
+                    <input type="file" name="evidence_file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                    <div class="helper-note" style="margin-top:0.45rem;">
+                        File chỉ dùng để mô phỏng giao diện ở bản này, chưa được lưu vào hệ thống.
+                    </div>
+                    {% if form_state.selected_file_name %}
+                    <div class="helper-note" style="margin-top:0.2rem;">
+                        Đã chọn: <strong>{{ form_state.selected_file_name }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Ngày đánh giá</label>
+                    <input type="date" name="evaluation_date" value="{{ form_state.form_data.evaluation_date }}">
+                    {% if form_state.errors.evaluation_date %}
+                    <div class="field-error">{{ form_state.errors.evaluation_date }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Hoàn thành đánh giá
+                    </button>
+                    <a href="{% url 'statistics' %}?{{ evaluation_statistics_query }}" class="btn btn-secondary">
+                        <i class="fa-solid fa-chart-column"></i> Xem lại trong statistics
+                    </a>
+                </div>
+                <div class="helper-note">
+                    Sau khi hoàn thành trên giao diện mock, bạn có thể xem lại phần đánh giá tương ứng trong statistics.
+                </div>
+            </form>
+
+            {% if form_state.preview %}
+            <div class="preview-card">
+                <div class="preview-title">Bản xem trước đánh giá vừa hoàn thành</div>
+                <div style="display:grid; gap:0.7rem;">
+                    <div><strong>Nhân viên:</strong> {{ form_state.preview.employee_name }}</div>
+                    <div><strong>Người đánh giá:</strong> {{ form_state.preview.reviewer_name }} ({{ form_state.preview.reviewer_role }})</div>
+                    <div><strong>Ngày đánh giá:</strong> {{ form_state.preview.evaluation_date_display }}</div>
+                    <div><strong>Nội dung:</strong> {{ form_state.preview.evaluation_content }}</div>
+                    <div><strong>Minh chứng:</strong> {{ form_state.preview.evidence_reference|default:"Không có" }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

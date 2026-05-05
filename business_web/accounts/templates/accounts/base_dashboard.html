@@ -94,6 +94,12 @@ Blocks có thể override:
                     <span>Thống kê</span>
                 </a>
                 {% endif %}
+                {% if request.user.profile.role.name == 'manager' or request.user.profile.role.name == 'leader' %}
+                <a href="{% url 'evaluations' %}" class="nav-item {% if active_page == 'evaluations' %}active{% endif %}">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <span>Đánh giá nhân viên</span>
+                </a>
+                {% endif %}
                 {% if request.user.profile.role.name == 'hr' %}
                 <a href="{% url 'hr_create_profile' %}" class="nav-item {% if active_page == 'hr_profiles' %}active{% endif %}">
                     <i class="fa-solid fa-user-plus"></i>

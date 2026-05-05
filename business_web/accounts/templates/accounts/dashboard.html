@@ -161,6 +161,15 @@
                         </div>
                     </a>
 
+                    {% if can_access_evaluations %}
+                    <a href="{% url 'evaluations' %}" class="feature-card" style="border: 2px dashed #f59e0b;">
+                        <div class="fc-icon bg-amber"><i class="fa-solid fa-clipboard-check"></i></div>
+                        <div>
+                            <div class="fc-title">Đánh giá nhân viên</div>
+                            <div class="fc-desc">Theo dõi và tạo đánh giá theo phạm vi quản lý</div>
+                        </div>
+                    </a>
+                    {% endif %}
                     {% if can_access_statistics %}
                     <a href="{% url 'statistics' %}" class="feature-card" style="border: 2px dashed var(--primary);">
                         <div class="fc-icon bg-rose"><i class="fa-solid fa-chart-line"></i></div>
