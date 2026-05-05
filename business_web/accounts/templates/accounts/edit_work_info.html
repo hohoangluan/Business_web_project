@@ -22,7 +22,7 @@
         {% csrf_token %}
         <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1rem;">
-                Màn hình này gom toàn bộ dữ liệu đang lưu trong hồ sơ cá nhân của nhân viên. Vai trò hệ thống vẫn đổi ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
+                Màn hình này gom toàn bộ dữ liệu đang lưu trong hồ sơ cá nhân của nhân viên, bao gồm thông tin công việc và hợp đồng hiện tại. Vai trò hệ thống vẫn đổi ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
             </div>
 
             <h4 style="margin-bottom: 1rem;">Thông tin cá nhân đang lưu</h4>
@@ -122,6 +122,54 @@
                 <div class="form-group">
                     <label class="form-label">Leader phụ trách</label>
                     {{ form.leader_user }}
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
+
+            <h4 style="margin-bottom: 1rem;">Thông tin hợp đồng</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Số hợp đồng</label>
+                    {{ form.contract_number }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Loại hợp đồng</label>
+                    {{ form.contract_type }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ngày ký hợp đồng</label>
+                    {{ form.contract_signed_date }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ngày bắt đầu hiệu lực</label>
+                    {{ form.contract_start_date }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ngày hết hạn</label>
+                    {{ form.contract_end_date }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số ngày nghỉ phép/năm</label>
+                    {{ form.contract_annual_leave_days }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ca làm tiêu chuẩn</label>
+                    {{ form.contract_standard_shift }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">File tham chiếu hợp đồng</label>
+                    {{ form.contract_attachment_reference }}
                 </div>
             </div>
 

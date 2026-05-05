@@ -158,7 +158,7 @@
     <div class="hrc-header">
         <div>
             <div class="hrc-title"><i class="fa-solid fa-user-plus" style="color:var(--primary);"></i> Tạo hồ sơ nhân sự mới</div>
-            <div class="hrc-subtitle">Thông tin công việc là bắt buộc. Thông tin cá nhân có thể bổ sung sau bởi chính nhân viên.</div>
+            <div class="hrc-subtitle">Thông tin công việc và hợp đồng là bắt buộc. Thông tin cá nhân có thể bổ sung sau bởi chính nhân viên.</div>
         </div>
         <a href="{% url 'dashboard' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
     </div>
@@ -289,7 +289,53 @@
                 </div>
             </div>
 
-            <!-- Section 3: Tạo tài khoản tự động -->
+            <!-- Section 3: Thông tin hợp đồng -->
+            <div class="hrc-section">
+                <div class="hrc-section-head">
+                    <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);"><i class="fa-solid fa-file-contract"></i></div>
+                    <div>
+                        <div class="hrc-sec-title">Thông tin Hợp đồng</div>
+                        <div class="hrc-sec-desc">Các trường trong khối này là bắt buộc, trừ ngày hết hạn và file tham chiếu</div>
+                    </div>
+                </div>
+
+                <div class="hrc-grid">
+                    <div class="hrc-field">
+                        <label>Số hợp đồng <span class="req">*</span></label>
+                        <input type="text" name="contract_number" placeholder="VD: HD-2026-001" value="{{ form_data.contract_number|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Loại hợp đồng <span class="req">*</span></label>
+                        <input type="text" name="contract_type" placeholder="VD: Thử việc 2 tháng" value="{{ form_data.contract_type|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày ký hợp đồng <span class="req">*</span></label>
+                        <input type="text" name="contract_signed_date" placeholder="DD/MM/YYYY" value="{{ form_data.contract_signed_date|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày bắt đầu hiệu lực <span class="req">*</span></label>
+                        <input type="text" name="contract_start_date" placeholder="DD/MM/YYYY" value="{{ form_data.contract_start_date|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày hết hạn</label>
+                        <input type="text" name="contract_end_date" placeholder="Để trống nếu không thời hạn" value="{{ form_data.contract_end_date|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Số ngày nghỉ phép/năm <span class="req">*</span></label>
+                        <input type="number" name="contract_annual_leave_days" placeholder="VD: 12" value="{{ form_data.contract_annual_leave_days|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ca làm tiêu chuẩn <span class="req">*</span></label>
+                        <input type="text" name="contract_standard_shift" placeholder="VD: 08:30 - 17:30 (Thứ 2 đến Thứ 6)" value="{{ form_data.contract_standard_shift|default:'' }}" required>
+                    </div>
+                    <div class="hrc-field">
+                        <label>File tham chiếu hợp đồng</label>
+                        <input type="text" name="contract_attachment_reference" placeholder="VD: HD_NV001.pdf hoặc link lưu trữ" value="{{ form_data.contract_attachment_reference|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Tạo tài khoản tự động -->
             <div class="hrc-section">
                 <div class="hrc-section-head">
                     <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>

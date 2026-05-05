@@ -1,5 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 from .models import Role, CustomPermission, UserProfile
 
 
@@ -115,6 +117,14 @@ class PermissionManagementTests(TestCase):
             full_name='Nam Employee',
             department='Khối Vận hành',
             position='Nhân viên vận hành',
+            contract_number='HD-NAM-001',
+            contract_type='Chính thức',
+            contract_signed_date='01/01/2026',
+            contract_start_date='05/01/2026',
+            contract_end_date='31/12/2099',
+            contract_annual_leave_days=12,
+            contract_standard_shift='08:30 - 17:30 (Thứ 2 đến Thứ 6)',
+            contract_attachment_reference='HD_Nam_001.pdf',
             manager_user=self.manager_user,
             leader_user=self.leader_user,
         )
@@ -128,6 +138,14 @@ class PermissionManagementTests(TestCase):
             full_name='Hoa Outside',
             department='Khối Kinh doanh',
             position='Nhân viên kinh doanh',
+            contract_number='HD-HOA-002',
+            contract_type='Xác định thời hạn',
+            contract_signed_date='15/02/2026',
+            contract_start_date='20/02/2026',
+            contract_end_date='20/02/2027',
+            contract_annual_leave_days=14,
+            contract_standard_shift='09:00 - 18:00 (Thứ 2 đến Thứ 6)',
+            contract_attachment_reference='HD_Hoa_002.pdf',
         )
 
         # Create a target user to assign roles/permissions to
@@ -209,6 +227,14 @@ class PermissionManagementTests(TestCase):
                 'workplace': 'Văn phòng Hồ Chí Minh',
                 'probation_start': '01/06/2026',
                 'official_start_date': '01/08/2026',
+                'contract_number': 'HD-TARGET-003',
+                'contract_type': 'Thử việc 2 tháng',
+                'contract_signed_date': '25/05/2026',
+                'contract_start_date': '01/06/2026',
+                'contract_end_date': '01/08/2026',
+                'contract_annual_leave_days': 12,
+                'contract_standard_shift': '08:30 - 17:30 (Thứ 2 đến Thứ 6)',
+                'contract_attachment_reference': 'HD_TARGET_003.pdf',
                 'work_status': 'working',
                 'manager_user': self.manager_user.id,
                 'leader_user': self.leader_user.id,
@@ -228,6 +254,14 @@ class PermissionManagementTests(TestCase):
         self.assertEqual(self.target_profile.workplace, 'Văn phòng Hồ Chí Minh')
         self.assertEqual(self.target_profile.probation_start, '01/06/2026')
         self.assertEqual(self.target_profile.official_start_date, '01/08/2026')
+        self.assertEqual(self.target_profile.contract_number, 'HD-TARGET-003')
+        self.assertEqual(self.target_profile.contract_type, 'Thử việc 2 tháng')
+        self.assertEqual(self.target_profile.contract_signed_date, '25/05/2026')
+        self.assertEqual(self.target_profile.contract_start_date, '01/06/2026')
+        self.assertEqual(self.target_profile.contract_end_date, '01/08/2026')
+        self.assertEqual(self.target_profile.contract_annual_leave_days, 12)
+        self.assertEqual(self.target_profile.contract_standard_shift, '08:30 - 17:30 (Thứ 2 đến Thứ 6)')
+        self.assertEqual(self.target_profile.contract_attachment_reference, 'HD_TARGET_003.pdf')
         self.assertEqual(self.target_profile.work_status, 'working')
         self.assertEqual(self.target_profile.manager_user, self.manager_user)
         self.assertEqual(self.target_profile.leader_user, self.leader_user)
@@ -249,6 +283,14 @@ class PermissionManagementTests(TestCase):
                 'workplace': 'Văn phòng Hà Nội',
                 'probation_start': '01/05/2026',
                 'official_start_date': '01/07/2026',
+                'contract_number': 'HD-NV900-001',
+                'contract_type': 'Thử việc 2 tháng',
+                'contract_signed_date': '28/04/2026',
+                'contract_start_date': '01/05/2026',
+                'contract_end_date': '01/07/2026',
+                'contract_annual_leave_days': '12',
+                'contract_standard_shift': '08:30 - 17:30 (Thứ 2 đến Thứ 6)',
+                'contract_attachment_reference': 'HD_NV900_001.pdf',
                 'work_status': 'working',
                 'manager_user': self.manager_user.id,
                 'leader_user': self.leader_user.id,
@@ -267,9 +309,41 @@ class PermissionManagementTests(TestCase):
         self.assertEqual(new_user.profile.workplace, 'Văn phòng Hà Nội')
         self.assertEqual(new_user.profile.probation_start, '01/05/2026')
         self.assertEqual(new_user.profile.official_start_date, '01/07/2026')
+        self.assertEqual(new_user.profile.contract_number, 'HD-NV900-001')
+        self.assertEqual(new_user.profile.contract_type, 'Thử việc 2 tháng')
+        self.assertEqual(new_user.profile.contract_signed_date, '28/04/2026')
+        self.assertEqual(new_user.profile.contract_start_date, '01/05/2026')
+        self.assertEqual(new_user.profile.contract_end_date, '01/07/2026')
+        self.assertEqual(new_user.profile.contract_annual_leave_days, 12)
+        self.assertEqual(new_user.profile.contract_standard_shift, '08:30 - 17:30 (Thứ 2 đến Thứ 6)')
+        self.assertEqual(new_user.profile.contract_attachment_reference, 'HD_NV900_001.pdf')
         self.assertEqual(new_user.profile.work_status, 'working')
         self.assertEqual(new_user.profile.manager_user, self.manager_user)
         self.assertEqual(new_user.profile.leader_user, self.leader_user)
+
+    def test_hr_create_profile_requires_contract_info(self):
+        """Creating a profile should fail if required contract fields are missing."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.post(
+            '/hr/create-profile/',
+            {
+                'employee_id': 'NV901',
+                'department': 'Khối Vận hành',
+                'employee_type': 'Toàn thời gian',
+                'position': 'Chuyên viên vận hành',
+                'workplace': 'Văn phòng Hà Nội',
+                'probation_start': '01/05/2026',
+                'official_start_date': '01/07/2026',
+                'work_status': 'working',
+                'manager_user': self.manager_user.id,
+                'leader_user': self.leader_user.id,
+                'role': 'employee',
+                'auto_create_account': 'on',
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Số hợp đồng không được để trống.')
+        self.assertFalse(User.objects.filter(username='nv901').exists())
 
     def test_assign_permissions_blocked_for_regular_user(self):
         """Regular employees should NOT be able to change permissions."""
@@ -445,6 +519,43 @@ class PermissionManagementTests(TestCase):
         self.client.login(username='employee1', password='emppass123')
         response = self.client.get('/profile/')
         self.assertNotContains(response, 'Ngân hàng & Thuế')
+
+    def test_contract_page_shows_only_logged_in_user_contract(self):
+        """The contract page should show only the current user's contract data."""
+        self.client.login(username='employee1', password='emppass123')
+        response = self.client.get('/contract/')
+        self.assertContains(response, 'HD-NAM-001')
+        self.assertNotContains(response, 'HD-HOA-002')
+
+    def test_contract_page_hides_hr_action_buttons(self):
+        """The contract page should be read-only even for HR."""
+        self.client.login(username='hr1', password='hrpass123')
+        response = self.client.get('/contract/')
+        self.assertNotContains(response, 'Tạo mới')
+        self.assertNotContains(response, 'Cập nhật')
+
+    def test_contract_page_shows_empty_state_when_contract_missing(self):
+        """Users without complete contract info should see an empty state."""
+        self.client.login(username='target', password='targetpass123')
+        response = self.client.get('/contract/')
+        self.assertContains(response, 'Chưa có đủ thông tin hợp đồng')
+
+    def test_contract_page_shows_expiry_warning_when_near_end_date(self):
+        """Users should see a warning when the contract is close to expiring."""
+        near_end_date = timezone.localdate() + timedelta(days=10)
+        self.target_profile.contract_number = 'HD-TARGET-WARN'
+        self.target_profile.contract_type = 'Xác định thời hạn'
+        self.target_profile.contract_signed_date = '01/01/2026'
+        self.target_profile.contract_start_date = '01/02/2026'
+        self.target_profile.contract_end_date = near_end_date.strftime('%d/%m/%Y')
+        self.target_profile.contract_annual_leave_days = 12
+        self.target_profile.contract_standard_shift = '08:30 - 17:30 (Thứ 2 đến Thứ 6)'
+        self.target_profile.save()
+
+        self.client.login(username='target', password='targetpass123')
+        response = self.client.get('/contract/')
+        self.assertContains(response, 'Hợp đồng sắp hết hạn')
+        self.assertContains(response, 'Có hiệu lực')
 
     # =========================================================================
     # USER LIST TESTS

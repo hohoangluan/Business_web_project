@@ -34,10 +34,12 @@ class UserProfileAdmin(admin.ModelAdmin):
         'position',
         'employee_type',
         'work_status',
+        'contract_number',
+        'contract_type',
         'manager_user',
         'leader_user',
     )
-    list_filter = ('role', 'department', 'work_status')
+    list_filter = ('role', 'department', 'work_status', 'contract_type')
     search_fields = (
         'user__username',
         'user__email',
@@ -47,6 +49,8 @@ class UserProfileAdmin(admin.ModelAdmin):
         'position',
         'employee_type',
         'workplace',
+        'contract_number',
+        'contract_type',
     )
     filter_horizontal = ('permissions',)
     raw_id_fields = ('manager_user', 'leader_user')

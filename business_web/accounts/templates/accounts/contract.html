@@ -1,97 +1,95 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG HỢP ĐỒNG LAO ĐỘNG. View: contract_view. Dữ liệu: MOCK DATA. #}
+{# TRANG HỢP ĐỒNG CÁ NHÂN - contract.html #}
 {% load static %}
 
-{% block title %}Hợp đồng lao động - HR Studio{% endblock %}
+{% block title %}Hợp đồng của bạn - HR Studio{% endblock %}
 
 {% block content %}
 <div class="animate-fade">
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">
+            <i class="fa-solid fa-file-contract" style="color:var(--primary); margin-right:8px;"></i>Hợp đồng của bạn
+        </h2>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Thông tin hợp đồng hiện tại của cá nhân bạn</p>
+    </div>
 
-    <!-- ===== BREADCRUMB & HEADER ===== -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1.5rem;">
-        <div>
-            <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">
-                <i class="fa-solid fa-file-contract" style="color:var(--primary); margin-right:8px;"></i>Hợp đồng lao động
-            </h2>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Xem và quản lý thông tin hợp đồng hiện tại</p>
+    {% if not contract_context.has_contract %}
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="fa-solid fa-file-circle-xmark"></i>
+                <h3>Chưa có đủ thông tin hợp đồng</h3>
+                <p>Vui lòng liên hệ HR/Admin để bổ sung hoặc cập nhật thông tin hợp đồng hiện tại.</p>
+            </div>
         </div>
-        
-        <!-- Các nút chức năng dành cho HR -->
-        {% if is_hr %}
-        <div style="display:flex; gap:0.5rem;">
-            <button class="btn btn-primary" title="Chỉ đóng vai trò demo GUI">
-                <i class="fa-solid fa-plus"></i> Tạo mới
-            </button>
-            <button class="btn btn-outline" title="Chỉ đóng vai trò demo GUI">
-                <i class="fa-solid fa-pen"></i> Cập nhật
-            </button>
+    </div>
+    {% else %}
+        {% if contract_context.show_expiry_warning %}
+        <div class="alert alert-warning" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 0.75rem;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:1.2rem;"></i>
+            <div>
+                <strong>Hợp đồng sắp hết hạn:</strong>
+                Còn <strong>{{ contract_context.days_until_expiry }} ngày</strong> nữa là tới ngày hết hạn. Vui lòng liên hệ HR để được hỗ trợ gia hạn khi cần.
+            </div>
         </div>
         {% endif %}
-    </div>
 
-    <!-- ===== CẢNH BÁO ===== -->
-    {% if show_warning %}
-    <div class="alert alert-warning" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 0.75rem;">
-        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.2rem;"></i>
-        <div>
-            <strong>MOCK CẢNH BÁO:</strong> Hợp đồng sắp hết hạn trong vòng <strong>15 ngày tới</strong>! Vui lòng liên hệ bộ phận HR để tiến hành gia hạn.
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- ===== NỘI DUNG HỢP ĐỒNG (MOCK DATA) ===== -->
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fa-solid fa-file-invoice" style="color:var(--primary);"></i>&nbsp; Chi tiết Hợp đồng</h3>
-            <span class="badge badge-active">Có hiệu lực</span>
-        </div>
-        <div class="card-body">
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Số hợp đồng</div>
-                    <div class="info-value">HD-2026/001-DEMO</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Loại hợp đồng</div>
-                    <div class="info-value">Thử việc (2 Tháng)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Ngày ký hợp đồng</div>
-                    <div class="info-value">01/01/2026</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Ngày bắt đầu hiệu lực</div>
-                    <div class="info-value">01/01/2026</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Ngày hết hạn</div>
-                    <div class="info-value">01/03/2026</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Số ngày nghỉ phép/năm</div>
-                    <div class="info-value">12 Ngày</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Phòng ban áp dụng</div>
-                    <div class="info-value">Khối Vận hành</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Chức danh trong hợp đồng</div>
-                    <div class="info-value">Chuyên viên vận hành</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Ca làm tiêu chuẩn</div>
-                    <div class="info-value">08:30 - 17:30 (Thứ 2 đến Thứ 6)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">File đính kèm hợp đồng</div>
-                    <div class="info-value">
-                        <a href="#" style="color:var(--primary); text-decoration:none;"><i class="fa-solid fa-paperclip"></i> HD_Luan_012026.pdf</a>
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-file-invoice" style="color:var(--primary);"></i>&nbsp; Chi tiết hợp đồng hiện tại</h3>
+                <span class="badge {{ contract_context.contract_status_class }}">{{ contract_context.contract_status_label }}</span>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Số hợp đồng</div>
+                        <div class="info-value">{{ request.user.profile.contract_number }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Loại hợp đồng</div>
+                        <div class="info-value">{{ request.user.profile.contract_type }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày ký hợp đồng</div>
+                        <div class="info-value">{{ request.user.profile.contract_signed_date }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày bắt đầu hiệu lực</div>
+                        <div class="info-value">{{ request.user.profile.contract_start_date }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày hết hạn</div>
+                        <div class="info-value">{{ contract_context.contract_end_display }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số ngày nghỉ phép/năm</div>
+                        <div class="info-value">{{ request.user.profile.contract_annual_leave_days }} ngày</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phòng ban áp dụng</div>
+                        <div class="info-value">{{ request.user.profile.department|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Chức danh trong hợp đồng</div>
+                        <div class="info-value">{{ request.user.profile.position|default:"Chưa cập nhật" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ca làm tiêu chuẩn</div>
+                        <div class="info-value">{{ request.user.profile.contract_standard_shift }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">File tham chiếu hợp đồng</div>
+                        <div class="info-value">
+                            {% if request.user.profile.contract_attachment_reference %}
+                                <i class="fa-solid fa-paperclip" style="color:var(--primary); margin-right: 4px;"></i>{{ request.user.profile.contract_attachment_reference }}
+                            {% else %}
+                                <span class="empty">Chưa cập nhật</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
+    {% endif %}
 </div>
 {% endblock %}

@@ -181,6 +181,53 @@ class UserProfile(models.Model):
         choices=WORK_STATUS_CHOICES,
         help_text="Current working status managed by HR/Admin."
     )
+    contract_number = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Current contract number managed by HR/Admin."
+    )
+    contract_type = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Current contract type such as probation or official contract."
+    )
+    contract_signed_date = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Contract signed date in DD/MM/YYYY format."
+    )
+    contract_start_date = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Contract effective start date in DD/MM/YYYY format."
+    )
+    contract_end_date = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Contract end date in DD/MM/YYYY format. Leave blank for open-ended contracts."
+    )
+    contract_annual_leave_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Annual leave days defined in the current contract."
+    )
+    contract_standard_shift = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Standard shift described in the current contract."
+    )
+    contract_attachment_reference = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="File name or link reference for the current contract attachment."
+    )
     manager_user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

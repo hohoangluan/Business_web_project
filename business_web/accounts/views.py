@@ -166,6 +166,81 @@ def get_leader_display_name(profile):
     return get_user_display_name(leader_user)
 
 
+def parse_ddmmyyyy_date(raw_value):
+    """Đọc chuỗi ngày DD/MM/YYYY. Sai format thì trả None."""
+    if not raw_value:
+        return None
+    try:
+        return datetime.strptime(raw_value, '%d/%m/%Y').date()
+    except ValueError:
+        return None
+
+
+def has_complete_contract_info(profile):
+    """Kiểm tra hồ sơ đã có đủ thông tin hợp đồng tối thiểu để hiển thị hay chưa."""
+    return all([
+        profile.contract_number,
+        profile.contract_type,
+        profile.contract_signed_date,
+        profile.contract_start_date,
+        profile.contract_standard_shift,
+        profile.contract_annual_leave_days is not None,
+    ])
+
+
+def build_contract_page_context(profile):
+    """
+    Chuẩn bị dữ liệu hiển thị cho trang hợp đồng cá nhân.
+    Giữ logic ở đây để template chỉ hiển thị, không phải tự xử lý ngày tháng.
+    """
+    has_contract = has_complete_contract_info(profile)
+    if not has_contract:
+        return {
+            'has_contract': False,
+            'contract_status_label': '',
+            'contract_status_class': 'badge-none',
+            'contract_end_display': '',
+            'show_expiry_warning': False,
+            'days_until_expiry': None,
+        }
+
+    today = timezone.localdate()
+    start_date = parse_ddmmyyyy_date(profile.contract_start_date)
+    end_date = parse_ddmmyyyy_date(profile.contract_end_date)
+
+    if not profile.contract_end_date:
+        contract_status_label = 'Không thời hạn'
+        contract_status_class = 'badge-active'
+        contract_end_display = 'Không thời hạn'
+    elif end_date and end_date < today:
+        contract_status_label = 'Hết hạn'
+        contract_status_class = 'badge-inactive'
+        contract_end_display = profile.contract_end_date
+    elif start_date and start_date > today:
+        contract_status_label = 'Sắp hiệu lực'
+        contract_status_class = 'badge-locked'
+        contract_end_display = profile.contract_end_date
+    else:
+        contract_status_label = 'Có hiệu lực'
+        contract_status_class = 'badge-active'
+        contract_end_display = profile.contract_end_date
+
+    show_expiry_warning = False
+    days_until_expiry = None
+    if end_date and today <= end_date:
+        days_until_expiry = (end_date - today).days
+        show_expiry_warning = days_until_expiry <= 15
+
+    return {
+        'has_contract': True,
+        'contract_status_label': contract_status_label,
+        'contract_status_class': contract_status_class,
+        'contract_end_display': contract_end_display,
+        'show_expiry_warning': show_expiry_warning,
+        'days_until_expiry': days_until_expiry,
+    }
+
+
 def get_manager_user_queryset():
     """Danh sách user có thể được chọn làm quản lý trực tiếp."""
     return User.objects.select_related('profile__role').filter(
@@ -848,19 +923,15 @@ def profile_view(request):
 @login_required
 def contract_view(request):
     """
-    Trang giao diện Hợp đồng lao động. MOCK DATA.
-    - HR có quyền được hiển thị nút Tạo/Sửa.
+    Trang hợp đồng cá nhân.
+    Chỉ hiển thị hợp đồng hiện tại của chính người đang đăng nhập.
     """
-    ensure_profile(request.user)
-    is_hr = user_has_role(request.user, Role.HR)
-    
-    # Cảnh báo: mọi role TRỪ admin
-    show_warning = not is_admin_user(request.user)
+    profile = ensure_profile(request.user)
+    contract_context = build_contract_page_context(profile)
 
     return render(request, 'accounts/contract.html', {
         'active_page': 'contract',
-        'is_hr': is_hr,
-        'show_warning': show_warning,
+        'contract_context': contract_context,
     })
 
 
@@ -1192,7 +1263,7 @@ def hr_create_profile_view(request):
     Trang tạo hồ sơ nhan su moi (danh cho HR).
     - GET: hiển thị form tạo hồ sơ
     - POST: tạo UserProfile + tài khoản Django tự động
-    - Thông tin công việc là bắt buộc
+    - Thông tin công việc và hợp đồng là bắt buộc
     - Thông tin cá nhân có thể để trống để nhân viên tự bổ sung sau
     """
     ensure_profile(request.user)
@@ -1209,6 +1280,14 @@ def hr_create_profile_view(request):
         workplace = request.POST.get('workplace', '').strip()
         probation_start = request.POST.get('probation_start', '').strip()
         official_start_date = request.POST.get('official_start_date', '').strip()
+        contract_number = request.POST.get('contract_number', '').strip()
+        contract_type = request.POST.get('contract_type', '').strip()
+        contract_signed_date = request.POST.get('contract_signed_date', '').strip()
+        contract_start_date = request.POST.get('contract_start_date', '').strip()
+        contract_end_date = request.POST.get('contract_end_date', '').strip()
+        contract_annual_leave_days_raw = request.POST.get('contract_annual_leave_days', '').strip()
+        contract_standard_shift = request.POST.get('contract_standard_shift', '').strip()
+        contract_attachment_reference = request.POST.get('contract_attachment_reference', '').strip()
         work_status = request.POST.get('work_status', '').strip()
         manager_user_id = request.POST.get('manager_user', '').strip()
         leader_user_id = request.POST.get('leader_user', '').strip()
@@ -1216,6 +1295,7 @@ def hr_create_profile_view(request):
         auto_create = request.POST.get('auto_create_account') == 'on'
         manager_user = User.objects.filter(pk=manager_user_id).first() if manager_user_id else None
         leader_user = User.objects.filter(pk=leader_user_id).first() if leader_user_id else None
+        contract_annual_leave_days = None
         
         # Validation
         errors = []
@@ -1241,6 +1321,25 @@ def hr_create_profile_view(request):
             errors.append('Cần gán quản lý trực tiếp.')
         if not leader_user:
             errors.append('Cần gán leader phụ trách.')
+        if not contract_number:
+            errors.append('Số hợp đồng không được để trống.')
+        if not contract_type:
+            errors.append('Loại hợp đồng không được để trống.')
+        if not contract_signed_date:
+            errors.append('Ngày ký hợp đồng không được để trống.')
+        if not contract_start_date:
+            errors.append('Ngày bắt đầu hiệu lực không được để trống.')
+        if not contract_annual_leave_days_raw:
+            errors.append('Số ngày nghỉ phép/năm không được để trống.')
+        else:
+            try:
+                contract_annual_leave_days = int(contract_annual_leave_days_raw)
+                if contract_annual_leave_days < 0:
+                    errors.append('Số ngày nghỉ phép/năm phải từ 0 trở lên.')
+            except ValueError:
+                errors.append('Số ngày nghỉ phép/năm phải là số nguyên.')
+        if not contract_standard_shift:
+            errors.append('Ca làm tiêu chuẩn không được để trống.')
 
         if errors:
             for e in errors:
@@ -1276,6 +1375,14 @@ def hr_create_profile_view(request):
             profile.workplace = workplace
             profile.probation_start = probation_start
             profile.official_start_date = official_start_date
+            profile.contract_number = contract_number
+            profile.contract_type = contract_type
+            profile.contract_signed_date = contract_signed_date
+            profile.contract_start_date = contract_start_date
+            profile.contract_end_date = contract_end_date
+            profile.contract_annual_leave_days = contract_annual_leave_days
+            profile.contract_standard_shift = contract_standard_shift
+            profile.contract_attachment_reference = contract_attachment_reference
             profile.work_status = work_status
             profile.manager_user = manager_user
             profile.leader_user = leader_user
@@ -1346,7 +1453,7 @@ def user_list_view(request):
 def edit_work_info_view(request, user_id):
     """
     Cập nhật toàn bộ dữ liệu đang lưu trong hồ sơ nhân viên.
-    HR/Admin có thể sửa cả thông tin cá nhân đang lưu và thông tin công việc.
+    HR/Admin có thể sửa cả thông tin cá nhân, công việc và hợp đồng hiện tại.
     Vai trò hệ thống vẫn được giữ ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
     """
     target_user = get_object_or_404(User, pk=user_id)
@@ -1375,6 +1482,14 @@ def edit_work_info_view(request, user_id):
             profile.workplace = form.cleaned_data['workplace']
             profile.probation_start = form.cleaned_data['probation_start']
             profile.official_start_date = form.cleaned_data['official_start_date']
+            profile.contract_number = form.cleaned_data['contract_number']
+            profile.contract_type = form.cleaned_data['contract_type']
+            profile.contract_signed_date = form.cleaned_data['contract_signed_date']
+            profile.contract_start_date = form.cleaned_data['contract_start_date']
+            profile.contract_end_date = form.cleaned_data['contract_end_date']
+            profile.contract_annual_leave_days = form.cleaned_data['contract_annual_leave_days']
+            profile.contract_standard_shift = form.cleaned_data['contract_standard_shift']
+            profile.contract_attachment_reference = form.cleaned_data['contract_attachment_reference']
             profile.work_status = form.cleaned_data['work_status']
             profile.manager_user = form.cleaned_data['manager_user']
             profile.leader_user = form.cleaned_data['leader_user']
@@ -1395,6 +1510,14 @@ def edit_work_info_view(request, user_id):
                 'workplace': profile.workplace,
                 'probation_start': profile.probation_start,
                 'official_start_date': profile.official_start_date,
+                'contract_number': profile.contract_number,
+                'contract_type': profile.contract_type,
+                'contract_signed_date': profile.contract_signed_date,
+                'contract_start_date': profile.contract_start_date,
+                'contract_end_date': profile.contract_end_date,
+                'contract_annual_leave_days': profile.contract_annual_leave_days,
+                'contract_standard_shift': profile.contract_standard_shift,
+                'contract_attachment_reference': profile.contract_attachment_reference,
                 'work_status': profile.work_status,
                 'manager_user': profile.manager_user,
                 'leader_user': profile.leader_user,
