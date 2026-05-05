@@ -37,7 +37,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounts',
+    # ----- Project apps -----
+    'accounts',              # Auth, dashboard, admin user management
+    'employee_profiles',     # Hồ sơ nhân viên
+    'contracts',             # Hợp đồng lao động
+    'attendance',            # Chấm công
+    'leaves',                # Nghỉ phép
+    'overtime',              # Tăng ca
+    'performance',           # Đánh giá nhân viên
+    'rewards_discipline',    # Khen thưởng & Xử phạt
+    'reports_interactions',  # Báo cáo & Tương tác
+    'stats_reports',         # Thống kê tổng hợp
 ]
 
 MIDDLEWARE = [

@@ -1,12 +1,26 @@
+"""
+==============================================================================
+ACCOUNTS MODELS - accounts/models.py
+==============================================================================
+Chứa các model liên quan đến xác thực và danh tính người dùng:
+  - Role: vai trò hệ thống (Admin, HR, Manager, Leader, Employee)
+  - CustomPermission: quyền tùy chỉnh tách riêng khỏi role
+  - UserProfile: thông tin danh tính cơ bản gắn với Django User
+
+Thông tin công việc → employee_profiles.EmployeeWorkInfo
+Thông tin hợp đồng → contracts.ContractInfo
+==============================================================================
+"""
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class Role(models.Model):
     """
-    Represents a user's job role in the system.
-    There are 5 predefined roles: Admin, HR, Manager, Leader, Employee.
-    Each role determines what the user sees in the UI (menus, pages, etc.).
+    Vai trò hệ thống của user.
+    Có 5 vai trò: Admin, HR, Manager, Leader, Employee.
+    Role quyết định user thấy menu gì, vào được route nào.
     """
     ADMIN = 'admin'
     HR = 'hr'
@@ -26,12 +40,12 @@ class Role(models.Model):
         max_length=50,
         unique=True,
         choices=ROLE_CHOICES,
-        help_text="The role name (e.g., 'master', 'manager')."
+        help_text="Tên vai trò (VD: 'admin', 'manager').",
     )
     description = models.TextField(
         blank=True,
         default='',
-        help_text="A human-readable description of what this role does."
+        help_text="Mô tả vai trò này làm gì.",
     )
 
     def __str__(self):
@@ -43,25 +57,23 @@ class Role(models.Model):
 
 class CustomPermission(models.Model):
     """
-    A specific ability that can be granted to any user, independent of their role.
-    Examples: 'can_export_reports', 'can_approve_leave', 'can_view_analytics'.
-
-    This is SEPARATE from the Role system — assigning a permission does NOT
-    change a user's role, and changing a role does NOT affect permissions.
+    Quyền tùy chỉnh, tách riêng với role.
+    VD: 'can_export_reports', 'can_approve_leave'.
+    Gán permission KHÔNG ảnh hưởng role và ngược lại.
     """
     codename = models.CharField(
         max_length=100,
         unique=True,
-        help_text="A short code for this permission (e.g., 'can_export_reports')."
+        help_text="Mã quyền (VD: 'can_export_reports').",
     )
     name = models.CharField(
         max_length=255,
-        help_text="A human-readable name (e.g., 'Can Export Reports')."
+        help_text="Tên hiển thị (VD: 'Xuất báo cáo').",
     )
     description = models.TextField(
         blank=True,
         default='',
-        help_text="Explains what this permission allows the user to do."
+        help_text="Giải thích quyền này cho phép làm gì.",
     )
 
     def __str__(self):
@@ -73,19 +85,19 @@ class CustomPermission(models.Model):
 
 class UserProfile(models.Model):
     """
-    Extends Django's built-in User model with:
-    - A role (one role per user, e.g., 'Employee')
-    - Custom permissions (zero or more, independent of the role)
-    - Registration info: full name, phone, date of birth, employee ID
+    Thông tin danh tính cơ bản gắn với Django User.
+    Mỗi User có đúng 1 UserProfile (OneToOne).
 
-    The OneToOneField means each User has exactly ONE UserProfile,
-    and each UserProfile belongs to exactly ONE User.
+    Lưu ý kiến trúc:
+      - Thông tin công việc nằm ở: employee_profiles.EmployeeWorkInfo
+      - Thông tin hợp đồng nằm ở: contracts.ContractInfo
+      - UserProfile chỉ chứa: role, permissions, thông tin cá nhân cơ bản
     """
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='profile',
-        help_text="The Django user this profile belongs to."
+        help_text="Django user mà profile này thuộc về.",
     )
     role = models.ForeignKey(
         Role,
@@ -93,156 +105,40 @@ class UserProfile(models.Model):
         null=True,
         blank=True,
         related_name='users',
-        help_text="The user's role. Determines UI behavior."
+        help_text="Vai trò hệ thống. Quyết định giao diện và quyền truy cập.",
     )
     permissions = models.ManyToManyField(
         CustomPermission,
         blank=True,
         related_name='users',
-        help_text="Custom permissions assigned to this user, independent of role."
+        help_text="Quyền tùy chỉnh, tách riêng khỏi role.",
     )
 
-    # ----- Registration fields -----
+    # ----- Thông tin cá nhân cơ bản -----
     full_name = models.CharField(
         max_length=255,
         blank=True,
         default='',
-        help_text="User's full name (no numbers or special characters)."
+        help_text="Họ tên đầy đủ.",
     )
     phone_number = models.CharField(
         max_length=20,
         blank=True,
         default='',
-        help_text="Phone number (digits only)."
+        help_text="Số điện thoại.",
     )
     date_of_birth = models.CharField(
         max_length=10,
         blank=True,
         default='',
-        help_text="Date of birth in DD/MM/YYYY format."
+        help_text="Ngày sinh (DD/MM/YYYY).",
     )
     employee_id = models.CharField(
         max_length=50,
         unique=True,
         null=True,
         blank=True,
-        help_text="Unique employee ID. Each ID can only be used for one account."
-    )
-    employee_type = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Employee type such as Full-time, Part-time or Intern."
-    )
-    department = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Department or business unit managed by HR/Admin."
-    )
-    position = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Job title managed by HR/Admin."
-    )
-    workplace = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Main workplace or office location."
-    )
-    probation_start = models.CharField(
-        max_length=10,
-        blank=True,
-        default='',
-        help_text="Probation start date in DD/MM/YYYY format."
-    )
-    official_start_date = models.CharField(
-        max_length=10,
-        blank=True,
-        default='',
-        help_text="Official working date in DD/MM/YYYY format."
-    )
-    WORKING = 'working'
-    PROBATION = 'probation'
-    PAUSED = 'paused'
-    RESIGNED = 'resigned'
-    WORK_STATUS_CHOICES = [
-        (WORKING, 'Đang làm việc'),
-        (PROBATION, 'Đang thử việc'),
-        (PAUSED, 'Tạm nghỉ'),
-        (RESIGNED, 'Đã nghỉ việc'),
-    ]
-    work_status = models.CharField(
-        max_length=30,
-        blank=True,
-        default='',
-        choices=WORK_STATUS_CHOICES,
-        help_text="Current working status managed by HR/Admin."
-    )
-    contract_number = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Current contract number managed by HR/Admin."
-    )
-    contract_type = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Current contract type such as probation or official contract."
-    )
-    contract_signed_date = models.CharField(
-        max_length=10,
-        blank=True,
-        default='',
-        help_text="Contract signed date in DD/MM/YYYY format."
-    )
-    contract_start_date = models.CharField(
-        max_length=10,
-        blank=True,
-        default='',
-        help_text="Contract effective start date in DD/MM/YYYY format."
-    )
-    contract_end_date = models.CharField(
-        max_length=10,
-        blank=True,
-        default='',
-        help_text="Contract end date in DD/MM/YYYY format. Leave blank for open-ended contracts."
-    )
-    contract_annual_leave_days = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Annual leave days defined in the current contract."
-    )
-    contract_standard_shift = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Standard shift described in the current contract."
-    )
-    contract_attachment_reference = models.CharField(
-        max_length=255,
-        blank=True,
-        default='',
-        help_text="File name or link reference for the current contract attachment."
-    )
-    manager_user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='managed_team_members',
-        help_text="Direct manager of this employee."
-    )
-    leader_user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='led_team_members',
-        help_text="Direct leader of this employee."
+        help_text="Mã nhân viên duy nhất.",
     )
 
     def __str__(self):
@@ -250,14 +146,11 @@ class UserProfile(models.Model):
         return f"{self.user.username} ({role_name})"
 
     def has_custom_permission(self, codename):
-        """
-        Check if this user has a specific custom permission.
-        Usage: request.user.profile.has_custom_permission('can_export_reports')
-        """
+        """Kiểm tra user có quyền tùy chỉnh cụ thể không."""
         return self.permissions.filter(codename=codename).exists()
 
     def is_admin(self):
-        """Returns True if the user has the Admin role."""
+        """Trả True nếu user có vai trò Admin."""
         return self.role and self.role.name == Role.ADMIN
 
     class Meta:
