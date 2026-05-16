@@ -8,8 +8,10 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 
 from accounts.models import UserProfile, Role
+from employee_profiles.models import EmployeeDocument
 from accounts.services import (
     ensure_profile, ensure_work_info, ensure_contract_info,
+    ensure_personal_info, ensure_emergency_contact, ensure_education_info,
     is_admin_user, is_hr_user, can_manage_work_info,
 )
 from employee_profiles.forms import EmployeeProfileForm
@@ -17,7 +19,21 @@ from employee_profiles.services import (
     get_manager_user_queryset, get_leader_user_queryset,
     build_hr_create_profile_context,
     save_work_info_from_data, save_contract_info_from_data,
+    save_personal_info_from_data, save_emergency_contact_from_data, save_education_info_from_data,
 )
+
+
+def email_is_used_by_other_user(email, user=None):
+    """Return whether an optional email already belongs to another account."""
+
+    email = (email or '').strip()
+    if not email:
+        return False
+
+    user_queryset = User.objects.filter(email__iexact=email)
+    if user:
+        user_queryset = user_queryset.exclude(pk=user.pk)
+    return user_queryset.exists()
 
 
 @login_required
@@ -31,6 +47,9 @@ def profile_view(request):
     profile = ensure_profile(request.user)
     ensure_work_info(request.user)
     ensure_contract_info(request.user)
+    ensure_personal_info(request.user)
+    ensure_emergency_contact(request.user)
+    ensure_education_info(request.user)
 
     if request.method == 'POST':
         full_name = request.POST.get('full_name', '').strip()
@@ -38,23 +57,53 @@ def profile_view(request):
         phone_number = request.POST.get('phone_number', '').strip()
         date_of_birth = request.POST.get('date_of_birth', '').strip()
 
-        if full_name:
-            profile.full_name = full_name
-        if email:
-            request.user.email = email
-            request.user.save()
+        if email_is_used_by_other_user(email, request.user):
+            messages.error(request, 'Email nay da duoc su dung.')
+            return redirect('profile')
+
+        profile.full_name = full_name
+        request.user.email = email
+        request.user.save(update_fields=['email'])
         if phone_number:
             profile.phone_number = phone_number
         if date_of_birth:
             profile.date_of_birth = date_of_birth
 
         profile.save()
+
+        # Lưu các thông tin mở rộng khác từ POST
+        save_personal_info_from_data(request.user, request.POST)
+        save_emergency_contact_from_data(request.user, request.POST)
+        save_education_info_from_data(request.user, request.POST)
         messages.success(request, 'Cập nhật hồ sơ thành công!')
         return redirect('profile')
 
     return render(request, 'employee_profiles/profile.html', {
         'active_page': 'profile',
     })
+
+
+@login_required
+def upload_document_view(request):
+    """
+    Xử lý tải lên tệp minh chứng cho nhân viên.
+    """
+    if request.method == 'POST' and request.FILES.get('file'):
+        title = request.POST.get('title', 'Tài liệu mới').strip()
+        doc_type = request.POST.get('document_type', '').strip()
+        file = request.FILES.get('file')
+
+        EmployeeDocument.objects.create(
+            user=request.user,
+            title=title,
+            document_type=doc_type,
+            file=file
+        )
+        messages.success(request, 'Tải lên tài liệu thành công!')
+    else:
+        messages.error(request, 'Vui lòng chọn tệp để tải lên.')
+
+    return redirect('profile')
 
 
 @login_required
@@ -105,6 +154,8 @@ def hr_create_profile_view(request):
             errors.append('Mã nhân viên không được để trống.')
         elif UserProfile.objects.filter(employee_id=employee_id).exists():
             errors.append(f'Mã nhân viên "{employee_id}" đã tồn tại.')
+        if email_is_used_by_other_user(email):
+            errors.append('Email này đã được sử dụng.')
         if not department:
             errors.append('Phòng ban không được để trống.')
         if not position:
@@ -166,11 +217,14 @@ def hr_create_profile_view(request):
 
             # Tạo User + Profile
             user = User.objects.create_user(username=username, email=email, password=password)
-            profile = ensure_profile(user)
-            profile.full_name = full_name
+            profile = ensure_profile(
+                user,
+                employee_id=employee_id,
+                full_name=full_name,
+                email=email,
+            )
             profile.phone_number = phone
             profile.date_of_birth = dob
-            profile.employee_id = employee_id
             if role_name:
                 role, _ = Role.objects.get_or_create(name=role_name)
                 profile.role = role
@@ -234,6 +288,9 @@ def edit_work_info_view(request, user_id):
     profile = ensure_profile(target_user)
     work_info = ensure_work_info(target_user)
     contract_info = ensure_contract_info(target_user)
+    personal_info = ensure_personal_info(target_user)
+    emergency_contact = ensure_emergency_contact(target_user)
+    education_info = ensure_education_info(target_user)
 
     manager_queryset = get_manager_user_queryset()
     leader_queryset = get_leader_user_queryset()
@@ -247,8 +304,9 @@ def edit_work_info_view(request, user_id):
         )
         if form.is_valid():
             # Lưu thông tin cá nhân vào UserProfile
-            target_user.email = form.cleaned_data['email']
-            target_user.save()
+            email = form.cleaned_data['email']
+            target_user.email = email
+            target_user.save(update_fields=['email'])
             profile.full_name = form.cleaned_data['full_name']
             profile.phone_number = form.cleaned_data['phone_number']
             profile.date_of_birth = form.cleaned_data['date_of_birth']
@@ -260,6 +318,11 @@ def edit_work_info_view(request, user_id):
 
             # Lưu thông tin hợp đồng vào ContractInfo
             save_contract_info_from_data(target_user, form.cleaned_data)
+
+            # Lưu thông tin bổ sung (Cá nhân, Liên hệ, Học vấn)
+            save_personal_info_from_data(target_user, form.cleaned_data)
+            save_emergency_contact_from_data(target_user, form.cleaned_data)
+            save_education_info_from_data(target_user, form.cleaned_data)
 
             messages.success(request, f'Đã cập nhật hồ sơ nhân sự cho "{target_user.username}".')
             return redirect('user_list')
@@ -288,6 +351,27 @@ def edit_work_info_view(request, user_id):
                 'contract_annual_leave_days': contract_info.contract_annual_leave_days,
                 'contract_standard_shift': contract_info.contract_standard_shift,
                 'contract_attachment_reference': contract_info.contract_attachment_reference,
+                # Thông tin cá nhân mở rộng
+                'gender': personal_info.gender,
+                'marital_status': personal_info.marital_status,
+                'nationality': personal_info.nationality,
+                'id_card_number': personal_info.id_card_number,
+                'id_card_issue_place': personal_info.id_card_issue_place,
+                'id_card_issue_date': personal_info.id_card_issue_date,
+                'permanent_address': personal_info.permanent_address,
+                'temporary_address': personal_info.temporary_address,
+                # Người liên hệ khẩn cấp
+                'contact_name': emergency_contact.contact_name,
+                'contact_phone': emergency_contact.contact_phone,
+                'relation': emergency_contact.relation,
+                'contact_address': emergency_contact.contact_address,
+                # Học vấn & Năng lực
+                'education_level': education_info.education_level,
+                'degree': education_info.degree,
+                'major': education_info.major,
+                'certificates': education_info.certificates,
+                'foreign_languages': education_info.foreign_languages,
+                'professional_skills': education_info.professional_skills,
             },
             manager_queryset=manager_queryset,
             leader_queryset=leader_queryset,

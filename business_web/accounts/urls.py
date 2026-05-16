@@ -13,9 +13,9 @@ Các chức năng khác đã chuyển sang app riêng (xem root urls.py).
 """
 
 from django.urls import path
-from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect
 from .views import (
+    AccountsLoginView,
     register_view,
     forgot_password_view,
     logout_view,
@@ -34,7 +34,7 @@ urlpatterns = [
     # ---------- Public routes ----------
     path('', lambda request: redirect('login'), name='home'),
     path('register/', register_view, name='register'),
-    path('login/', LoginView.as_view(template_name='accounts/login.html'), name='login'),
+    path('login/', AccountsLoginView.as_view(), name='login'),
     path('forgot-password/', forgot_password_view, name='forgot_password'),
     path('logout/', logout_view, name='logout'),
 

@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký tài khoản - HR Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+</head>
+<body>
+    <div class="register-wrapper">
+        <div class="register-card animate-fade">
+            <div style="text-align:center;margin-bottom:0.5rem;">
+                <div style="width:50px;height:50px;background:var(--gradient-primary);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;margin-bottom:0.75rem;">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+            </div>
+            <h2 style="text-align:center;">Đăng ký tài khoản</h2>
+            <p class="subtitle" style="text-align:center;">Mã nhân viên và mật khẩu là bắt buộc. Họ tên và email có thể cập nhật sau.</p>
+
+            {% if form.non_field_errors %}
+                <div class="login-error">
+                    <i class="fa-solid fa-exclamation-circle"></i>
+                    <span>
+                        {% for error in form.non_field_errors %}{{ error }} {% endfor %}
+                    </span>
+                </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="form-label" for="employee_id">Mã nhân viên</label>
+                    {{ form.employee_id }}
+                    <span class="form-text">Mã nhân viên sẽ được dùng làm username đăng nhập</span>
+                    {{ form.employee_id.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Mật khẩu</label>
+                    {{ form.password }}
+                    {{ form.password.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="full_name">Họ tên (không bắt buộc)</label>
+                    {{ form.full_name }}
+                    {{ form.full_name.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email (không bắt buộc)</label>
+                    {{ form.email }}
+                    <span class="form-text">Email sẽ hiển thị trong hồ sơ nhân viên nếu được cung cấp</span>
+                    {{ form.email.errors }}
+                </div>
+
+                <button type="submit" class="btn-login" style="margin-top:0.5rem;">
+                    <i class="fa-solid fa-user-plus"></i>&nbsp; Đăng ký
+                </button>
+            </form>
+
+            <div class="login-footer">
+                Đã có tài khoản? <a href="{% url 'login' %}">Đăng nhập</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

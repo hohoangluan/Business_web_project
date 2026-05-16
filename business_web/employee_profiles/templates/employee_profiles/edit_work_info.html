@@ -51,6 +51,49 @@
 
             <div class="form-row">
                 <div class="form-group">
+                    <label class="form-label">Giới tính</label>
+                    {{ form.gender }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tình trạng hôn nhân</label>
+                    {{ form.marital_status }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Quốc tịch</label>
+                    {{ form.nationality }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số CCCD/CMND</label>
+                    {{ form.id_card_number }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nơi cấp CCCD</label>
+                    {{ form.id_card_issue_place }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ngày cấp CCCD</label>
+                    {{ form.id_card_issue_date }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Địa chỉ thường trú</label>
+                {{ form.permanent_address }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Địa chỉ tạm trú</label>
+                {{ form.temporary_address }}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
                     <label class="form-label">Mã nhân viên</label>
                     {{ form.employee_id }}
                 </div>
@@ -173,6 +216,67 @@
                 </div>
             </div>
 
+            <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
+
+            <h4 style="margin-bottom: 1rem;">Người liên hệ khẩn cấp</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Họ tên người liên hệ</label>
+                    {{ form.contact_name }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại liên hệ</label>
+                    {{ form.contact_phone }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Quan hệ</label>
+                    {{ form.relation }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Địa chỉ liên hệ</label>
+                    {{ form.contact_address }}
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
+
+            <h4 style="margin-bottom: 1rem;">Học vấn & Năng lực</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Trình độ học vấn</label>
+                    {{ form.education_level }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bằng cấp</label>
+                    {{ form.degree }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Chuyên ngành</label>
+                {{ form.major }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Chứng chỉ</label>
+                {{ form.certificates }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Ngoại ngữ</label>
+                {{ form.foreign_languages }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Kỹ năng chuyên môn</label>
+                {{ form.professional_skills }}
+            </div>
+
             {% if form.errors %}
             <div class="alert alert-danger">
                 Vui lòng kiểm tra lại thông tin vừa nhập.
@@ -187,4 +291,9 @@
         </div>
     </form>
 </div>
+<style>
+textarea.form-control {
+    resize: none !important;
+}
+</style>
 {% endblock %}
