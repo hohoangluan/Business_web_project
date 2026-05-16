@@ -20,13 +20,11 @@
         <h2>{{ request.user.profile.full_name|default:request.user.username }}</h2>
         <div class="profile-role">
             {% if request.user.profile.role %}
-                <span class="badge badge-{{ request.user.profile.role.name }}">
-                    {{ request.user.profile.role.get_name_display }}
-                </span>
+                <span class="role-text">{{ request.user.profile.role.get_name_display }}</span>
             {% else %}
-                <span class="badge badge-none">Chưa có vai trò</span>
+                <span class="role-text">Chưa có vai trò</span>
             {% endif %}
-            <span>• {{ request.user.profile.position|default:"Chưa cập nhật chức vụ" }}</span>
+            <span class="position-text">• {{ request.user.profile.position|default:"Chưa cập nhật chức vụ" }}</span>
         </div>
         <div class="profile-meta">
             <span><i class="fa-solid fa-id-badge"></i> {{ request.user.profile.employee_id|default:"Chưa có" }}</span>
@@ -95,46 +93,38 @@
                         <div class="info-value">{{ request.user.profile.employee_id|default:"Chưa cập nhật" }}</div>
                     </div>
 
-                    <!-- MOCK DATA: các field chưa có trong model -->
+                    <!-- field CÓ trong model -->
                     <div class="info-item">
                         <div class="info-label">Giới tính</div>
-                        <!-- MOCK: Thay bằng {{ profile.gender }} khi thêm field -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.gender|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Tình trạng hôn nhân</div>
-                        <!-- MOCK: Thay bằng {{ profile.marital_status }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.marital_status|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Quốc tịch</div>
-                        <!-- MOCK: Thay bằng {{ profile.nationality }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.nationality|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Số CCCD/CMND</div>
-                        <!-- MOCK: Thay bằng {{ profile.id_number }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.id_card_number|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Nơi cấp</div>
-                        <!-- MOCK: Thay bằng {{ profile.id_issued_place }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.id_card_issue_place|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ngày cấp</div>
-                        <!-- MOCK: Thay bằng {{ profile.id_issued_date }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.id_card_issue_date|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Địa chỉ thường trú</div>
-                        <!-- MOCK: Thay bằng {{ profile.permanent_address }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.permanent_address|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Địa chỉ tạm trú</div>
-                        <!-- MOCK: Thay bằng {{ profile.temporary_address }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.personal_info.temporary_address|default:"Chưa cập nhật" }}</div>
                     </div>
                 </div>
             </div>
@@ -234,23 +224,19 @@
                     <!-- Tất cả MOCK DATA -->
                     <div class="info-item">
                         <div class="info-label">Họ tên người liên hệ</div>
-                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_name }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.emergency_contact.contact_name|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Số điện thoại</div>
-                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_phone }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.emergency_contact.contact_phone|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Quan hệ với nhân viên</div>
-                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_relation }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.emergency_contact.relation|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Địa chỉ</div>
-                        <!-- MOCK: Thay bằng {{ profile.emergency_contact_address }} -->
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.emergency_contact.contact_address|default:"Chưa cập nhật" }}</div>
                     </div>
                 </div>
             </div>
@@ -265,30 +251,29 @@
             </div>
             <div class="card-body">
                 <div class="info-grid">
-                    <!-- Tất cả MOCK DATA -->
                     <div class="info-item">
                         <div class="info-label">Trình độ học vấn</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.education_level|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Bằng cấp</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.degree|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Chuyên ngành</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.major|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Chứng chỉ</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.certificates|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ngoại ngữ</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.foreign_languages|default:"Chưa cập nhật" }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Kỹ năng chuyên môn</div>
-                        <div class="info-value empty">Chưa cập nhật</div>
+                        <div class="info-value">{{ request.user.education_and_skills.professional_skills|default:"Chưa cập nhật" }}</div>
                     </div>
                 </div>
             </div>
@@ -300,18 +285,45 @@
         <div class="card">
             <div class="card-header">
                 <h3><i class="fa-solid fa-folder-open" style="color:var(--primary);"></i>&nbsp; Tệp minh chứng</h3>
-                <!-- TODO: Nút upload file - cần backend xử lý file upload -->
-                <button class="btn btn-sm btn-outline" disabled title="Chức năng upload sẽ có khi nối backend">
+                <button class="btn btn-sm btn-primary" onclick="openUploadModal()">
                     <i class="fa-solid fa-upload"></i> Tải lên
                 </button>
             </div>
             <div class="card-body">
-                <!-- MOCK: Chưa có file nào, hiện empty state -->
-                <div class="empty-state">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <h3>Chưa có tệp nào</h3>
-                    <p>Các tệp minh chứng sẽ hiển thị tại đây khi được tải lên</p>
-                </div>
+                {% if request.user.documents.exists %}
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tên tệp</th>
+                                    <th>Loại</th>
+                                    <th>Ngày tải lên</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in request.user.documents.all %}
+                                <tr>
+                                    <td>{{ doc.title }}</td>
+                                    <td>{{ doc.document_type }}</td>
+                                    <td>{{ doc.uploaded_at|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline">
+                                            <i class="fa-solid fa-download"></i> Tải xuống
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <h3>Chưa có tệp nào</h3>
+                        <p>Các tệp minh chứng sẽ hiển thị tại đây khi được tải lên</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -328,33 +340,100 @@
             </div>
             <div class="card-body">
                 <div class="form-row">
-                    {% comment %}
-                    Chỉ cho phép chỉnh sửa các field CÓ trong model.
-                    Các field mock chưa thể chỉnh sửa (cần thêm vào model trước).
-                    {% endcomment %}
+                    <!-- Thông tin cá nhân cơ bản -->
                     <div class="form-group">
                         <label class="form-label">Họ và tên</label>
-                        <input type="text" name="full_name" class="form-control"
-                               value="{{ request.user.profile.full_name }}"
-                               placeholder="Nhập họ và tên">
+                        <input type="text" name="full_name" class="form-control" value="{{ request.user.profile.full_name }}" placeholder="Nhập họ và tên">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control"
-                               value="{{ request.user.email }}"
-                               placeholder="Nhập email">
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email }}" placeholder="Nhập email">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Số điện thoại</label>
-                        <input type="text" name="phone_number" class="form-control"
-                               value="{{ request.user.profile.phone_number }}"
-                               placeholder="Nhập số điện thoại">
+                        <input type="text" name="phone_number" class="form-control" value="{{ request.user.profile.phone_number }}" placeholder="Nhập số điện thoại">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Ngày sinh (DD/MM/YYYY)</label>
-                        <input type="text" name="date_of_birth" class="form-control"
-                               value="{{ request.user.profile.date_of_birth }}"
-                               placeholder="VD: 15/06/1990">
+                        <input type="text" name="date_of_birth" class="form-control" value="{{ request.user.profile.date_of_birth }}" placeholder="VD: 15/06/1990">
+                    </div>
+
+                    <!-- Thông tin cá nhân mở rộng -->
+                    <div class="form-group">
+                        <label class="form-label">Giới tính</label>
+                        <input type="text" name="gender" class="form-control" value="{{ request.user.personal_info.gender }}" placeholder="Nam/Nữ">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tình trạng hôn nhân</label>
+                        <input type="text" name="marital_status" class="form-control" value="{{ request.user.personal_info.marital_status }}" placeholder="Độc thân/Đã kết hôn">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quốc tịch</label>
+                        <input type="text" name="nationality" class="form-control" value="{{ request.user.personal_info.nationality }}" placeholder="Việt Nam">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Số CCCD/CMND</label>
+                        <input type="text" name="id_card_number" class="form-control" value="{{ request.user.personal_info.id_card_number }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nơi cấp</label>
+                        <input type="text" name="id_card_issue_place" class="form-control" value="{{ request.user.personal_info.id_card_issue_place }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ngày cấp</label>
+                        <input type="text" name="id_card_issue_date" class="form-control" value="{{ request.user.personal_info.id_card_issue_date }}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Địa chỉ thường trú</label>
+                        <textarea name="permanent_address" class="form-control" rows="2">{{ request.user.personal_info.permanent_address }}</textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Địa chỉ tạm trú</label>
+                        <textarea name="temporary_address" class="form-control" rows="2">{{ request.user.personal_info.temporary_address }}</textarea>
+                    </div>
+
+                    <!-- Người liên hệ khẩn cấp -->
+                    <div class="form-group">
+                        <label class="form-label">Họ tên người liên hệ</label>
+                        <input type="text" name="contact_name" class="form-control" value="{{ request.user.emergency_contact.contact_name }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SĐT liên hệ</label>
+                        <input type="text" name="contact_phone" class="form-control" value="{{ request.user.emergency_contact.contact_phone }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quan hệ</label>
+                        <input type="text" name="relation" class="form-control" value="{{ request.user.emergency_contact.relation }}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Địa chỉ người liên hệ</label>
+                        <textarea name="contact_address" class="form-control" rows="2">{{ request.user.emergency_contact.contact_address }}</textarea>
+                    </div>
+
+                    <!-- Học vấn & Năng lực -->
+                    <div class="form-group">
+                        <label class="form-label">Trình độ học vấn</label>
+                        <input type="text" name="education_level" class="form-control" value="{{ request.user.education_and_skills.education_level }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Bằng cấp</label>
+                        <input type="text" name="degree" class="form-control" value="{{ request.user.education_and_skills.degree }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Chuyên ngành</label>
+                        <input type="text" name="major" class="form-control" value="{{ request.user.education_and_skills.major }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Chứng chỉ</label>
+                        <textarea name="certificates" class="form-control" rows="2">{{ request.user.education_and_skills.certificates }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ngoại ngữ</label>
+                        <textarea name="foreign_languages" class="form-control" rows="2">{{ request.user.education_and_skills.foreign_languages }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Kỹ năng chuyên môn</label>
+                        <textarea name="professional_skills" class="form-control" rows="2">{{ request.user.education_and_skills.professional_skills }}</textarea>
                     </div>
                 </div>
             </div>
@@ -369,5 +448,101 @@
         </div>
     </form>
 </div>
+
+<!-- ===== UPLOAD MODAL ===== -->
+<div id="uploadModal" class="modal" style="display:none;">
+    <div class="modal-content animate-fade-in" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-upload"></i> Tải lên tệp minh chứng</h3>
+            <button class="btn-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <form method="post" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Tiêu đề / Tên tài liệu</label>
+                    <input type="text" name="title" class="form-control" placeholder="VD: Bằng Cử nhân CNTT" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Loại tài liệu</label>
+                    <select name="document_type" class="form-control">
+                        <option value="Bằng cấp">Bằng cấp</option>
+                        <option value="Chứng chỉ">Chứng chỉ</option>
+                        <option value="CCCD/CMND">CCCD/CMND</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chọn tệp</label>
+                    <input type="file" name="file" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Hủy</button>
+                <button type="submit" class="btn btn-primary">Tải lên ngay</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* CSS cho Modal và căn chỉnh */
+.modal {
+    position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+    background: white; padding: 0; border-radius: 12px; width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden;
+}
+.modal-header {
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-light);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.5rem; }
+.btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); }
+
+/* Căn chỉnh header hồ sơ */
+.profile-role {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px; /* Tỉ lệ gần hơn với username */
+}
+.role-text {
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+.position-text {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    opacity: 0.8;
+}
+
+/* Khóa kích thước textarea */
+textarea.form-control {
+    resize: none !important;
+}
+</style>
+
+<script>
+function openUploadModal() {
+    document.getElementById('uploadModal').style.display = 'flex';
+}
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+}
+
+// Đóng modal khi click ra ngoài
+window.onclick = function(event) {
+    let modal = document.getElementById('uploadModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
 
 {% endblock %}

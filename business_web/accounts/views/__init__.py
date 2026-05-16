@@ -1,0 +1,45 @@
+"""Public view exports for the accounts app."""
+
+from accounts.views.account.account_info_view import (
+    account_info_view,
+    dashboard_view,
+    settings_view,
+)
+from accounts.views.account.account_status_view import (
+    account_status_view,
+    reset_user_password_view,
+    toggle_user_active_view,
+)
+from accounts.views.account.account_update_view import (
+    account_update_view,
+    assign_permissions_view,
+    assign_role_view,
+    delete_user_view,
+    switch_role_view,
+    user_list_view,
+)
+from accounts.views.auth.forgot_password_view import forgot_password_view
+from accounts.views.auth.login_view import AccountsLoginView
+from accounts.views.auth.logout_view import logout_view
+from accounts.views.auth.password_change_view import password_change_view
+from accounts.views.auth.register_view import register_view
+
+__all__ = [
+    "AccountsLoginView",
+    "account_info_view",
+    "account_status_view",
+    "account_update_view",
+    "assign_permissions_view",
+    "assign_role_view",
+    "dashboard_view",
+    "delete_user_view",
+    "forgot_password_view",
+    "logout_view",
+    "password_change_view",
+    "register_view",
+    "reset_user_password_view",
+    "settings_view",
+    "switch_role_view",
+    "toggle_user_active_view",
+    "user_list_view",
+]

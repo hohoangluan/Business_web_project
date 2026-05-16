@@ -9,7 +9,10 @@ Helpers cho hồ sơ nhân viên: queryset quản lý/leader, context builder...
 from django.contrib.auth.models import User
 from django.db.models import Q
 from accounts.models import Role
-from accounts.services import ensure_work_info, ensure_contract_info
+from accounts.services import (
+    ensure_work_info, ensure_contract_info,
+    ensure_personal_info, ensure_emergency_contact, ensure_education_info
+)
 
 
 def get_manager_user_queryset():
@@ -65,3 +68,39 @@ def save_contract_info_from_data(user, data):
     contract_info.contract_attachment_reference = data.get('contract_attachment_reference', '')
     contract_info.save()
     return contract_info
+
+def save_personal_info_from_data(user, data):
+    """Lưu thông tin cá nhân mở rộng từ dict data vào PersonalInfo."""
+    personal_info = ensure_personal_info(user)
+    personal_info.gender = data.get('gender', '')
+    personal_info.marital_status = data.get('marital_status', '')
+    personal_info.nationality = data.get('nationality', '')
+    personal_info.id_card_number = data.get('id_card_number', '')
+    personal_info.id_card_issue_place = data.get('id_card_issue_place', '')
+    personal_info.id_card_issue_date = data.get('id_card_issue_date', '')
+    personal_info.permanent_address = data.get('permanent_address', '')
+    personal_info.temporary_address = data.get('temporary_address', '')
+    personal_info.save()
+    return personal_info
+
+def save_emergency_contact_from_data(user, data):
+    """Lưu thông tin người liên hệ khẩn cấp từ dict data vào EmergencyContact."""
+    contact = ensure_emergency_contact(user)
+    contact.contact_name = data.get('contact_name', '')
+    contact.contact_phone = data.get('contact_phone', '')
+    contact.relation = data.get('relation', '')
+    contact.contact_address = data.get('contact_address', '')
+    contact.save()
+    return contact
+
+def save_education_info_from_data(user, data):
+    """Lưu thông tin học vấn từ dict data vào EducationAndSkills."""
+    edu = ensure_education_info(user)
+    edu.education_level = data.get('education_level', '')
+    edu.degree = data.get('degree', '')
+    edu.major = data.get('major', '')
+    edu.certificates = data.get('certificates', '')
+    edu.foreign_languages = data.get('foreign_languages', '')
+    edu.professional_skills = data.get('professional_skills', '')
+    edu.save()
+    return edu
