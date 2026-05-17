@@ -107,6 +107,39 @@ def upload_document_view(request):
 
 
 @login_required
+@user_passes_test(can_manage_work_info)
+def hr_view_profile_view(request, user_id):
+    """
+    HR/Admin xem chi tiết đầy đủ hồ sơ nhân viên (chỉ đọc).
+    Hiển thị toàn bộ: thông tin cá nhân, công việc, hợp đồng,
+    liên hệ khẩn cấp, học vấn, tài liệu đính kèm.
+    Template: employee_profiles/hr_view_profile.html
+    """
+    target_user = get_object_or_404(User, pk=user_id)
+    profile = ensure_profile(target_user)
+    work_info = ensure_work_info(target_user)
+    contract_info = ensure_contract_info(target_user)
+    personal_info = ensure_personal_info(target_user)
+    emergency_contact = ensure_emergency_contact(target_user)
+    education_info = ensure_education_info(target_user)
+    documents = EmployeeDocument.objects.filter(user=target_user)
+
+    return render(request, 'employee_profiles/hr_view_profile.html', {
+        'target_user': target_user,
+        'profile': profile,
+        'work_info': work_info,
+        'contract_info': contract_info,
+        'personal_info': personal_info,
+        'emergency_contact': emergency_contact,
+        'education_info': education_info,
+        'documents': documents,
+        'active_page': 'users',
+        'can_manage_system_users': is_admin_user(request.user),
+        'can_manage_work_info': can_manage_work_info(request.user),
+    })
+
+
+@login_required
 @user_passes_test(is_hr_user)
 def hr_create_profile_view(request):
     """
@@ -281,7 +314,7 @@ def hr_create_profile_view(request):
 @user_passes_test(can_manage_work_info)
 def edit_work_info_view(request, user_id):
     """
-    HR/Admin chỉnh toàn bộ hồ sơ nhân viên.
+    HR/Admin chỉnh toàn bộ hồ sơ nhân viên (bao gồm vai trò).
     Template: employee_profiles/edit_work_info.html
     """
     target_user = get_object_or_404(User, pk=user_id)
@@ -294,6 +327,7 @@ def edit_work_info_view(request, user_id):
 
     manager_queryset = get_manager_user_queryset()
     leader_queryset = get_leader_user_queryset()
+    editor_is_admin = is_admin_user(request.user)
 
     if request.method == 'POST':
         form = EmployeeProfileForm(
@@ -301,6 +335,7 @@ def edit_work_info_view(request, user_id):
             manager_queryset=manager_queryset,
             leader_queryset=leader_queryset,
             current_user=target_user,
+            is_admin_editor=editor_is_admin,
         )
         if form.is_valid():
             # Lưu thông tin cá nhân vào UserProfile
@@ -308,9 +343,8 @@ def edit_work_info_view(request, user_id):
             target_user.email = email
             target_user.save(update_fields=['email'])
             profile.full_name = form.cleaned_data['full_name']
-            profile.phone_number = form.cleaned_data['phone_number']
-            profile.date_of_birth = form.cleaned_data['date_of_birth']
             profile.employee_id = form.cleaned_data['employee_id']
+
             profile.save()
 
             # Lưu thông tin công việc vào EmployeeWorkInfo
@@ -325,15 +359,16 @@ def edit_work_info_view(request, user_id):
             save_education_info_from_data(target_user, form.cleaned_data)
 
             messages.success(request, f'Đã cập nhật hồ sơ nhân sự cho "{target_user.username}".')
-            return redirect('user_list')
+            return redirect('hr_view_profile', user_id=target_user.pk)
     else:
         form = EmployeeProfileForm(
             initial={
                 'full_name': profile.full_name,
                 'email': target_user.email,
-                'phone_number': profile.phone_number,
-                'date_of_birth': profile.date_of_birth,
+                'phone_number': personal_info.phone_number,
+                'date_of_birth': personal_info.date_of_birth,
                 'employee_id': profile.employee_id,
+                'role': profile.role,
                 'department': work_info.department,
                 'employee_type': work_info.employee_type,
                 'position': work_info.position,
@@ -376,11 +411,63 @@ def edit_work_info_view(request, user_id):
             manager_queryset=manager_queryset,
             leader_queryset=leader_queryset,
             current_user=target_user,
+            is_admin_editor=editor_is_admin,
         )
 
     return render(request, 'employee_profiles/edit_work_info.html', {
         'form': form,
         'target_user': target_user,
         'active_page': 'users',
-        'can_manage_system_users': is_admin_user(request.user),
+        'can_manage_system_users': editor_is_admin,
+    })
+
+
+@login_required
+@user_passes_test(can_manage_work_info)
+def hr_assign_role_view(request, user_id):
+    """
+    HR/Admin chỉnh sửa vai trò nhân viên (trang riêng, UI card picker).
+    - HR: chỉ được gán Employee, Leader, Manager, HR (không Admin).
+    - Admin: gán tất cả vai trò.
+    Template: employee_profiles/hr_assign_role.html
+    """
+    target_user = get_object_or_404(User, pk=user_id)
+    profile = ensure_profile(target_user)
+    editor_is_admin = is_admin_user(request.user)
+
+    # Lấy danh sách vai trò phù hợp
+    if editor_is_admin:
+        available_roles = Role.objects.all()
+    else:
+        available_roles = Role.objects.exclude(name=Role.ADMIN)
+
+    if request.method == 'POST':
+        role_id = request.POST.get('role', '').strip()
+        if role_id:
+            try:
+                new_role = Role.objects.get(pk=role_id)
+                # Bảo vệ: HR không được gán Admin
+                if new_role.name == Role.ADMIN and not editor_is_admin:
+                    messages.error(request, 'Bạn không có quyền gán vai trò Admin.')
+                    return redirect('hr_assign_role', user_id=target_user.pk)
+                profile.role = new_role
+                profile.save()
+                messages.success(
+                    request,
+                    f'Đã cập nhật vai trò "{new_role.get_name_display()}" cho "{profile.full_name or target_user.username}".'
+                )
+            except Role.DoesNotExist:
+                messages.error(request, 'Vai trò không hợp lệ.')
+        else:
+            profile.role = None
+            profile.save()
+            messages.success(request, f'Đã bỏ gán vai trò cho "{profile.full_name or target_user.username}".')
+        return redirect('hr_view_profile', user_id=target_user.pk)
+
+    return render(request, 'employee_profiles/hr_assign_role.html', {
+        'target_user': target_user,
+        'profile': profile,
+        'available_roles': available_roles,
+        'active_page': 'users',
+        'editor_is_admin': editor_is_admin,
     })

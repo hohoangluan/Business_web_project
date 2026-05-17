@@ -1,0 +1,575 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# XEM CHI TIẾT HỒ SƠ NHÂN SỰ - hr_view_profile.html
+   HR/Admin xem đầy đủ thông tin hồ sơ nhân viên (chỉ đọc).
+   View: hr_view_profile_view #}
+{% load static %}
+
+{% block title %}Hồ sơ: {{ profile.full_name|default:target_user.username }} - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    /* ===== HR VIEW PROFILE STYLES ===== */
+    .profile-hero {
+        display: flex; align-items: center; gap: 1.75rem;
+        padding: 2rem; background: var(--bg-card);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        margin-bottom: 1.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .profile-hero::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 5px;
+        background: var(--gradient-btn);
+    }
+    .hero-avatar {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: var(--gradient-primary);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; font-weight: 800; color: #fff;
+        box-shadow: 0 6px 20px rgba(124,58,237,0.3);
+        flex-shrink: 0;
+    }
+    .hero-info { flex: 1; }
+    .hero-name {
+        font-size: 1.5rem; font-weight: 700;
+        color: var(--text-primary); margin-bottom: 0.25rem;
+    }
+    .hero-meta {
+        display: flex; flex-wrap: wrap; gap: 1rem;
+        font-size: 0.85rem; color: var(--text-secondary);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 0.35rem; }
+    .hero-meta i { font-size: 0.8rem; color: var(--text-muted); }
+    .hero-actions { display: flex; gap: 0.75rem; flex-shrink: 0; }
+
+    /* Info sections */
+    .profile-sections {
+        display: grid; gap: 1.5rem;
+    }
+    .profile-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .profile-card:hover { box-shadow: var(--shadow); }
+    .profile-card-header {
+        padding: 1rem 1.5rem;
+        display: flex; align-items: center; gap: 0.75rem;
+        border-bottom: 1px solid var(--border-light);
+        background: linear-gradient(135deg, rgba(124,58,237,0.03) 0%, rgba(236,72,153,0.03) 100%);
+    }
+    .profile-card-header i {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.95rem; color: #fff;
+    }
+    .profile-card-header h3 {
+        font-size: 1rem; font-weight: 700;
+    }
+    .pc-icon-personal { background: var(--gradient-purple); }
+    .pc-icon-work { background: var(--gradient-primary); }
+    .pc-icon-contract { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .pc-icon-emergency { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .pc-icon-education { background: var(--gradient-green); }
+    .pc-icon-documents { background: var(--gradient-orange); }
+
+    .profile-card-body { padding: 1.5rem; }
+
+    /* Info grid */
+    .pv-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.25rem;
+    }
+    .pv-info-item {}
+    .pv-info-label {
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--text-muted); margin-bottom: 0.3rem;
+    }
+    .pv-info-value {
+        font-size: 0.92rem; font-weight: 500;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+    .pv-info-value.empty {
+        color: var(--text-muted); font-style: italic;
+    }
+    .pv-info-full {
+        grid-column: 1 / -1;
+    }
+
+    /* Documents */
+    .doc-list { list-style: none; padding: 0; margin: 0; }
+    .doc-item {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0.85rem 1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-light);
+        margin-bottom: 0.5rem;
+        transition: var(--transition);
+    }
+    .doc-item:hover { background: rgba(124,58,237,0.02); }
+    .doc-icon {
+        width: 40px; height: 40px; border-radius: 10px;
+        background: var(--info-bg); color: var(--info);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; flex-shrink: 0;
+    }
+    .doc-info { flex: 1; }
+    .doc-name { font-weight: 600; font-size: 0.9rem; }
+    .doc-meta { font-size: 0.75rem; color: var(--text-muted); }
+    .doc-empty {
+        text-align: center; padding: 2rem;
+        color: var(--text-muted); font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .profile-hero { flex-direction: column; text-align: center; }
+        .hero-meta { justify-content: center; }
+        .hero-actions { justify-content: center; }
+        .pv-info-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- ===== PAGE HEADER ===== -->
+<div class="page-header animate-fade">
+    <div>
+        <h1>Chi tiết hồ sơ nhân sự</h1>
+        <p class="text-secondary">Xem toàn bộ thông tin lưu trong hệ thống cho nhân viên</p>
+    </div>
+    <a href="{% url 'user_list' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+    </a>
+</div>
+
+<!-- ===== HERO CARD ===== -->
+<div class="profile-hero animate-fade">
+    <div class="hero-avatar">
+        {{ target_user.username|make_list|first|upper }}
+    </div>
+    <div class="hero-info">
+        <div class="hero-name">{{ profile.full_name|default:target_user.username }}</div>
+        <div class="hero-meta">
+            <span><i class="fa-solid fa-id-badge"></i> {{ profile.employee_id|default:"Chưa có mã NV" }}</span>
+            <span><i class="fa-solid fa-at"></i> {{ target_user.username }}</span>
+            {% if target_user.email %}
+            <span><i class="fa-solid fa-envelope"></i> {{ target_user.email }}</span>
+            {% endif %}
+            <span>
+                <i class="fa-solid fa-user-tag"></i>
+                {% if profile.role %}
+                    <span class="badge badge-{{ profile.role.name }}">{{ profile.role.get_name_display }}</span>
+                {% else %}
+                    <span class="badge badge-none">Chưa gán vai trò</span>
+                {% endif %}
+            </span>
+            <span>
+                {% if target_user.is_active %}
+                    <span class="badge badge-active">Hoạt động</span>
+                {% else %}
+                    <span class="badge badge-inactive">Đã khóa</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="hero-actions">
+        {% if can_manage_work_info %}
+        <a href="{% url 'hr_assign_role' target_user.id %}" class="btn btn-outline">
+            <i class="fa-solid fa-user-tag"></i> Đổi vai trò
+        </a>
+        <a href="{% url 'edit_work_info' target_user.id %}" class="btn btn-primary">
+            <i class="fa-solid fa-pen-to-square"></i> Cập nhật hồ sơ
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ===== SECTIONS ===== -->
+<div class="profile-sections animate-fade">
+
+    <!-- SECTION: Thông tin cá nhân -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-personal fa-solid fa-user"></i>
+            <h3>Thông tin cá nhân</h3>
+        </div>
+        <div class="profile-card-body">
+            <div class="pv-info-grid">
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Họ và tên</div>
+                    <div class="pv-info-value {% if not profile.full_name %}empty{% endif %}">
+                        {{ profile.full_name|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Email</div>
+                    <div class="pv-info-value {% if not target_user.email %}empty{% endif %}">
+                        {{ target_user.email|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Số điện thoại</div>
+                    <div class="pv-info-value {% if not personal_info.phone_number %}empty{% endif %}">
+                        {{ personal_info.phone_number|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày sinh</div>
+                    <div class="pv-info-value {% if not personal_info.date_of_birth %}empty{% endif %}">
+                        {{ personal_info.date_of_birth|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Giới tính</div>
+                    <div class="pv-info-value {% if not personal_info.gender %}empty{% endif %}">
+                        {{ personal_info.gender|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Tình trạng hôn nhân</div>
+                    <div class="pv-info-value {% if not personal_info.marital_status %}empty{% endif %}">
+                        {{ personal_info.marital_status|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Quốc tịch</div>
+                    <div class="pv-info-value {% if not personal_info.nationality %}empty{% endif %}">
+                        {{ personal_info.nationality|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Số CCCD/CMND</div>
+                    <div class="pv-info-value {% if not personal_info.id_card_number %}empty{% endif %}">
+                        {{ personal_info.id_card_number|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Nơi cấp CCCD</div>
+                    <div class="pv-info-value {% if not personal_info.id_card_issue_place %}empty{% endif %}">
+                        {{ personal_info.id_card_issue_place|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày cấp CCCD</div>
+                    <div class="pv-info-value {% if not personal_info.id_card_issue_date %}empty{% endif %}">
+                        {{ personal_info.id_card_issue_date|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Địa chỉ thường trú</div>
+                    <div class="pv-info-value {% if not personal_info.permanent_address %}empty{% endif %}">
+                        {{ personal_info.permanent_address|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Địa chỉ tạm trú</div>
+                    <div class="pv-info-value {% if not personal_info.temporary_address %}empty{% endif %}">
+                        {{ personal_info.temporary_address|default:"—" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Thông tin công việc -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-work fa-solid fa-briefcase"></i>
+            <h3>Thông tin công việc</h3>
+        </div>
+        <div class="profile-card-body">
+            <div class="pv-info-grid">
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Mã nhân viên</div>
+                    <div class="pv-info-value {% if not profile.employee_id %}empty{% endif %}">
+                        {{ profile.employee_id|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Vai trò hệ thống</div>
+                    <div class="pv-info-value">
+                        {% if profile.role %}
+                            <span class="badge badge-{{ profile.role.name }}">{{ profile.role.get_name_display }}</span>
+                        {% else %}
+                            <span class="pv-info-value empty">Chưa gán</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Phòng ban</div>
+                    <div class="pv-info-value {% if not work_info.department %}empty{% endif %}">
+                        {{ work_info.department|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Chức vụ</div>
+                    <div class="pv-info-value {% if not work_info.position %}empty{% endif %}">
+                        {{ work_info.position|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Loại nhân viên</div>
+                    <div class="pv-info-value {% if not work_info.employee_type %}empty{% endif %}">
+                        {{ work_info.employee_type|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Nơi làm việc</div>
+                    <div class="pv-info-value {% if not work_info.workplace %}empty{% endif %}">
+                        {{ work_info.workplace|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Trạng thái làm việc</div>
+                    <div class="pv-info-value">
+                        {% if work_info.work_status %}
+                            {{ work_info.get_work_status_display }}
+                        {% else %}
+                            <span class="empty">—</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày bắt đầu thử việc</div>
+                    <div class="pv-info-value {% if not work_info.probation_start %}empty{% endif %}">
+                        {{ work_info.probation_start|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày chính thức</div>
+                    <div class="pv-info-value {% if not work_info.official_start_date %}empty{% endif %}">
+                        {{ work_info.official_start_date|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Quản lý trực tiếp</div>
+                    <div class="pv-info-value {% if not work_info.manager_user %}empty{% endif %}">
+                        {% if work_info.manager_user %}
+                            {{ work_info.manager_user.profile.full_name|default:work_info.manager_user.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Leader phụ trách</div>
+                    <div class="pv-info-value {% if not work_info.leader_user %}empty{% endif %}">
+                        {% if work_info.leader_user %}
+                            {{ work_info.leader_user.profile.full_name|default:work_info.leader_user.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Hợp đồng lao động -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-contract fa-solid fa-file-contract"></i>
+            <h3>Hợp đồng lao động</h3>
+        </div>
+        <div class="profile-card-body">
+            <div class="pv-info-grid">
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Số hợp đồng</div>
+                    <div class="pv-info-value {% if not contract_info.contract_number %}empty{% endif %}">
+                        {{ contract_info.contract_number|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Loại hợp đồng</div>
+                    <div class="pv-info-value {% if not contract_info.contract_type %}empty{% endif %}">
+                        {{ contract_info.contract_type|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày ký</div>
+                    <div class="pv-info-value {% if not contract_info.contract_signed_date %}empty{% endif %}">
+                        {{ contract_info.contract_signed_date|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày bắt đầu hiệu lực</div>
+                    <div class="pv-info-value {% if not contract_info.contract_start_date %}empty{% endif %}">
+                        {{ contract_info.contract_start_date|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ngày hết hạn</div>
+                    <div class="pv-info-value {% if not contract_info.contract_end_date %}empty{% endif %}">
+                        {{ contract_info.contract_end_date|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Số ngày nghỉ phép/năm</div>
+                    <div class="pv-info-value {% if contract_info.contract_annual_leave_days == None %}empty{% endif %}">
+                        {% if contract_info.contract_annual_leave_days != None %}
+                            {{ contract_info.contract_annual_leave_days }} ngày
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Ca làm tiêu chuẩn</div>
+                    <div class="pv-info-value {% if not contract_info.contract_standard_shift %}empty{% endif %}">
+                        {{ contract_info.contract_standard_shift|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">File tham chiếu HĐ</div>
+                    <div class="pv-info-value {% if not contract_info.contract_attachment_reference %}empty{% endif %}">
+                        {{ contract_info.contract_attachment_reference|default:"—" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Liên hệ khẩn cấp -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-emergency fa-solid fa-phone-volume"></i>
+            <h3>Người liên hệ khẩn cấp</h3>
+        </div>
+        <div class="profile-card-body">
+            <div class="pv-info-grid">
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Họ tên</div>
+                    <div class="pv-info-value {% if not emergency_contact.contact_name %}empty{% endif %}">
+                        {{ emergency_contact.contact_name|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Số điện thoại</div>
+                    <div class="pv-info-value {% if not emergency_contact.contact_phone %}empty{% endif %}">
+                        {{ emergency_contact.contact_phone|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Quan hệ</div>
+                    <div class="pv-info-value {% if not emergency_contact.relation %}empty{% endif %}">
+                        {{ emergency_contact.relation|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Địa chỉ</div>
+                    <div class="pv-info-value {% if not emergency_contact.contact_address %}empty{% endif %}">
+                        {{ emergency_contact.contact_address|default:"—" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Học vấn & Năng lực -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-education fa-solid fa-graduation-cap"></i>
+            <h3>Học vấn & Năng lực</h3>
+        </div>
+        <div class="profile-card-body">
+            <div class="pv-info-grid">
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Trình độ học vấn</div>
+                    <div class="pv-info-value {% if not education_info.education_level %}empty{% endif %}">
+                        {{ education_info.education_level|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Bằng cấp</div>
+                    <div class="pv-info-value {% if not education_info.degree %}empty{% endif %}">
+                        {{ education_info.degree|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item">
+                    <div class="pv-info-label">Chuyên ngành</div>
+                    <div class="pv-info-value {% if not education_info.major %}empty{% endif %}">
+                        {{ education_info.major|default:"—" }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Chứng chỉ</div>
+                    <div class="pv-info-value {% if not education_info.certificates %}empty{% endif %}">
+                        {{ education_info.certificates|default:"—"|linebreaksbr }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Ngoại ngữ</div>
+                    <div class="pv-info-value {% if not education_info.foreign_languages %}empty{% endif %}">
+                        {{ education_info.foreign_languages|default:"—"|linebreaksbr }}
+                    </div>
+                </div>
+                <div class="pv-info-item pv-info-full">
+                    <div class="pv-info-label">Kỹ năng chuyên môn</div>
+                    <div class="pv-info-value {% if not education_info.professional_skills %}empty{% endif %}">
+                        {{ education_info.professional_skills|default:"—"|linebreaksbr }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Tài liệu đính kèm -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <i class="pc-icon-documents fa-solid fa-folder-open"></i>
+            <h3>Tài liệu đính kèm</h3>
+        </div>
+        <div class="profile-card-body">
+            {% if documents %}
+            <ul class="doc-list">
+                {% for doc in documents %}
+                <li class="doc-item">
+                    <div class="doc-icon">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-name">{{ doc.title }}</div>
+                        <div class="doc-meta">
+                            {% if doc.document_type %}{{ doc.document_type }} · {% endif %}
+                            {{ doc.uploaded_at|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    {% if doc.file %}
+                    <a href="{{ doc.file.url }}" class="btn btn-sm btn-outline" target="_blank">
+                        <i class="fa-solid fa-download"></i> Tải
+                    </a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="doc-empty">
+                <i class="fa-solid fa-file-circle-xmark" style="font-size:2rem;margin-bottom:0.5rem;display:block;"></i>
+                Chưa có tài liệu nào được đính kèm.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Footer actions -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;" class="animate-fade">
+    <a href="{% url 'user_list' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+    </a>
+    {% if can_manage_work_info %}
+    <a href="{% url 'edit_work_info' target_user.id %}" class="btn btn-primary">
+        <i class="fa-solid fa-pen-to-square"></i> Cập nhật hồ sơ
+    </a>
+    {% endif %}
+</div>
+
+{% endblock %}
