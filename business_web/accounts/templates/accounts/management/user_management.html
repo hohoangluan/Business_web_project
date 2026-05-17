@@ -195,29 +195,5 @@
     </div>
 </div>
 
-<!-- ===== MODAL: Xác nhận hành động (Khóa / Mở khóa / Reset password) ===== -->
-<div class="modal-overlay" id="confirmModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3 class="confirm-title">Xác nhận</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="confirm-content warning">
-                <i class="fa-solid fa-exclamation-triangle confirm-icon"></i>
-                <h4 class="confirm-title">Xác nhận hành động</h4>
-                <p class="confirm-desc">Bạn có chắc chắn muốn thực hiện hành động này?</p>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary modal-cancel">Hủy</button>
-            <!-- Form submit xác nhận: action URL sẽ được JS điền vào -->
-            <form class="confirm-form" method="post" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary">Xác nhận</button>
-            </form>
-        </div>
-    </div>
-</div>
 
 {% endblock %}

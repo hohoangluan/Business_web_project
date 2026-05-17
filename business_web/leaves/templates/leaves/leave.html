@@ -1,5 +1,5 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG NGHỈ PHÉP. View: leave_view. Dữ liệu: MOCK DATA. #}
+{# TRANG NGHỈ PHÉP. View: leave_view. Dữ liệu thực từ DB. #}
 {% load static %}
 
 {% block title %}Nghỉ phép - HR Studio{% endblock %}
@@ -25,15 +25,17 @@
     }
     .badge-approved { background: #ecfdf5; color: #059669; }
     .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-leader-approved { background: #eff6ff; color: #2563eb; }
     .badge-rejected { background: #fef2f2; color: #dc2626; }
     
     .btn-create {
-        background: #5b21b6; /* tím đậm */
+        background: #5b21b6;
         color: #fff;
         border: none;
         padding: 0.6rem 1.25rem;
         border-radius: var(--radius);
         font-weight: 600;
+        cursor: pointer;
         transition: all 0.2s;
         box-shadow: 0 4px 10px rgba(91, 33, 182, 0.2);
     }
@@ -60,6 +62,115 @@
         background: #e2e8f0;
         color: #0f172a;
     }
+
+    /* --- Modal CSS --- */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9998;
+        animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s ease-out;
+        overflow: hidden;
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+    .modal-close {
+        background: none; border: none;
+        font-size: 1.3rem; color: var(--text-muted);
+        cursor: pointer; padding: 4px; border-radius: 6px;
+        transition: all 0.15s;
+    }
+    .modal-close:hover { background: #f1f5f9; color: #ef4444; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 0.75rem;
+        padding: 1rem 1.5rem; border-top: 1px solid var(--border);
+        background: #f8fafc;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+        display: block; font-size: 0.85rem; font-weight: 600;
+        color: var(--text-primary); margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.6rem 0.85rem;
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.9rem; font-family: 'Inter', sans-serif;
+        color: var(--text-primary); transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .btn-cancel-modal {
+        padding: 0.55rem 1.25rem; border: 1px solid #e2e8f0;
+        background: #fff; border-radius: 8px; font-weight: 600;
+        color: var(--text-muted); cursor: pointer;
+    }
+    .btn-cancel-modal:hover { background: #f1f5f9; }
+    .btn-submit-modal {
+        padding: 0.55rem 1.25rem; border: none;
+        background: #8b5cf6; color: #fff; border-radius: 8px;
+        font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-submit-modal:hover { background: #7c3aed; }
+
+    /* Btn hủy đơn */
+    .btn-cancel-request {
+        background: none;
+        border: 1px solid #fecaca;
+        color: #ef4444;
+        padding: 0.3rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-cancel-request:hover {
+        background: #fef2f2;
+        border-color: #ef4444;
+    }
+
+    /* Days auto-calc display */
+    .days-display {
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #8b5cf6;
+        text-align: center;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    .empty-state p { font-size: 0.95rem; }
 </style>
 
 <div class="animate-fade">
@@ -78,7 +189,7 @@
             </a>
             {% endif %}
             
-            <button class="btn-create" onclick="alert('Mở modal tạo đơn nghỉ phép!')">
+            <button class="btn-create" onclick="openLeaveModal()" id="btn-create-leave">
                 <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Đăng ký nghỉ phép
             </button>
         </div>
@@ -86,47 +197,59 @@
 
     <!-- ===== STATS GRID ===== -->
     <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-        <!-- Card 1 -->
+        <!-- Card 1: Tổng ngày phép -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-calendar"></i>
             </div>
             <div>
                 <div class="stat-label">Tổng ngày phép</div>
-                <div class="stat-val-big">20 ngày</div>
+                <div class="stat-val-big">
+                    {% if stats.total_allowed is not None %}
+                        {{ stats.total_allowed|floatformat:"0" }} ngày
+                    {% else %}
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">Chưa cập nhật</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
         
-        <!-- Card 2 -->
+        <!-- Card 2: Đã nghỉ -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-circle-check"></i>
             </div>
             <div>
                 <div class="stat-label">Đã nghỉ</div>
-                <div class="stat-val-big">8 ngày</div>
+                <div class="stat-val-big">{{ stats.used_days|floatformat:"0" }} ngày</div>
             </div>
         </div>
         
-        <!-- Card 3 -->
+        <!-- Card 3: Còn lại -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-calendar-minus"></i>
             </div>
             <div>
                 <div class="stat-label">Còn lại</div>
-                <div class="stat-val-big">12 ngày</div>
+                <div class="stat-val-big">
+                    {% if stats.remaining_days is not None %}
+                        {{ stats.remaining_days|floatformat:"0" }} ngày
+                    {% else %}
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">Chưa cập nhật</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
         
-        <!-- Card 4 -->
+        <!-- Card 4: Chờ duyệt -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-clock"></i>
             </div>
             <div>
                 <div class="stat-label">Chờ duyệt</div>
-                <div class="stat-val-big">1 đơn</div>
+                <div class="stat-val-big">{{ stats.pending_count }} đơn</div>
             </div>
         </div>
     </div>
@@ -137,6 +260,7 @@
             <h3>Danh sách đơn nghỉ phép</h3>
         </div>
         <div class="card-body" style="padding: 0;">
+            {% if requests %}
             <div class="table-wrapper" style="border: none; border-radius: 0;">
                 <table class="data-table">
                     <thead>
@@ -147,46 +271,147 @@
                             <th>SỐ NGÀY</th>
                             <th>LÝ DO</th>
                             <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for req in requests %}
                         <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ phép</td>
-                            <td>25/04/2026</td>
-                            <td>27/04/2026</td>
-                            <td><span style="font-weight: 500;">3 ngày</span></td>
-                            <td class="text-secondary">Về quê thăm gia đình</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                            <td style="padding-left: 1.5rem; font-weight: 600;">{{ req.leave_type_display }}</td>
+                            <td>{{ req.start_date|date:"d/m/Y" }}</td>
+                            <td>{{ req.end_date|date:"d/m/Y" }}</td>
+                            <td><span style="font-weight: 500;">{{ req.days }} ngày</span></td>
+                            <td class="text-secondary" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ req.reason }}">{{ req.reason|default:"-" }}</td>
+                            <td>
+                                {% if req.status == 'approved' %}
+                                <span class="badge-status badge-approved">Đã duyệt</span>
+                                {% elif req.status == 'leader_approved' %}
+                                <span class="badge-status badge-leader-approved" title="Quản lý đã duyệt, chờ HR phê duyệt cuối">Chờ HR duyệt</span>
+                                {% elif req.status == 'pending' %}
+                                <span class="badge-status badge-pending">Chờ quản lý duyệt</span>
+                                {% elif req.status == 'rejected' %}
+                                <span class="badge-status badge-rejected" {% if req.rejected_reason %}title="Lý do: {{ req.rejected_reason }}"{% endif %}>Từ chối</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                <form method="post" action="{% url 'leave_cancel' req.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-cancel-request" data-confirm="Bạn có chắc muốn hủy đơn nghỉ phép này?">
+                                        <i class="fa-solid fa-xmark"></i> Hủy
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                {% endif %}
+                            </td>
                         </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ ốm</td>
-                            <td>15/04/2026</td>
-                            <td>15/04/2026</td>
-                            <td><span style="font-weight: 500;">1 ngày</span></td>
-                            <td class="text-secondary">Ốm, cần nghỉ ngơi</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 600;">Nghỉ phép</td>
-                            <td>10/04/2026</td>
-                            <td>12/04/2026</td>
-                            <td><span style="font-weight: 500;">3 ngày</span></td>
-                            <td class="text-secondary">Du lịch cùng gia đình</td>
-                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 600;">Công tác</td>
-                            <td>05/04/2026</td>
-                            <td>06/04/2026</td>
-                            <td><span style="font-weight: 500;">2 ngày</span></td>
-                            <td class="text-secondary">Họp khách hàng tại Hà Nội</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-regular fa-folder-open" style="display:block;"></i>
+                <p>Chưa có đơn nghỉ phép nào. Hãy tạo đơn đầu tiên!</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
 </div>
+
+<!-- ===== MODAL: ĐĂNG KÝ NGHỈ PHÉP ===== -->
+<div class="modal-overlay" id="leaveModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-calendar-plus" style="color:#8b5cf6; margin-right:8px;"></i>Đăng ký nghỉ phép</h3>
+            <button class="modal-close" onclick="closeLeaveModal()" type="button">&times;</button>
+        </div>
+        <form method="post" action="{% url 'leave' %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <!-- Loại nghỉ -->
+                <div class="form-group">
+                    <label for="id_leave_type">Loại nghỉ phép</label>
+                    {{ form.leave_type }}
+                </div>
+                <!-- Từ ngày / Đến ngày -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_start_date">Từ ngày</label>
+                        {{ form.start_date }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_end_date">Đến ngày</label>
+                        {{ form.end_date }}
+                    </div>
+                </div>
+                <!-- Số ngày (auto-calc) -->
+                <div class="form-group">
+                    <label>Số ngày nghỉ</label>
+                    <div class="days-display" id="daysDisplay">— ngày</div>
+                </div>
+                <!-- Lý do -->
+                <div class="form-group">
+                    <label for="id_reason">Lý do</label>
+                    {{ form.reason }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-modal" onclick="closeLeaveModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-submit-modal">
+                    <i class="fa-solid fa-paper-plane" style="margin-right:5px;"></i>Gửi đơn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- Modal open/close ---
+    function openLeaveModal() {
+        document.getElementById('leaveModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeLeaveModal() {
+        document.getElementById('leaveModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    document.getElementById('leaveModal').addEventListener('click', function(e) {
+        if (e.target === this) closeLeaveModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLeaveModal();
+    });
+
+    // --- Auto-calculate days ---
+    function calcDays() {
+        var start = document.getElementById('id_start_date').value;
+        var end = document.getElementById('id_end_date').value;
+        var display = document.getElementById('daysDisplay');
+        if (start && end) {
+            var d1 = new Date(start);
+            var d2 = new Date(end);
+            var diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            if (diff > 0) {
+                display.textContent = diff + ' ngày';
+                display.style.color = '#8b5cf6';
+            } else {
+                display.textContent = 'Ngày không hợp lệ';
+                display.style.color = '#ef4444';
+            }
+        } else {
+            display.textContent = '— ngày';
+            display.style.color = '#94a3b8';
+        }
+    }
+    document.getElementById('id_start_date').addEventListener('change', calcDays);
+    document.getElementById('id_end_date').addEventListener('change', calcDays);
+
+    // --- Mở modal nếu có form errors ---
+    {% if form.errors %}
+    openLeaveModal();
+    {% endif %}
+</script>
 {% endblock %}

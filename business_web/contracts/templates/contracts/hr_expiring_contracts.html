@@ -127,9 +127,9 @@
         <p class="text-secondary" style="margin-left: 2.75rem;">Hợp đồng hết hạn trong vòng {{ threshold_far }} ngày tới</p>
     </div>
     {% if expiring_list %}
-    <form method="post" action="{% url 'hr_send_all_reminders' %}" onsubmit="return confirm('Gửi email nhắc nhở đến TẤT CẢ {{ total_count }} hợp đồng sắp hết hạn?')">
+    <form method="post" action="{% url 'hr_send_all_reminders' %}">
         {% csrf_token %}
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" data-confirm="Gửi email nhắc nhở đến TẤT CẢ {{ total_count }} hợp đồng sắp hết hạn?">
             <i class="fa-solid fa-paper-plane"></i> Gửi tất cả ({{ total_count }})
         </button>
     </form>
@@ -243,7 +243,7 @@
                         <form method="post" action="{% url 'hr_send_reminder' contract.user.id %}" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-outline"
-                                onclick="return confirm('Gửi email nhắc nhở gia hạn cho {{ profile.full_name|default:contract.user.username }}?')"
+                                data-confirm="Gửi email nhắc nhở gia hạn cho {{ profile.full_name|default:contract.user.username }}?"
                                 title="Gửi email nhắc nhở">
                                 <i class="fa-solid fa-paper-plane"></i>
                                 <span class="hide-mobile">Nhắc nhở</span>

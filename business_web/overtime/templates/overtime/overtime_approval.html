@@ -186,9 +186,9 @@
                 <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Đơn tăng ca từ nhân viên bạn quản lý trực tiếp</p>
             </div>
             {% if step1_requests %}
-            <form method="post" action="{% url 'overtime_bulk_approve' %}" onsubmit="return confirm('Duyệt tất cả đơn bước 1?');">
+            <form method="post" action="{% url 'overtime_bulk_approve' %}">
                 {% csrf_token %}
-                <button type="submit" class="btn-bulk-approve">
+                <button type="submit" class="btn-bulk-approve" data-confirm="Duyệt tất cả đơn bước 1?">
                     <i class="fa-solid fa-check-double" style="margin-right:4px;"></i>Duyệt tất cả
                 </button>
             </form>
@@ -269,9 +269,9 @@
                 <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Đơn đã được quản lý trực tiếp duyệt, chờ HR phê duyệt cuối</p>
             </div>
             {% if step2_requests %}
-            <form method="post" action="{% url 'overtime_bulk_approve' %}" onsubmit="return confirm('Duyệt cuối tất cả {{ step2_requests|length }} đơn?');">
+            <form method="post" action="{% url 'overtime_bulk_approve' %}">
                 {% csrf_token %}
-                <button type="submit" class="btn-bulk-approve">
+                <button type="submit" class="btn-bulk-approve" data-confirm="Duyệt cuối tất cả {{ step2_requests|length }} đơn?">
                     <i class="fa-solid fa-check-double" style="margin-right:4px;"></i>Duyệt tất cả
                 </button>
             </form>
