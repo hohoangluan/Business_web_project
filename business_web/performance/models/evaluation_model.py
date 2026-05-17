@@ -1,14 +1,5 @@
-"""
-==============================================================================
-PERFORMANCE MODELS
-==============================================================================
-Model đánh giá nhân viên — hiện là placeholder cho tương lai.
-==============================================================================
-"""
-
 from django.db import models
 from django.contrib.auth.models import User
-
 
 class Evaluation(models.Model):
     """

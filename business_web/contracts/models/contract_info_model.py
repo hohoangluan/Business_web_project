@@ -1,18 +1,5 @@
-"""
-==============================================================================
-CONTRACTS MODELS
-==============================================================================
-Chứa thông tin hợp đồng lao động của nhân viên.
-Tách riêng khỏi UserProfile để mỗi app quản lý đúng nghiệp vụ của mình.
-
-Quan hệ: User ←(1:1)→ ContractInfo
-Truy cập: user.contract_info
-==============================================================================
-"""
-
 from django.db import models
 from django.contrib.auth.models import User
-
 
 class ContractInfo(models.Model):
     """
