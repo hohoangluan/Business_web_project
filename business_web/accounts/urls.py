@@ -2,11 +2,9 @@
 ==============================================================================
 ACCOUNTS URL CONFIG - accounts/urls.py
 ==============================================================================
-Sau tái cấu trúc, chỉ giữ:
-  - Public routes: home, login, register, forgot_password, logout
-  - Dashboard
-  - Settings, Switch Role
-  - Admin: quản lý user, gán role, gán quyền, xóa, khóa/mở, reset
+Public routes: home, login, register, forgot_password, reset_password, logout
+Dashboard, Settings, Switch Role
+Admin: quản lý user, gán role, gán quyền, xóa, khóa/mở, reset
 
 Các chức năng khác đã chuyển sang app riêng (xem root urls.py).
 ==============================================================================
@@ -18,6 +16,7 @@ from .views import (
     AccountsLoginView,
     register_view,
     forgot_password_view,
+    reset_password_after_otp_view,
     logout_view,
     dashboard_view,
     settings_view,
@@ -36,6 +35,7 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('login/', AccountsLoginView.as_view(), name='login'),
     path('forgot-password/', forgot_password_view, name='forgot_password'),
+    path('reset-password/', reset_password_after_otp_view, name='reset_password_after_otp'),
     path('logout/', logout_view, name='logout'),
 
     # ---------- Dashboard ----------
