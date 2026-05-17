@@ -6,11 +6,18 @@
 
 {% block content %}
 <div class="animate-fade">
-    <div style="margin-bottom: 1.5rem;">
-        <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">
-            <i class="fa-solid fa-file-contract" style="color:var(--primary); margin-right:8px;"></i>Hợp đồng của bạn
-        </h2>
-        <p style="color:var(--text-muted); font-size:0.9rem;">Thông tin hợp đồng hiện tại của cá nhân bạn</p>
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">
+                <i class="fa-solid fa-file-contract" style="color:var(--primary); margin-right:8px;"></i>Hợp đồng của bạn
+            </h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Thông tin hợp đồng hiện tại của cá nhân bạn</p>
+        </div>
+        {% if request.user.profile.role.name == 'hr' %}
+        <a href="{% url 'hr_expiring_contracts' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+            <i class="fa-solid fa-file-shield"></i> Xem hợp đồng sắp hết hạn
+        </a>
+        {% endif %}
     </div>
 
     {% if not contract_context.has_contract %}
