@@ -1,5 +1,5 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG PHÊ DUYỆT TĂNG CA (Cho quản lý). View: overtime_approval_view. Dữ liệu: MOCK DATA. #}
+{# TRANG PHÊ DUYỆT TĂNG CA 2 BƯỚC. View: overtime_approval_view. #}
 {% load static %}
 
 {% block title %}Phê duyệt Tăng ca - HR Studio{% endblock %}
@@ -17,9 +17,7 @@
         margin-bottom: 1rem;
         transition: color 0.2s;
     }
-    .btn-back:hover {
-        color: var(--primary);
-    }
+    .btn-back:hover { color: var(--primary); }
     
     .badge-status {
         padding: 0.35rem 0.85rem;
@@ -28,6 +26,7 @@
         font-size: 0.8rem;
     }
     .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-leader-approved { background: #eff6ff; color: #2563eb; }
     
     .btn-action {
         border: none;
@@ -39,49 +38,124 @@
         transition: all 0.2s;
         margin-right: 0.4rem;
     }
-    .btn-action-approve {
-        background: #10b981;
-        color: #fff;
-    }
+    .btn-action-approve { background: #10b981; color: #fff; }
     .btn-action-approve:hover {
         background: #059669;
         box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
     }
-    .btn-action-reject {
-        background: #ef4444;
-        color: #fff;
-    }
+    .btn-action-reject { background: #ef4444; color: #fff; }
     .btn-action-reject:hover {
         background: #dc2626;
         box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
     }
     
-    .user-block {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
+    .user-block { display: flex; align-items: center; gap: 0.75rem; }
     .user-avatar-small {
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         background: var(--gradient-purple);
-        color: #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.85rem;
+        color: #fff; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.85rem;
     }
     .user-info-text .name {
-        font-weight: 600;
-        color: var(--text-primary);
-        line-height: 1.2;
+        font-weight: 600; color: var(--text-primary); line-height: 1.2;
     }
     .user-info-text .dept {
-        font-size: 0.75rem;
-        color: var(--text-muted);
+        font-size: 0.75rem; color: var(--text-muted);
     }
+
+    .btn-bulk-approve {
+        background: #10b981; color: #fff; border: none;
+        padding: 0.5rem 1rem; border-radius: var(--radius);
+        font-weight: 600; font-size: 0.85rem; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-bulk-approve:hover {
+        background: #059669;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+    }
+    .btn-bulk-approve:disabled {
+        background: #94a3b8; cursor: not-allowed; box-shadow: none;
+    }
+
+    .empty-state {
+        text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Step info badge inline */
+    .step-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .step-info i { font-size: 0.7rem; }
+
+    /* Section divider */
+    .section-divider {
+        margin: 2rem 0;
+        border: none;
+        border-top: 1px dashed var(--border);
+    }
+
+    /* --- Reject modal --- */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+        z-index: 9998; animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-box {
+        background: #fff; border-radius: 16px; width: 90%; max-width: 440px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s ease-out; overflow: hidden;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+    .modal-close {
+        background: none; border: none; font-size: 1.3rem; color: var(--text-muted);
+        cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.15s;
+    }
+    .modal-close:hover { background: #f1f5f9; color: #ef4444; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 0.75rem;
+        padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #f8fafc;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+        display: block; font-size: 0.85rem; font-weight: 600;
+        color: var(--text-primary); margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.6rem 0.85rem;
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.9rem; font-family: 'Inter', sans-serif;
+        color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+    .btn-cancel-modal {
+        padding: 0.55rem 1.25rem; border: 1px solid #e2e8f0;
+        background: #fff; border-radius: 8px; font-weight: 600;
+        color: var(--text-muted); cursor: pointer;
+    }
+    .btn-cancel-modal:hover { background: #f1f5f9; }
+    .btn-reject-modal {
+        padding: 0.55rem 1.25rem; border: none;
+        background: #ef4444; color: #fff; border-radius: 8px;
+        font-weight: 600; cursor: pointer;
+    }
+    .btn-reject-modal:hover { background: #dc2626; }
 </style>
 
 <div class="animate-fade">
@@ -97,13 +171,31 @@
         <p style="color:var(--text-muted); font-size:0.95rem;">Danh sách các yêu cầu làm ngoài giờ cần bạn xử lý</p>
     </div>
 
-    <!-- ===== PENDING APPROVALS TABLE ===== -->
-    <div class="card">
+    <!-- ================================================================= -->
+    <!--  BƯỚC 1: Đơn chờ Leader/Manager duyệt (pending)                  -->
+    <!-- ================================================================= -->
+    {% if step1_requests is not None %}
+    <div class="card" style="margin-bottom: 2rem;">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Đơn cần duyệt (2 đơn)</h3>
-            <button class="btn btn-outline btn-sm">Duyệt tất cả</button>
+            <div>
+                <h3 style="margin:0;">
+                    <i class="fa-solid fa-user-check" style="color:#d97706; margin-right:6px;"></i>
+                    Bước 1 — Phê duyệt cấp Quản lý
+                    <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400; margin-left:8px;">({{ step1_requests|length }} đơn)</span>
+                </h3>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Đơn tăng ca từ nhân viên bạn quản lý trực tiếp</p>
+            </div>
+            {% if step1_requests %}
+            <form method="post" action="{% url 'overtime_bulk_approve' %}" onsubmit="return confirm('Duyệt tất cả đơn bước 1?');">
+                {% csrf_token %}
+                <button type="submit" class="btn-bulk-approve">
+                    <i class="fa-solid fa-check-double" style="margin-right:4px;"></i>Duyệt tất cả
+                </button>
+            </form>
+            {% endif %}
         </div>
         <div class="card-body" style="padding: 0;">
+            {% if step1_requests %}
             <div class="table-wrapper" style="border: none; border-radius: 0;">
                 <table class="data-table">
                     <thead>
@@ -117,54 +209,192 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for req in step1_requests %}
                         <tr>
                             <td style="padding-left: 1.5rem;">
                                 <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-blue);">HM</div>
+                                    <div class="user-avatar-small" style="background: var(--gradient-{% cycle 'blue' 'pink' 'purple' %});">
+                                        {{ req.user.profile.full_name|default:req.user.username|make_list|first|upper }}{{ req.user.username|make_list|last|upper }}
+                                    </div>
                                     <div class="user-info-text">
-                                        <div class="name">Hoàng Minh M</div>
-                                        <div class="dept">Phòng IT</div>
+                                        <div class="name">{{ req.user.profile.full_name|default:req.user.username }}</div>
+                                        <div class="dept">{{ req.user.work_info.department|default:"Chưa có phòng ban" }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td>22/04/2026</td>
-                            <td>18:00 - 21:00</td>
-                            <td style="font-weight: 600;">3h</td>
-                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                Khắc phục sự cố server khẩn cấp
+                            <td>{{ req.overtime_date|date:"d/m/Y" }}</td>
+                            <td>{{ req.time_range_display }}</td>
+                            <td style="font-weight: 600;">{{ req.hours }}h</td>
+                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ req.reason }}">
+                                {{ req.reason|default:"-" }}
                             </td>
                             <td>
-                                <button class="btn-action btn-action-approve" onclick="alert('Đã duyệt đơn OT của HM')"><i class="fa-solid fa-check"></i> Duyệt</button>
-                                <button class="btn-action btn-action-reject" onclick="alert('Đã từ chối đơn')"><i class="fa-solid fa-xmark"></i></button>
+                                <form method="post" action="{% url 'overtime_approve' req.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-action btn-action-approve">
+                                        <i class="fa-solid fa-check"></i> Duyệt
+                                    </button>
+                                </form>
+                                <button class="btn-action btn-action-reject" onclick="openRejectModal({{ req.pk }}, '{{ req.user.profile.full_name|default:req.user.username|escapejs }}')">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
                             </td>
                         </tr>
-                        
-                        <tr>
-                            <td style="padding-left: 1.5rem;">
-                                <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-pink);">LN</div>
-                                    <div class="user-info-text">
-                                        <div class="name">Lê Ngọc N</div>
-                                        <div class="dept">Phòng CSKH</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>21/04/2026</td>
-                            <td>17:30 - 19:30</td>
-                            <td style="font-weight: 600;">2h</td>
-                            <td class="text-secondary" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                Xử lý hồ sơ tồn đọng ngày cuối tháng
-                            </td>
-                            <td>
-                                <button class="btn-action btn-action-approve" onclick="alert('Đã duyệt')"><i class="fa-solid fa-check"></i> Duyệt</button>
-                                <button class="btn-action btn-action-reject" onclick="alert('Đã từ chối đơn')"><i class="fa-solid fa-xmark"></i></button>
-                            </td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-circle-check" style="display:block; color: #10b981;"></i>
+                <p>Không có đơn nào cần duyệt ở bước này.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!--  BƯỚC 2: Đơn chờ HR duyệt cuối (leader_approved)                -->
+    <!-- ================================================================= -->
+    {% if step2_requests is not None and role_name == 'hr' %}
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin:0;">
+                    <i class="fa-solid fa-clipboard-check" style="color:#2563eb; margin-right:6px;"></i>
+                    Bước 2 — Phê duyệt cuối cùng (HR)
+                    <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400; margin-left:8px;">({{ step2_requests|length }} đơn)</span>
+                </h3>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Đơn đã được quản lý trực tiếp duyệt, chờ HR phê duyệt cuối</p>
+            </div>
+            {% if step2_requests %}
+            <form method="post" action="{% url 'overtime_bulk_approve' %}" onsubmit="return confirm('Duyệt cuối tất cả {{ step2_requests|length }} đơn?');">
+                {% csrf_token %}
+                <button type="submit" class="btn-bulk-approve">
+                    <i class="fa-solid fa-check-double" style="margin-right:4px;"></i>Duyệt tất cả
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="card-body" style="padding: 0;">
+            {% if step2_requests %}
+            <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 1.5rem;">NHÂN VIÊN</th>
+                            <th>NGÀY</th>
+                            <th>THỜI GIAN</th>
+                            <th>SỐ GIỜ</th>
+                            <th>LÝ DO</th>
+                            <th>DUYỆT BỞI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in step2_requests %}
+                        <tr>
+                            <td style="padding-left: 1.5rem;">
+                                <div class="user-block">
+                                    <div class="user-avatar-small" style="background: var(--gradient-{% cycle 'blue' 'pink' 'purple' %});">
+                                        {{ req.user.profile.full_name|default:req.user.username|make_list|first|upper }}{{ req.user.username|make_list|last|upper }}
+                                    </div>
+                                    <div class="user-info-text">
+                                        <div class="name">{{ req.user.profile.full_name|default:req.user.username }}</div>
+                                        <div class="dept">{{ req.user.work_info.department|default:"Chưa có phòng ban" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ req.overtime_date|date:"d/m/Y" }}</td>
+                            <td>{{ req.time_range_display }}</td>
+                            <td style="font-weight: 600;">{{ req.hours }}h</td>
+                            <td class="text-secondary" style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ req.reason }}">
+                                {{ req.reason|default:"-" }}
+                            </td>
+                            <td>
+                                {% if req.leader_approved_by %}
+                                <div class="step-info">
+                                    <i class="fa-solid fa-check-circle" style="color:#10b981;"></i>
+                                    {{ req.leader_approved_by.profile.full_name|default:req.leader_approved_by.username }}
+                                </div>
+                                {% else %}
+                                <span style="color: var(--text-muted);">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="{% url 'overtime_approve' req.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-action btn-action-approve">
+                                        <i class="fa-solid fa-check"></i> Duyệt cuối
+                                    </button>
+                                </form>
+                                <button class="btn-action btn-action-reject" onclick="openRejectModal({{ req.pk }}, '{{ req.user.profile.full_name|default:req.user.username|escapejs }}')">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-circle-check" style="display:block; color: #10b981;"></i>
+                <p>Không có đơn nào chờ HR phê duyệt cuối.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
 </div>
+
+<!-- ===== MODAL: TỪ CHỐI ĐƠN ===== -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-ban" style="color:#ef4444; margin-right:8px;"></i>Từ chối đơn tăng ca</h3>
+            <button class="modal-close" onclick="closeRejectModal()" type="button">&times;</button>
+        </div>
+        <form method="post" id="rejectForm" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                    Từ chối đơn tăng ca của <strong id="rejectEmployeeName"></strong>
+                </p>
+                <div class="form-group">
+                    <label for="rejected_reason">Lý do từ chối</label>
+                    <textarea name="rejected_reason" id="rejected_reason" class="form-control" rows="3" placeholder="Nhập lý do từ chối (không bắt buộc)..." style="resize:none;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-modal" onclick="closeRejectModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-reject-modal">
+                    <i class="fa-solid fa-xmark" style="margin-right:5px;"></i>Xác nhận từ chối
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRejectModal(pk, name) {
+        document.getElementById('rejectForm').action = '/overtime/reject/' + pk + '/';
+        document.getElementById('rejectEmployeeName').textContent = name;
+        document.getElementById('rejected_reason').value = '';
+        document.getElementById('rejectModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    document.getElementById('rejectModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRejectModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeRejectModal();
+    });
+</script>
 {% endblock %}
