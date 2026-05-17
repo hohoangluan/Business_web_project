@@ -213,41 +213,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ============================================================
-  // 10. DYNAMIC MODAL CONTENT
-  // Load nội dung động vào modal (cho xem chi tiết user)
+  // 10. (Removed) openUserDetail — replaced by hr_view_profile page
   // ============================================================
-  window.openUserDetail = function(userId, username, email, fullName,
-                                     employeeId, role, status, dateJoined,
-                                     department, position, employeeType, workplace,
-                                     probationStart, officialStartDate, workStatus,
-                                     managerName, leaderName) {
-    var modal = document.getElementById('userDetailModal');
-    if (!modal) return;
 
-    // Điền thông tin vào modal
-    var setContent = function(id, value) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = value || '—';
-    };
-    setContent('detail-fullname', fullName);
-    setContent('detail-username', username);
-    setContent('detail-email', email);
-    setContent('detail-employee-id', employeeId);
-    setContent('detail-role', role);
-    setContent('detail-status', status);
-    setContent('detail-date-joined', dateJoined);
-    setContent('detail-department', department);
-    setContent('detail-position', position);
-    setContent('detail-employee-type', employeeType);
-    setContent('detail-workplace', workplace);
-    setContent('detail-probation-start', probationStart);
-    setContent('detail-official-start-date', officialStartDate);
-    setContent('detail-work-status', workStatus);
-    setContent('detail-manager-name', managerName);
-    setContent('detail-leader-name', leaderName);
-
-    modal.classList.add('show');
-  };
 
   // ============================================================
   // 11. CONFIRM FORM SUBMIT VIA MODAL

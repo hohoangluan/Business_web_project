@@ -6,23 +6,23 @@
 {% block content %}
 <div class="page-header animate-fade">
     <div>
-        <h1>Hồ sơ nhân sự</h1>
+        <h1>Cập nhật hồ sơ nhân sự</h1>
         <p class="text-secondary">HR/Admin có thể cập nhật toàn bộ dữ liệu đang lưu cho <strong>{{ target_user.username }}</strong></p>
     </div>
-    <a href="{% url 'user_list' %}" class="btn btn-secondary">
-        <i class="fa-solid fa-arrow-left"></i> Quay lại
+    <a href="{% url 'hr_view_profile' target_user.id %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại hồ sơ
     </a>
 </div>
 
 <div class="card animate-fade" style="max-width: 820px;">
     <div class="card-header">
-        <h3><i class="fa-solid fa-sitemap" style="color:var(--primary);"></i>&nbsp; Hồ sơ nhân sự đang lưu</h3>
+        <h3><i class="fa-solid fa-pen-to-square" style="color:var(--primary);"></i>&nbsp; Cập nhật hồ sơ nhân sự</h3>
     </div>
     <form method="post">
         {% csrf_token %}
         <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1rem;">
-                Màn hình này gom toàn bộ dữ liệu đang lưu trong hồ sơ cá nhân của nhân viên, bao gồm thông tin công việc và hợp đồng hiện tại. Vai trò hệ thống vẫn đổi ở màn hình riêng để tránh nhầm với cơ cấu tổ chức.
+                Màn hình này gom toàn bộ dữ liệu đang lưu trong hồ sơ cá nhân của nhân viên, bao gồm thông tin công việc, hợp đồng và vai trò hệ thống.
             </div>
 
             <h4 style="margin-bottom: 1rem;">Thông tin cá nhân đang lưu</h4>
@@ -113,10 +113,17 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Vai trò hệ thống hiện tại</label>
-                    <input type="text"
-                           class="form-control"
-                           value="{% if target_user.profile.role %}{{ target_user.profile.role.get_name_display }}{% else %}Chưa gán vai trò{% endif %}"
-                           disabled>
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <input type="text"
+                               class="form-control"
+                               value="{% if target_user.profile.role %}{{ target_user.profile.role.get_name_display }}{% else %}Chưa gán vai trò{% endif %}"
+                               disabled
+                               style="flex:1;">
+                        <a href="{% url 'hr_assign_role' target_user.id %}"
+                           class="btn btn-outline" style="white-space:nowrap;">
+                            <i class="fa-solid fa-user-tag"></i> Đổi vai trò
+                        </a>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Phòng ban</label>
@@ -284,7 +291,7 @@
             {% endif %}
         </div>
         <div class="card-footer">
-            <a href="{% url 'user_list' %}" class="btn btn-secondary">Hủy</a>
+            <a href="{% url 'hr_view_profile' target_user.id %}" class="btn btn-secondary">Hủy</a>
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-check"></i> Lưu hồ sơ nhân sự
             </button>

@@ -8,7 +8,7 @@ Form chỉnh sửa hồ sơ nhân viên. Dùng bởi HR/Admin tại edit_work_in
 
 from django import forms
 from django.contrib.auth.models import User
-from accounts.models import UserProfile
+from accounts.models import UserProfile, Role
 from employee_profiles.models import EmployeeWorkInfo
 from contracts.models import ContractInfo
 
@@ -78,6 +78,13 @@ class EmployeeProfileForm(forms.Form):
     employee_id = forms.CharField(
         max_length=50, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: NV001'}),
+    )
+
+    # ----- Vai trò hệ thống (Role) -----
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.none(), required=False,
+        empty_label='-- Chưa gán vai trò --',
+        widget=forms.Select(attrs={'class': 'form-control'}),
     )
 
     # ----- Thông tin công việc (EmployeeWorkInfo) -----
@@ -156,11 +163,16 @@ class EmployeeProfileForm(forms.Form):
     )
 
     def __init__(self, *args, manager_queryset=None, leader_queryset=None,
-                 current_user=None, **kwargs):
+                 current_user=None, is_admin_editor=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_user = current_user
         self.fields['manager_user'].queryset = manager_queryset or User.objects.none()
         self.fields['leader_user'].queryset = leader_queryset or User.objects.none()
+        # Admin can assign any role; HR can assign all except Admin
+        if is_admin_editor:
+            self.fields['role'].queryset = Role.objects.all()
+        else:
+            self.fields['role'].queryset = Role.objects.exclude(name=Role.ADMIN)
 
     def clean_employee_id(self):
         """Không cho trùng mã nhân viên với user khác."""

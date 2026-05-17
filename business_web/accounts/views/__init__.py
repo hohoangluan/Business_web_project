@@ -21,7 +21,6 @@ from accounts.views.account.account_update_view import (
 from accounts.views.auth.forgot_password_view import forgot_password_view
 from accounts.views.auth.login_view import AccountsLoginView
 from accounts.views.auth.logout_view import logout_view
-from accounts.views.auth.password_change_view import password_change_view
 from accounts.views.auth.register_view import register_view
 from accounts.views.auth.reset_password_view import reset_password_after_otp_view
 
@@ -36,7 +35,6 @@ __all__ = [
     "delete_user_view",
     "forgot_password_view",
     "logout_view",
-    "password_change_view",
     "register_view",
     "reset_password_after_otp_view",
     "reset_user_password_view",
