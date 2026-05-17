@@ -5,6 +5,7 @@ from accounts.views.auth.login_view import AccountsLoginView
 from accounts.views.auth.logout_view import logout_view
 from accounts.views.auth.password_change_view import password_change_view
 from accounts.views.auth.register_view import register_view
+from accounts.views.auth.reset_password_view import reset_password_after_otp_view
 
 __all__ = [
     "AccountsLoginView",
@@ -12,4 +13,5 @@ __all__ = [
     "logout_view",
     "password_change_view",
     "register_view",
+    "reset_password_after_otp_view",
 ]

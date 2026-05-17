@@ -20,8 +20,13 @@ from accounts.services.account import (
 from accounts.services.auth import (
     create_automatic_account,
     create_manual_account,
+    create_otp_for_user,
+    generate_otp,
     mask_email,
     normalize_employee_username,
+    reset_user_password,
+    send_otp_email,
+    verify_otp,
 )
 from accounts.services.permission import (
     can_access_evaluations,
@@ -46,6 +51,7 @@ __all__ = [
     "can_submit_evaluation_demo",
     "create_automatic_account",
     "create_manual_account",
+    "create_otp_for_user",
     "ensure_account_profiles",
     "ensure_contract_info",
     "ensure_personal_info",
@@ -53,6 +59,7 @@ __all__ = [
     "ensure_education_info",
     "ensure_profile",
     "ensure_work_info",
+    "generate_otp",
     "get_department_label",
     "get_leader_display_name",
     "get_manager_display_name",
@@ -64,5 +71,8 @@ __all__ = [
     "is_hr_user",
     "mask_email",
     "normalize_employee_username",
+    "reset_user_password",
+    "send_otp_email",
     "user_has_role",
+    "verify_otp",
 ]
