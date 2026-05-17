@@ -1,15 +1,5 @@
-"""
-==============================================================================
-ATTENDANCE MODELS
-==============================================================================
-Model chấm công — hiện là placeholder cho tương lai.
-Khi backend sẵn sàng, thêm fields và logic thật vào đây.
-==============================================================================
-"""
-
 from django.db import models
 from django.contrib.auth.models import User
-
 
 class AttendanceRecord(models.Model):
     """
