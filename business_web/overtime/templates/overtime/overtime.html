@@ -1,5 +1,5 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG TĂNG CA (Overtime). View: overtime_view. Dữ liệu: MOCK DATA. #}
+{# TRANG TĂNG CA (Overtime). View: overtime_view. Dữ liệu thực từ DB. #}
 {% load static %}
 
 {% block title %}Tăng ca - HR Studio{% endblock %}
@@ -19,7 +19,7 @@
     }
     
     .btn-create {
-        background: #8b5cf6; /* Màu tím theo ảnh UI */
+        background: #8b5cf6;
         color: #fff;
         border: none;
         padding: 0.6rem 1.25rem;
@@ -27,6 +27,7 @@
         font-weight: 600;
         transition: all 0.2s;
         box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+        cursor: pointer;
     }
     .btn-create:hover {
         background: #7c3aed;
@@ -60,6 +61,7 @@
     }
     .badge-approved { background: #ecfdf5; color: #059669; }
     .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-leader-approved { background: #eff6ff; color: #2563eb; }
     .badge-rejected { background: #fef2f2; color: #dc2626; }
 
     /* --- CHART CSS --- */
@@ -83,7 +85,7 @@
     .chart-line-label {
         position: absolute;
         left: -30px;
-        top: -8px; /* canh giữa chữ với line */
+        top: -8px;
         font-size: 0.75rem;
         color: var(--text-muted);
     }
@@ -116,6 +118,155 @@
         color: var(--text-muted);
         margin-top: 8px;
     }
+
+    /* --- MODAL CSS --- */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9998;
+        animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 520px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s ease-out;
+        overflow: hidden;
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.3rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: all 0.15s;
+    }
+    .modal-close:hover { background: #f1f5f9; color: #ef4444; }
+
+    .modal-body { padding: 1.5rem; }
+
+    .form-group { margin-bottom: 1.15rem; }
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-family: 'Inter', sans-serif;
+        color: var(--text-primary);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        box-sizing: border-box;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    .form-error {
+        color: #ef4444;
+        font-size: 0.78rem;
+        margin-top: 0.3rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: #f8fafc;
+    }
+    .btn-cancel-modal {
+        padding: 0.55rem 1.25rem;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-cancel-modal:hover { background: #f1f5f9; }
+    .btn-submit-modal {
+        padding: 0.55rem 1.25rem;
+        border: none;
+        background: #8b5cf6;
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-submit-modal:hover { background: #7c3aed; }
+
+    /* Btn hủy đơn */
+    .btn-cancel-request {
+        background: none;
+        border: 1px solid #fecaca;
+        color: #ef4444;
+        padding: 0.3rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-cancel-request:hover {
+        background: #fef2f2;
+        border-color: #ef4444;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--text-muted);
+    }
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.4;
+    }
+    .empty-state p {
+        font-size: 0.95rem;
+    }
 </style>
 
 <div class="animate-fade">
@@ -134,7 +285,7 @@
             </a>
             {% endif %}
             
-            <button class="btn-create" onclick="alert('Mở form tạo đơn Tăng ca!')">
+            <button class="btn-create" onclick="openOvertimeModal()" id="btn-create-overtime">
                 <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Đăng ký tăng ca
             </button>
         </div>
@@ -142,47 +293,47 @@
 
     <!-- ===== STATS GRID ===== -->
     <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-        <!-- Card 1 -->
+        <!-- Card 1: Tổng giờ -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-clock"></i>
             </div>
             <div>
                 <div class="stat-label">Tổng giờ tháng này</div>
-                <div class="stat-val-big">20h</div>
+                <div class="stat-val-big">{{ stats.total_hours }}h</div>
             </div>
         </div>
         
-        <!-- Card 2 -->
+        <!-- Card 2: Thu nhập -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid fa-dollar-sign"></i>
             </div>
             <div>
                 <div class="stat-label">Thu nhập tăng ca</div>
-                <div class="stat-val-big" style="color: #1e293b;">3,000,000đ</div>
+                <div class="stat-val-big" style="color: #1e293b;">{{ stats.total_pay|floatformat:0 }}đ</div>
             </div>
         </div>
         
-        <!-- Card 3 -->
+        <!-- Card 3: Đã duyệt -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid fa-arrow-trend-up"></i>
             </div>
             <div>
                 <div class="stat-label">Đã duyệt</div>
-                <div class="stat-val-big">12 đơn</div>
+                <div class="stat-val-big">{{ stats.approved_count }} đơn</div>
             </div>
         </div>
         
-        <!-- Card 4 -->
+        <!-- Card 4: Chờ duyệt -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-calendar"></i>
             </div>
             <div>
                 <div class="stat-label">Chờ duyệt</div>
-                <div class="stat-val-big">1 đơn</div>
+                <div class="stat-val-big">{{ stats.pending_count }} đơn</div>
             </div>
         </div>
     </div>
@@ -190,44 +341,33 @@
     <!-- ===== CSS BAR CHART SECTION ===== -->
     <div class="card" style="margin-bottom: 2rem;">
         <div class="card-header">
-            <h3>Thống kê giờ tăng ca theo tháng</h3>
+            <h3>Thống kê giờ tăng ca theo tuần</h3>
         </div>
         <div class="card-body">
             <div class="chart-container">
                 <!-- Grid nền cho biểu đồ -->
                 <div class="chart-background">
-                    <div class="chart-line"><span class="chart-line-label">20</span></div>
-                    <div class="chart-line"><span class="chart-line-label">15</span></div>
-                    <div class="chart-line"><span class="chart-line-label">10</span></div>
-                    <div class="chart-line"><span class="chart-line-label">5</span></div>
+                    {% with max=chart_max %}
+                    <div class="chart-line"><span class="chart-line-label">{{ max|floatformat:0 }}</span></div>
+                    <div class="chart-line"><span class="chart-line-label">{% widthratio max 4 3 %}</span></div>
+                    <div class="chart-line"><span class="chart-line-label">{% widthratio max 2 1 %}</span></div>
+                    <div class="chart-line"><span class="chart-line-label">{% widthratio max 4 1 %}</span></div>
                     <div class="chart-line" style="border-bottom:none;"><span class="chart-line-label">0</span></div>
+                    {% endwith %}
                 </div>
                 
-                <!-- Cột dọc dữ liệu (Scale Y: max 20) -->
+                <!-- Cột dọc dữ liệu -->
                 <div class="chart-bars-wrap">
-                    <!-- Tuần 1: 12h = 60% chiều cao -->
+                    {% for week in chart_data %}
                     <div class="chart-bar-group">
-                        <div class="chart-bar" style="height: 60%;" title="12h"></div>
-                        <div class="chart-x-label">T1</div>
+                        {% if chart_max > 0 %}
+                        <div class="chart-bar" style="height: {% widthratio week.hours chart_max 100 %}%;" title="{{ week.hours }}h"></div>
+                        {% else %}
+                        <div class="chart-bar" style="height: 0%;" title="0h"></div>
+                        {% endif %}
+                        <div class="chart-x-label">{{ week.label }}</div>
                     </div>
-                    
-                    <!-- Tuần 2: 15h = 75% chiều cao -->
-                    <div class="chart-bar-group">
-                        <div class="chart-bar" style="height: 75%;" title="15h"></div>
-                        <div class="chart-x-label">T2</div>
-                    </div>
-                    
-                    <!-- Tuần 3: 18h = 90% chiều cao -->
-                    <div class="chart-bar-group">
-                        <div class="chart-bar" style="height: 90%;" title="18h"></div>
-                        <div class="chart-x-label">T3</div>
-                    </div>
-                    
-                    <!-- Tuần 4: 20h = 100% chiều cao -->
-                    <div class="chart-bar-group">
-                        <div class="chart-bar" style="height: 100%;" title="20h"></div>
-                        <div class="chart-x-label">T4</div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -239,6 +379,7 @@
             <h3>Danh sách đơn tăng ca</h3>
         </div>
         <div class="card-body" style="padding: 0;">
+            {% if requests %}
             <div class="table-wrapper" style="border: none; border-radius: 0;">
                 <table class="data-table">
                     <thead>
@@ -247,56 +388,165 @@
                             <th>THỜI GIAN</th>
                             <th>SỐ GIỜ</th>
                             <th>LÝ DO</th>
-                            <th>THANH TOÁN</th>
                             <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for req in requests %}
                         <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">20/04/2026</td>
-                            <td>18:00 - 21:00</td>
-                            <td style="font-weight: 600;">3h</td>
-                            <td class="text-secondary">Hoàn thành dự án X</td>
-                            <td style="color: #059669; font-weight: 600;">450,000đ</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
+                            <td style="padding-left: 1.5rem; font-weight: 500;">{{ req.overtime_date|date:"d/m/Y" }}</td>
+                            <td>{{ req.time_range_display }}</td>
+                            <td style="font-weight: 600;">{{ req.hours }}h</td>
+                            <td class="text-secondary" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ req.reason }}">{{ req.reason|default:"-" }}</td>
+                            <td>
+                                {% if req.status == 'approved' %}
+                                <span class="badge-status badge-approved">Đã duyệt</span>
+                                {% elif req.status == 'leader_approved' %}
+                                <span class="badge-status badge-leader-approved" title="Quản lý đã duyệt, chờ HR phê duyệt cuối">Chờ HR duyệt</span>
+                                {% elif req.status == 'pending' %}
+                                <span class="badge-status badge-pending">Chờ quản lý duyệt</span>
+                                {% elif req.status == 'rejected' %}
+                                <span class="badge-status badge-rejected" {% if req.rejected_reason %}title="Lý do: {{ req.rejected_reason }}"{% endif %}>Từ chối</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                <form method="post" action="{% url 'overtime_cancel' req.pk %}" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn hủy đơn này?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-cancel-request">
+                                        <i class="fa-solid fa-xmark"></i> Hủy
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                {% endif %}
+                            </td>
                         </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">18/04/2026</td>
-                            <td>18:00 - 20:00</td>
-                            <td style="font-weight: 600;">2h</td>
-                            <td class="text-secondary">Sửa lỗi hệ thống</td>
-                            <td style="color: #059669; font-weight: 600;">300,000đ</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">15/04/2026</td>
-                            <td>17:30 - 21:30</td>
-                            <td style="font-weight: 600;">4h</td>
-                            <td class="text-secondary">Deploy tính năng mới</td>
-                            <td style="color: #94a3b8; font-weight: 500;">-</td>
-                            <td><span class="badge-status badge-pending">Chờ duyệt</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">12/04/2026</td>
-                            <td>18:00 - 20:30</td>
-                            <td style="font-weight: 600;">2.5h</td>
-                            <td class="text-secondary">Họp khách hàng</td>
-                            <td style="color: #059669; font-weight: 600;">375,000đ</td>
-                            <td><span class="badge-status badge-approved">Đã duyệt</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">10/04/2026</td>
-                            <td>17:30 - 20:30</td>
-                            <td style="font-weight: 600;">3h</td>
-                            <td class="text-secondary">Chuẩn bị báo cáo</td>
-                            <td style="color: #94a3b8; font-weight: 500;">-</td>
-                            <td><span class="badge-status badge-rejected">Từ chối</span></td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-regular fa-folder-open" style="display:block;"></i>
+                <p>Chưa có đơn tăng ca nào. Hãy tạo đơn đầu tiên!</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
 </div>
+
+<!-- ===== MODAL: ĐĂNG KÝ TĂNG CA ===== -->
+<div class="modal-overlay" id="overtimeModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-business-time" style="color:#8b5cf6; margin-right:8px;"></i>Đăng ký tăng ca</h3>
+            <button class="modal-close" onclick="closeOvertimeModal()" type="button">&times;</button>
+        </div>
+        <form method="post" action="{% url 'overtime' %}" id="overtimeForm">
+            {% csrf_token %}
+            <div class="modal-body">
+                <!-- Ngày tăng ca -->
+                <div class="form-group">
+                    <label for="id_overtime_date">{{ form.overtime_date.label }}</label>
+                    {{ form.overtime_date }}
+                    {% if form.overtime_date.errors %}
+                    <div class="form-error">{{ form.overtime_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Giờ bắt đầu + Giờ kết thúc -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_start_time">{{ form.start_time.label }}</label>
+                        {{ form.start_time }}
+                        {% if form.start_time.errors %}
+                        <div class="form-error">{{ form.start_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_end_time">{{ form.end_time.label }}</label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}
+                        <div class="form-error">{{ form.end_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Số giờ -->
+                <div class="form-group">
+                    <label for="id_hours">{{ form.hours.label }}</label>
+                    {{ form.hours }}
+                    {% if form.hours.errors %}
+                    <div class="form-error">{{ form.hours.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Lý do -->
+                <div class="form-group">
+                    <label for="id_reason">{{ form.reason.label }}</label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}
+                    <div class="form-error">{{ form.reason.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-modal" onclick="closeOvertimeModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-submit-modal">
+                    <i class="fa-solid fa-paper-plane" style="margin-right:5px;"></i>Gửi đơn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    /* ---------- Modal open / close ---------- */
+    function openOvertimeModal() {
+        document.getElementById('overtimeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeOvertimeModal() {
+        document.getElementById('overtimeModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    // Đóng khi click overlay
+    document.getElementById('overtimeModal').addEventListener('click', function(e) {
+        if (e.target === this) closeOvertimeModal();
+    });
+    // Đóng bằng ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeOvertimeModal();
+    });
+
+    /* ---------- Tự động tính số giờ ---------- */
+    (function() {
+        const startEl = document.getElementById('id_start_time');
+        const endEl = document.getElementById('id_end_time');
+        const hoursEl = document.getElementById('id_hours');
+        if (!startEl || !endEl || !hoursEl) return;
+
+        function calcHours() {
+            const s = startEl.value;
+            const e = endEl.value;
+            if (!s || !e) return;
+            const [sh, sm] = s.split(':').map(Number);
+            const [eh, em] = e.split(':').map(Number);
+            let diff = (eh * 60 + em) - (sh * 60 + sm);
+            if (diff > 0) {
+                hoursEl.value = (diff / 60).toFixed(1);
+            }
+        }
+        startEl.addEventListener('change', calcHours);
+        endEl.addEventListener('change', calcHours);
+    })();
+
+    /* ---------- Mở lại modal nếu có lỗi form ---------- */
+    {% if form.errors %}
+    openOvertimeModal();
+    {% endif %}
+</script>
 {% endblock %}
