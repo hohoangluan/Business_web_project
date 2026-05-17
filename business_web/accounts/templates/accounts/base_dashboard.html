@@ -398,12 +398,37 @@ Blocks có thể override:
                   {% endblock %}
                 {% endcomment %}
                 {% block content %}{% endblock %}
+
+                <!-- ===== MODAL: Xác nhận hành động chung (Khóa tài khoản, Hủy đơn, v.v) ===== -->
+                <div class="modal-overlay" id="confirmModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 class="confirm-title">Xác nhận</h3>
+                            <button class="modal-close" type="button">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="confirm-content warning" style="text-align: center; padding: 1.5rem 0;">
+                                <i class="fa-solid fa-exclamation-triangle confirm-icon" style="font-size: 3rem; color: #f59e0b; margin-bottom: 1rem;"></i>
+                                <h4 class="confirm-title" style="margin-bottom: 0.5rem;">Xác nhận hành động</h4>
+                                <p class="confirm-desc" style="color: var(--text-muted);">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button class="btn btn-secondary modal-cancel" type="button">Hủy</button>
+                            <form class="confirm-form" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">Xác nhận</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
 
     <!-- JavaScript chính -->
-    <script src="{% static 'accounts/js/accounts.js' %}"></script>
+    <script src="{% static 'accounts/js/accounts.js' %}?v=1.1"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

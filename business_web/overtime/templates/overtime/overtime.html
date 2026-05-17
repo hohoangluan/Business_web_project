@@ -412,9 +412,9 @@
                             </td>
                             <td>
                                 {% if req.status == 'pending' %}
-                                <form method="post" action="{% url 'overtime_cancel' req.pk %}" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn hủy đơn này?');">
+                                <form method="post" action="{% url 'overtime_cancel' req.pk %}" style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn-cancel-request">
+                                    <button type="submit" class="btn-cancel-request" data-confirm="Bạn có chắc muốn hủy đơn tăng ca này?">
                                         <i class="fa-solid fa-xmark"></i> Hủy
                                     </button>
                                 </form>

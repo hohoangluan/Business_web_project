@@ -179,9 +179,31 @@ document.addEventListener('DOMContentLoaded', function() {
   // ============================================================
   document.querySelectorAll('[data-confirm]').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
+      e.preventDefault();
       var message = this.getAttribute('data-confirm');
-      if (!confirm(message)) {
-        e.preventDefault();
+      var form = this.closest('form');
+      var modal = document.getElementById('confirmModal');
+
+      if (modal && form) {
+          var titleEl = modal.querySelector('.confirm-title');
+          var descEl = modal.querySelector('.confirm-desc');
+          var formEl = modal.querySelector('.confirm-form');
+          var iconEl = modal.querySelector('.confirm-icon');
+
+          if (titleEl) titleEl.textContent = 'Xác nhận';
+          if (descEl) descEl.textContent = message;
+          if (iconEl) { 
+              iconEl.className = 'fa-solid fa-circle-question confirm-icon'; 
+              iconEl.style.color = '#3b82f6'; 
+          }
+          
+          if (formEl) formEl.action = form.action;
+          modal.classList.add('show');
+      } else {
+          // Fallback
+          if (confirm(message)) {
+              if (form) form.submit();
+          }
       }
     });
   });
