@@ -5,7 +5,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from accounts.services import ensure_profile, can_manage_requests
 from reports_interactions.models import Report
-from reports_interactions.forms import ReportForm
+from reports_interactions.models.ticket_model import Ticket
+from reports_interactions.forms import ReportForm, TicketForm
 
 
 @login_required
@@ -126,11 +127,48 @@ def report_inbox_view(request):
 
 @login_required
 def ticket_list_view(request):
-    """Trang ticket cá nhân. MOCK DATA. Template: reports_interactions/tickets.html"""
+    """Trang ticket cá nhân. Template: reports_interactions/tickets.html"""
     ensure_profile(request.user)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            form = TicketForm(request.POST, request.FILES)
+            if form.is_valid():
+                ticket = form.save(commit=False)
+                ticket.author = request.user
+                ticket.status = Ticket.STATUS_NEW
+                ticket.save()
+                messages.success(request, 'Đã tạo yêu cầu/khiếu nại thành công!')
+                return redirect('tickets')
+            else:
+                messages.error(request, 'Có lỗi xảy ra khi tạo ticket. Vui lòng kiểm tra lại.')
+    else:
+        form = TicketForm()
+
+    status_filter = request.GET.get('status', '')
+    tickets = Ticket.objects.filter(author=request.user)
+    
+    if status_filter:
+        tickets = tickets.filter(status=status_filter)
+        
+    tickets = tickets.order_by('-created_at')
+
+    # Thống kê
+    stats = {
+        'waiting': Ticket.objects.filter(author=request.user, status=Ticket.STATUS_NEW).count(),
+        'processing': Ticket.objects.filter(author=request.user, status=Ticket.STATUS_PROCESSING).count(),
+        'resolved': Ticket.objects.filter(author=request.user, status=Ticket.STATUS_RESOLVED).count(),
+        'closed': Ticket.objects.filter(author=request.user, status=Ticket.STATUS_CLOSED).count(),
+    }
+
     return render(request, 'reports_interactions/tickets.html', {
         'active_page': 'tickets',
         'can_process': can_manage_requests(request.user),
+        'tickets': tickets,
+        'form': form,
+        'stats': stats,
+        'status_filter': status_filter,
     })
 
 
@@ -141,6 +179,41 @@ def ticket_process_view(request):
     if not can_manage_requests(request.user):
         messages.error(request, 'Bạn không có quyền truy cập trang xử lý ticket!')
         return redirect('tickets')
+        
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        ticket_id = request.POST.get('ticket_id')
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        
+        if action == 'receive':
+            ticket.status = Ticket.STATUS_PROCESSING
+            ticket.assigned_to = request.user
+            ticket.save()
+            messages.success(request, f'Đã tiếp nhận ticket: {ticket.title}')
+        elif action == 'resolve':
+            ticket.status = Ticket.STATUS_RESOLVED
+            ticket.save()
+            messages.success(request, f'Đã giải quyết ticket: {ticket.title}')
+        elif action == 'close':
+            ticket.status = Ticket.STATUS_CLOSED
+            ticket.save()
+            messages.success(request, f'Đã đóng ticket: {ticket.title}')
+        elif action == 'reject':
+            reason = request.POST.get('rejection_reason', '').strip()
+            if reason:
+                ticket.status = Ticket.STATUS_REJECTED
+                ticket.rejection_reason = reason
+                ticket.save()
+                messages.success(request, f'Đã từ chối ticket: {ticket.title}')
+            else:
+                messages.error(request, 'Vui lòng nhập lý do từ chối.')
+                
+        return redirect('ticket_process')
+
+    # Lấy các ticket chưa đóng và chưa từ chối
+    tickets = Ticket.objects.exclude(status__in=[Ticket.STATUS_CLOSED, Ticket.STATUS_REJECTED, Ticket.STATUS_RESOLVED]).select_related('author', 'author__profile').order_by('-created_at')
+    
     return render(request, 'reports_interactions/ticket_process.html', {
         'active_page': 'tickets',
+        'tickets': tickets,
     })

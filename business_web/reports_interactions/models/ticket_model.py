@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 class Ticket(models.Model):
     """
     Ticket hỗ trợ & khiếu nại.
-    Placeholder — sẽ được bổ sung khi xây dựng backend thật.
     """
 
     SUPPORT = 'support'
@@ -12,6 +11,28 @@ class Ticket(models.Model):
     TYPE_CHOICES = [
         (SUPPORT, 'Hỗ trợ'),
         (COMPLAINT, 'Khiếu nại'),
+    ]
+
+    STATUS_NEW = 'new'
+    STATUS_PROCESSING = 'processing'
+    STATUS_RESOLVED = 'resolved'
+    STATUS_CLOSED = 'closed'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_NEW, 'Mới'),
+        (STATUS_PROCESSING, 'Đang xử lý'),
+        (STATUS_RESOLVED, 'Đã giải quyết'),
+        (STATUS_CLOSED, 'Đã đóng'),
+        (STATUS_REJECTED, 'Bị từ chối'),
+    ]
+
+    PRIORITY_LOW = 'low'
+    PRIORITY_MEDIUM = 'medium'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_CHOICES = [
+        (PRIORITY_LOW, 'Thấp'),
+        (PRIORITY_MEDIUM, 'Trung bình'),
+        (PRIORITY_HIGH, 'Cao'),
     ]
 
     author = models.ForeignKey(
@@ -26,6 +47,12 @@ class Ticket(models.Model):
         default=SUPPORT,
         help_text="Loại: hỗ trợ hay khiếu nại.",
     )
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default=PRIORITY_MEDIUM,
+        help_text="Mức độ ưu tiên.",
+    )
     title = models.CharField(
         max_length=255,
         help_text="Tiêu đề ticket.",
@@ -33,10 +60,17 @@ class Ticket(models.Model):
     content = models.TextField(
         help_text="Nội dung chi tiết.",
     )
+    evidence_file = models.FileField(
+        upload_to='tickets/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text="File minh chứng đính kèm."
+    )
     status = models.CharField(
         max_length=20,
-        default='open',
-        help_text="Trạng thái: open, processing, closed.",
+        choices=STATUS_CHOICES,
+        default=STATUS_NEW,
+        help_text="Trạng thái của ticket.",
     )
     assigned_to = models.ForeignKey(
         User,
@@ -46,7 +80,13 @@ class Ticket(models.Model):
         related_name='assigned_tickets',
         help_text="Người xử lý ticket.",
     )
+    rejection_reason = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Lý do từ chối (nếu có)."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Ticket: {self.title} ({self.author.username})"
