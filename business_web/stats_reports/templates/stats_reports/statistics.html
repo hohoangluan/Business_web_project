@@ -151,8 +151,8 @@
             <p class="text-secondary">Báo cáo theo phòng ban, leader, nhân viên và khoảng thời gian</p>
         </div>
         <div class="header-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-            <a href="{% url 'statistics_export_csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-secondary">
-                <i class="fa-solid fa-file-csv"></i> Xuất Excel (CSV)
+            <a href="{% url 'statistics_export_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-secondary" style="background:#10b981; color:white; border-color:#10b981;">
+                <i class="fa-solid fa-file-excel"></i> Xuất Excel (.xlsx)
             </a>
             <a href="{% url 'statistics_print' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-primary" target="_blank">
                 <i class="fa-solid fa-print"></i> In / Lưu PDF

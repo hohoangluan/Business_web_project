@@ -28,9 +28,12 @@ def statistics_view(request):
     return render(request, 'stats_reports/statistics.html', context)
 
 
+import openpyxl
+from openpyxl.styles import Font, Alignment
+
 @login_required
-def statistics_export_csv_view(request):
-    """Xuất bảng tổng hợp statistics ra CSV."""
+def statistics_export_excel_view(request):
+    """Xuất bảng tổng hợp statistics ra file Excel (.xlsx)."""
     ensure_profile(request.user)
     if not can_access_statistics(request.user):
         messages.error(request, 'Bạn không có quyền xuất statistics.')
@@ -39,61 +42,95 @@ def statistics_export_csv_view(request):
     ctx = build_statistics_page_context(request.user, request.GET)
     tr = ctx['time_range']
     st = ctx['selected_stats_type']
-    fname = f"statistics_{st}_{tr['start_date']:%Y%m%d}_{tr['end_date']:%Y%m%d}.csv"
+    fname = f"statistics_{st}_{tr['start_date']:%Y%m%d}_{tr['end_date']:%Y%m%d}.xlsx"
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="{fname}"'
-    response.write('\ufeff')
 
-    writer = csv.writer(response)
-    writer.writerow(['Bao cao statistics'])
-    writer.writerow(['Loai thong ke', ctx['selected_stats_type_label']])
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Báo cáo Thống kê"
+
+    title_font = Font(bold=True, size=14)
+    header_font = Font(bold=True)
+    
+    ws.append(['Báo cáo statistics'])
+    ws['A1'].font = title_font
+    
+    ws.append(['Loại thống kê', ctx['selected_stats_type_label']])
     for item in ctx['statistics_sections']['filter_summary']:
-        writer.writerow([item])
-    writer.writerow([])
+        ws.append([item])
+    ws.append([])
 
     sections = ctx['statistics_sections']
 
+    def append_header(headers):
+        ws.append(headers)
+        for cell in ws[ws.max_row]:
+            cell.font = header_font
+
     if st == 'evaluation':
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Nguoi danh gia', 'Ngay', 'Noi dung', 'Minh chung'])
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Người đánh giá', 'Ngày', 'Nội dung', 'Minh chứng'])
         for r in sections['evaluation_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], f"{r['reviewer_name']} ({r['reviewer_role']})", r['evaluation_date_display'], r['evaluation_content'], r['evidence_reference']])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], f"{r['reviewer_name']} ({r['reviewer_role']})", r['evaluation_date_display'], r['evaluation_content'], r['evidence_reference']])
+        wb.save(response)
         return response
 
     if st == 'rewards':
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Nguoi de xuat', 'Phan loai', 'So tien', 'Ngay', 'Trang thai', 'Ly do'])
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Người đề xuất', 'Phân loại', 'Số tiền', 'Ngày', 'Trạng thái', 'Lý do'])
         for r in sections['rewards_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], f"{r['proposer_name']} ({r['proposer_role']})", r['type_label'], r['amount_display'], r['application_date_display'], r['status'], r['reason_title']])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], f"{r['proposer_name']} ({r['proposer_role']})", r['type_label'], r['amount_display'], r['application_date_display'], r['status'], r['reason_title']])
+        wb.save(response)
         return response
 
     if st == 'leave':
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Quan ly', 'Leader', 'Ngay nghi', 'So don'])
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Quản lý', 'Leader', 'Ngày nghỉ', 'Số đơn'])
         for r in sections['summary_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], r['manager_name'], r['leader_name'], r['leave_days'], r['leave_requests']])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], r['manager_name'], r['leader_name'], r['leave_days'], r['leave_requests']])
+        wb.save(response)
         return response
 
     if st == 'attendance':
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Gio tang ca', 'Di tre', 'Nghi lam', 'Ty le'])
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Giờ tăng ca', 'Đi trễ', 'Nghỉ làm', 'Tỷ lệ'])
         for r in sections['summary_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], r['overtime_hours'], r['late_count'], r['absence_days'], r['attendance_rate']])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], r['overtime_hours'], r['late_count'], r['absence_days'], r['attendance_rate']])
+        wb.save(response)
         return response
 
-    writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Quan ly', 'Leader', 'Ngay nghi', 'So don', 'Gio tang ca', 'Di tre', 'Nghi lam', 'Ty le'])
+    append_header(['Nhân viên', 'Username', 'Phòng ban', 'Quản lý', 'Leader', 'Ngày nghỉ', 'Số đơn', 'Giờ tăng ca', 'Đi trễ', 'Nghỉ làm', 'Tỷ lệ'])
     for r in sections['summary_rows']:
-        writer.writerow([r['employee_name'], r['employee_username'], r['department'], r['manager_name'], r['leader_name'], r['leave_days'], r['leave_requests'], r['overtime_hours'], r['late_count'], r['absence_days'], r['attendance_rate']])
+        ws.append([r['employee_name'], r['employee_username'], r['department'], r['manager_name'], r['leader_name'], r['leave_days'], r['leave_requests'], r['overtime_hours'], r['late_count'], r['absence_days'], r['attendance_rate']])
 
     if st == 'all':
-        writer.writerow([])
-        writer.writerow(['Thong ke danh gia'])
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Nguoi danh gia', 'Ngay', 'Noi dung', 'Minh chung'])
+        ws.append([])
+        ws.append(['Thống kê đánh giá'])
+        ws['A' + str(ws.max_row)].font = title_font
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Người đánh giá', 'Ngày', 'Nội dung', 'Minh chứng'])
         for r in sections['evaluation_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], f"{r['reviewer_name']} ({r['reviewer_role']})", r['evaluation_date_display'], r['evaluation_content'], r['evidence_reference']])
-        writer.writerow([])
-        writer.writerow(['Thong ke khen thuong va xu phat'])
-        writer.writerow(['Nhan vien', 'Username', 'Phong ban', 'Nguoi de xuat', 'Phan loai', 'So tien', 'Ngay', 'Trang thai', 'Ly do'])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], f"{r['reviewer_name']} ({r['reviewer_role']})", r['evaluation_date_display'], r['evaluation_content'], r['evidence_reference']])
+        
+        ws.append([])
+        ws.append(['Thống kê khen thưởng và xử phạt'])
+        ws['A' + str(ws.max_row)].font = title_font
+        append_header(['Nhân viên', 'Username', 'Phòng ban', 'Người đề xuất', 'Phân loại', 'Số tiền', 'Ngày', 'Trạng thái', 'Lý do'])
         for r in sections['rewards_rows']:
-            writer.writerow([r['employee_name'], r['employee_username'], r['department'], f"{r['proposer_name']} ({r['proposer_role']})", r['type_label'], r['amount_display'], r['application_date_display'], r['status'], r['reason_title']])
+            ws.append([r['employee_name'], r['employee_username'], r['department'], f"{r['proposer_name']} ({r['proposer_role']})", r['type_label'], r['amount_display'], r['application_date_display'], r['status'], r['reason_title']])
 
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        if adjusted_width > 50:
+            adjusted_width = 50
+        ws.column_dimensions[column].width = adjusted_width
+
+    wb.save(response)
     return response
 
 
