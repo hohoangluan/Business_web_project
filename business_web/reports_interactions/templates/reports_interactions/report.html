@@ -1,32 +1,34 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG QUẢN LÝ BÁO CÁO CÁ NHÂN. View: report_view. #}
 {% load static %}
 
 {% block title %}Quản lý Báo cáo - HR Studio{% endblock %}
 
 {% block content %}
 <style>
-    /* CSS Tùy biến */
     .btn-create {
-        background: #8b5cf6; /* Màu tím */
+        background: var(--gradient-purple);
         color: #fff;
         border: none;
         padding: 0.6rem 1.25rem;
         border-radius: var(--radius);
         font-weight: 600;
-        transition: all 0.2s;
-        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+        transition: all 0.25s;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
     }
     .btn-create:hover {
-        background: #7c3aed;
+        opacity: 0.95;
         transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(124, 58, 237, 0.3);
+        box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
     }
     
     .btn-inbox-nav {
-        background: #f1f5f9;
-        color: #0f172a;
-        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: var(--text-primary);
+        border: 1px solid var(--border);
         padding: 0.6rem 1.25rem;
         border-radius: var(--radius);
         font-weight: 600;
@@ -37,8 +39,8 @@
         gap: 0.5rem;
     }
     .btn-inbox-nav:hover {
-        background: #e2e8f0;
-        color: #0f172a;
+        background: #f1f5f9;
+        border-color: #cbd5e1;
     }
 
     .badge-status {
@@ -46,73 +48,356 @@
         border-radius: var(--radius-full);
         font-weight: 600;
         font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
     }
-    .badge-sent { background: #ecfdf5; color: #059669; }
-    .badge-draft { background: #f1f5f9; color: #475569; }
+    .badge-pending { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-viewed { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+
+    /* Action Buttons */
+    .btn-action {
+        background: none; border: none; padding: 0.4rem 0.75rem; border-radius: 6px;
+        font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none;
+    }
+    .btn-action-view { background: #f1f5f9; color: var(--text-muted); }
+    .btn-action-view:hover { background: #e2e8f0; color: var(--text-primary); }
+    
+    .btn-action-edit { background: #e0e7ff; color: #4f46e5; }
+    .btn-action-edit:hover { background: #c7d2fe; }
+
+    .btn-action-delete { background: #fee2e2; color: #dc2626; }
+    .btn-action-delete:hover { background: #fecaca; }
+
+    /* Modal Overlay & Card */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+        z-index: 9998; animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+    
+    .modal-box {
+        background: #fff; border-radius: 16px; width: 90%; max-width: 520px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2); animation: slideUp 0.3s ease-out; overflow: hidden;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.15rem; font-weight: 700; margin: 0; }
+    .modal-close {
+        background: none; border: none; font-size: 1.3rem; color: var(--text-muted);
+        cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.15s;
+    }
+    .modal-close:hover { background: #f1f5f9; color: #ef4444; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 0.75rem;
+        padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #f8fafc;
+    }
+
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label {
+        display: block; font-size: 0.88rem; font-weight: 600;
+        color: var(--text-primary); margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.65rem 0.9rem;
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.9rem; font-family: 'Inter', sans-serif;
+        color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
+
+    /* Custom File Input Premium Styling */
+    .form-control[type="file"] {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        background: #f8fafc;
+        border: 1.5px dashed #cbd5e1;
+    }
+    .form-control[type="file"]::file-selector-button {
+        background: var(--gradient-purple);
+        color: #fff;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-right: 0.75rem;
+        box-shadow: 0 2px 6px rgba(139, 92, 246, 0.25);
+    }
+    .form-control[type="file"]::file-selector-button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.35);
+    }
 </style>
 
 <div class="animate-fade">
 
-    <!-- ===== BREADCRUMB & HEADER ===== -->
+    <!-- ===== HEADER SECTION ===== -->
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
         <div>
             <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Quản lý Báo cáo</h2>
-            <p style="color:var(--text-muted); font-size:0.95rem;">Theo dõi và gửi các báo cáo định kỳ</p>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Gửi báo cáo tự do và theo dõi phản hồi từ Cấp quản lý</p>
         </div>
         
         <div style="display: flex; gap: 1rem;">
             {% if is_manager %}
             <a href="{% url 'report_inbox' %}" class="btn-inbox-nav">
-                <i class="fa-solid fa-inbox"></i> Xem Hộp thư Báo cáo
+                <i class="fa-solid fa-inbox"></i> Hộp thư Báo cáo nhận được
             </a>
             {% endif %}
             
-            <button class="btn-create" onclick="alert('Mở form tạo báo cáo mới!')">
-                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Tạo báo cáo
+            <button class="btn-create" onclick="openCreateModal()">
+                <i class="fa-solid fa-paper-plane"></i> Gửi Báo cáo mới
             </button>
         </div>
     </div>
 
-    <!-- ===== HISTORY TABLE ===== -->
+    <!-- ===== LIST OF SENT REPORTS ===== -->
     <div class="card">
         <div class="card-header">
-            <h3>Các báo cáo đã tạo</h3>
+            <h3 style="margin:0;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary); margin-right:6px;"></i>Lịch sử báo cáo đã gửi</h3>
         </div>
         <div class="card-body" style="padding: 0;">
+            {% if reports %}
             <div class="table-wrapper" style="border: none; border-radius: 0;">
-                <table class="data-table">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th style="padding-left: 1.5rem;">NGÀY CẬP NHẬT</th>
-                            <th>TIÊU ĐỀ</th>
-                            <th>MẪU BÁO CÁO</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>THAO TÁC</th>
+                        <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; background: #f8fafc;">
+                            <th style="padding: 1rem 1.5rem;">NGÀY GỬI</th>
+                            <th style="padding: 1rem 1.25rem;">NGƯỜI NHẬN</th>
+                            <th style="padding: 1rem 1.25rem;">TIÊU ĐỀ BÁO CÁO</th>
+                            <th style="padding: 1rem 1.25rem;">TRẠNG THÁI</th>
+                            <th style="padding: 1rem 1.5rem; text-align: right;">THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">20/04/2026</td>
-                            <td style="font-weight: 600; color: var(--text-primary);">Báo cáo tổng kết tuần 3</td>
-                            <td>Báo cáo nhân sự</td>
-                            <td><span class="badge-status badge-sent"><i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i> Đã gửi</span></td>
-                            <td><button class="btn btn-outline btn-sm">Xem lại</button></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">21/04/2026</td>
-                            <td style="font-weight: 600; color: var(--text-primary);">Bản nháp tiến trình dự án HR</td>
-                            <td>Báo cáo chấm công</td>
-                            <td><span class="badge-status badge-draft"><i class="fa-solid fa-pen-ruler" style="margin-right:4px;"></i> Bản nháp</span></td>
-                            <td>
-                                <button class="btn btn-outline btn-sm" style="margin-right:5px;">Tiếp tục sửa</button>
-                                <button class="btn btn-danger btn-sm" style="padding: 0.2rem 0.5rem;"><i class="fa-solid fa-trash"></i></button>
+                        {% for r in reports %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: middle;">
+                            <td style="padding: 1rem 1.5rem; font-weight: 500;">
+                                {{ r.created_at|date:"d/m/Y H:i" }}
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <strong>{{ r.recipient.profile.full_name|default:r.recipient.username }}</strong><br>
+                                <span style="font-size:0.78rem; color:var(--text-muted);">{{ r.recipient.profile.role.get_name_display|default:"Quản lý" }}</span>
+                            </td>
+                            <td style="padding: 1rem 1.25rem; font-weight: 600; color: var(--text-primary);">
+                                {{ r.title }}
+                                {% if r.file_attachment %}
+                                <i class="fa-solid fa-paperclip" style="color:var(--text-muted); font-size:0.85rem; margin-left:6px;" title="Có file đính kèm: {{ r.filename }}"></i>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                {% if r.is_viewed %}
+                                <span class="badge-status badge-viewed">
+                                    <i class="fa-solid fa-eye"></i> Đã xem
+                                </span>
+                                {% else %}
+                                <span class="badge-status badge-pending">
+                                    <i class="fa-solid fa-paper-plane"></i> Chờ xem
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem 1.5rem; text-align: right;">
+                                <a href="{% url 'report_detail' r.id %}" class="btn-action btn-action-view">
+                                    <i class="fa-solid fa-circle-info"></i> Chi tiết
+                                </a>
+                                {% if r.can_edit_or_delete %}
+                                <button class="btn-action btn-action-edit" onclick="openEditModal({{ r.id }}, '{{ r.title|escapejs }}', '{{ r.content|escapejs }}', {{ r.recipient.id }}, '{{ r.filename|escapejs }}')">
+                                    <i class="fa-solid fa-pen-to-square"></i> Sửa
+                                </button>
+                                <button class="btn-action btn-action-delete" onclick="openDeleteModal({{ r.id }}, '{{ r.title|escapejs }}')">
+                                    <i class="fa-solid fa-trash"></i> Xóa
+                                </button>
+                                {% else %}
+                                <span style="font-size:0.8rem; color:var(--text-muted); margin-left:0.5rem; font-style:italic; display:inline-flex; align-items:center; gap:0.25rem;">
+                                    <i class="fa-solid fa-lock"></i> Đã khóa
+                                </span>
+                                {% endif %}
                             </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div style="text-align: center; padding: 4rem 1.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; opacity: 0.35; margin-bottom: 0.75rem; display: block;"></i>
+                <p style="font-size: 0.95rem;">Bạn chưa gửi báo cáo nào.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
 </div>
+
+<!-- ===== MODAL: TẠO BÁO CÁO MỚI ===== -->
+<div class="modal-overlay" id="createReportModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-paper-plane" style="color:var(--primary); margin-right:8px;"></i>Gửi Báo cáo tự do mới</h3>
+            <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+        </div>
+        <form method="post" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="id_recipient">{{ form.recipient.label }}</label>
+                    {{ form.recipient }}
+                </div>
+                <div class="form-group">
+                    <label for="id_title">{{ form.title.label }}</label>
+                    {{ form.title }}
+                </div>
+                <div class="form-group">
+                    <label for="id_content">{{ form.content.label }}</label>
+                    {{ form.content }}
+                </div>
+                <div class="form-group">
+                    <label for="id_file_attachment">{{ form.file_attachment.label }}</label>
+                    {{ form.file_attachment }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" style="border-radius:8px; font-weight:600;" onclick="closeCreateModal()">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" style="border-radius:8px; font-weight:600; background:var(--gradient-purple); border:none;">
+                    Gửi báo cáo <i class="fa-solid fa-circle-chevron-right" style="margin-left:4px;"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: CHỈNH SỬA BÁO CÁO ===== -->
+<div class="modal-overlay" id="editReportModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-pen-to-square" style="color:#4f46e5; margin-right:8px;"></i>Chỉnh sửa báo cáo</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form method="post" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="report_id" id="editReportId">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editRecipient">Người nhận báo cáo</label>
+                    <select name="recipient" id="editRecipient" class="form-control" required>
+                        {% for choice_val, choice_lbl in form.fields.recipient.choices %}
+                            {% if choice_val %}
+                                <option value="{{ choice_val }}">{{ choice_lbl }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editTitle">Tiêu đề báo cáo</label>
+                    <input type="text" name="title" id="editTitle" class="form-control" placeholder="Nhập tiêu đề báo cáo..." required>
+                </div>
+                <div class="form-group">
+                    <label for="editContent">Nội dung báo cáo</label>
+                    <textarea name="content" id="editContent" class="form-control" placeholder="Nhập nội dung báo cáo tự do ở đây..." rows="6" style="resize:none;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editFileAttachment">Tài liệu / File đính kèm mới (tùy chọn thay thế)</label>
+                    <input type="file" name="file_attachment" id="editFileAttachment" class="form-control">
+                    <span id="currentAttachmentText" style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.25rem;"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" style="border-radius:8px; font-weight:600;" onclick="closeEditModal()">Hủy</button>
+                <button type="submit" class="btn btn-primary" style="border-radius:8px; font-weight:600; background:#4f46e5; border:none;">Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: XÁC NHẬN XÓA ===== -->
+<div class="modal-overlay" id="deleteReportModal">
+    <div class="modal-box" style="max-width: 420px;">
+        <div class="modal-header" style="border-bottom:none;">
+            <h3 style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="margin-right:6px;"></i>Xác nhận xóa báo cáo</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="report_id" id="deleteReportId">
+            <div class="modal-body" style="padding-top: 0;">
+                <p style="color:var(--text-muted); font-size:0.92rem; line-height:1.5;">
+                    Bạn có chắc chắn muốn xóa báo cáo <strong id="deleteReportTitle" style="color:var(--text-primary);"></strong>?<br>
+                    Hành động này sẽ xóa vĩnh viễn và không thể khôi phục.
+                </p>
+            </div>
+            <div class="modal-footer" style="border-top:none; background:none; padding-bottom:1.5rem;">
+                <button type="button" class="btn btn-outline" style="border-radius:8px;" onclick="closeDeleteModal()">Hủy bỏ</button>
+                <button type="submit" class="btn btn-danger" style="border-radius:8px; background:#ef4444; border:none; padding:0.55rem 1.25rem;">Đồng ý xóa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Create Modal
+    function openCreateModal() {
+        document.getElementById('createReportModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeCreateModal() {
+        document.getElementById('createReportModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Edit Modal
+    function openEditModal(pk, title, content, recipientId, filename) {
+        document.getElementById('editReportId').value = pk;
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editContent').value = content;
+        document.getElementById('editRecipient').value = recipientId;
+        
+        const attachSpan = document.getElementById('currentAttachmentText');
+        if (filename && filename !== '') {
+            attachSpan.innerHTML = '<i class="fa-solid fa-paperclip"></i> File hiện tại: <strong>' + filename + '</strong>';
+        } else {
+            attachSpan.innerHTML = 'Chưa có file đính kèm nào.';
+        }
+        
+        document.getElementById('editReportModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeEditModal() {
+        document.getElementById('editReportModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Delete Modal
+    function openDeleteModal(pk, title) {
+        document.getElementById('deleteReportId').value = pk;
+        document.getElementById('deleteReportTitle').textContent = title;
+        document.getElementById('deleteReportModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteReportModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Close on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+</script>
 {% endblock %}
