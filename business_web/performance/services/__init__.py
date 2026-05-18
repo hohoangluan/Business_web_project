@@ -2,14 +2,15 @@
 ==============================================================================
 PERFORMANCE SERVICES
 ==============================================================================
-Business logic cho đánh giá nhân viên.
-Tách từ accounts/views.py — giữ nguyên logic, chỉ cập nhật imports.
+Business logic cho đánh giá nhân viên (lưu DB thật).
 ==============================================================================
 """
 
+import os
 from datetime import datetime
 from urllib.parse import urlencode
 from django.utils import timezone
+from django.core.files.storage import default_storage
 
 from accounts.models import Role
 from accounts.services import (
@@ -22,6 +23,91 @@ from performance.services.evaluation_data import (
     build_evaluation_records,
     build_reviewer_evaluation_records,
 )
+from performance.models import Evaluation, EvaluationCategory
+
+
+def create_evaluation(reviewer, employee_user, form_data, uploaded_file=None):
+    """
+    Tạo đánh giá mới lưu vào database thật.
+    Trạng thái mặc định là 'submitted' (đã gửi lên HR).
+    """
+    category_id = form_data.get('category')
+    category = None
+    if category_id:
+        try:
+            category = EvaluationCategory.objects.get(id=category_id)
+        except (ValueError, EvaluationCategory.DoesNotExist):
+            pass
+
+    evidence_reference = ''
+    if uploaded_file:
+        path = default_storage.save(f'evaluations/{uploaded_file.name}', uploaded_file)
+        evidence_reference = uploaded_file.name
+
+    evaluation = Evaluation.objects.create(
+        employee=employee_user,
+        reviewer=reviewer,
+        category=category,
+        status='submitted',
+        rating=form_data.get('rating', ''),
+        evaluation_date=form_data.get('evaluation_date'),
+        content=form_data.get('evaluation_content', ''),
+        evidence_reference=evidence_reference,
+    )
+    return evaluation
+
+
+def to_evaluation_dict(evaluation):
+    """Chuyển đổi Evaluation model instance thành dict để tương thích với UI."""
+    return {
+        'id': evaluation.id,
+        'employee_username': evaluation.employee.username,
+        'employee_name': get_user_display_name(evaluation.employee),
+        'reviewer_username': evaluation.reviewer.username,
+        'reviewer_name': get_user_display_name(evaluation.reviewer),
+        'reviewer_role': get_user_role_name(evaluation.reviewer).title(),
+        'category_name': evaluation.category.name if evaluation.category else 'Chưa phân loại',
+        'category_id': evaluation.category.id if evaluation.category else None,
+        'evaluation_date': evaluation.evaluation_date,
+        'evaluation_content': evaluation.content,
+        'evidence_reference': evaluation.evidence_reference,
+        'status': evaluation.status,
+        'status_display': evaluation.get_status_display(),
+        'rating': evaluation.rating,
+        'rating_display': evaluation.get_rating_display() if evaluation.rating else 'Chưa xếp loại',
+        'hr_note': evaluation.hr_note,
+        'acknowledged_by_name': get_user_display_name(evaluation.acknowledged_by) if evaluation.acknowledged_by else '',
+        'acknowledged_at_display': evaluation.acknowledged_at.strftime('%d/%m/%Y %H:%M') if evaluation.acknowledged_at else '',
+    }
+
+
+def get_pending_evaluations_for_hr(hr_user=None):
+    """HR lấy danh sách đánh giá đang chờ xác nhận (status = 'submitted')."""
+    return Evaluation.objects.filter(status='submitted').select_related('employee', 'reviewer', 'category')
+
+
+def get_acknowledged_evaluations_for_hr(hr_user=None):
+    """HR lấy danh sách đánh giá đã xác nhận (status = 'acknowledged')."""
+    return Evaluation.objects.filter(status='acknowledged').select_related('employee', 'reviewer', 'category')
+
+
+def acknowledge_evaluation(hr_user, eval_id, note):
+    """HR xác nhận đánh giá."""
+    try:
+        evaluation = Evaluation.objects.get(id=eval_id)
+        evaluation.status = 'acknowledged'
+        evaluation.acknowledged_by = hr_user
+        evaluation.acknowledged_at = timezone.now()
+        evaluation.hr_note = note.strip()
+        evaluation.save()
+        return True, "Xác nhận đánh giá thành công."
+    except Evaluation.DoesNotExist:
+        return False, "Không tìm thấy đánh giá."
+
+
+def get_evaluations_for_employee(employee):
+    """Nhân viên xem các đánh giá của mình (chỉ xem các đánh giá đã được HR xác nhận)."""
+    return Evaluation.objects.filter(employee=employee, status='acknowledged').select_related('reviewer', 'category')
 
 
 def get_evaluation_scope(user):
@@ -201,16 +287,17 @@ def get_selected_employee_user(filtered_users, selected_employee_username):
 
 
 def build_evaluation_form_state(current_user, selected_employee_user, post_data=None, uploaded_file=None):
-    """Form đánh giá demo UI — validate và trả preview."""
+    """Form đánh giá UI — validate và lưu vào database thật."""
     form_state = {
         'can_submit': can_submit_evaluation_demo(current_user),
-        'form_data': {'evaluation_content': '', 'evaluation_date': ''},
+        'form_data': {'evaluation_content': '', 'evaluation_date': '', 'category': '', 'rating': ''},
         'errors': {},
         'preview': None,
         'success_message': '',
         'selected_file_name': '',
         'selected_employee_username': selected_employee_user.username if selected_employee_user else '',
         'selected_employee_name': get_user_display_name(selected_employee_user) if selected_employee_user else '',
+        'categories': EvaluationCategory.objects.all(),
     }
 
     if not selected_employee_user:
@@ -228,6 +315,8 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
     form_state['form_data'] = {
         'evaluation_content': post_data.get('evaluation_content', '').strip(),
         'evaluation_date': post_data.get('evaluation_date', '').strip(),
+        'category': post_data.get('category', '').strip(),
+        'rating': post_data.get('rating', '').strip(),
     }
     if uploaded_file:
         form_state['selected_file_name'] = uploaded_file.name
@@ -236,6 +325,8 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
     date_raw = form_state['form_data']['evaluation_date']
     eval_date = parse_date_input(date_raw)
     posted_username = post_data.get('employee_username', '').strip()
+    category_id = form_state['form_data']['category']
+    rating = form_state['form_data']['rating']
 
     if posted_username != selected_employee_user.username:
         form_state['errors']['employee_username'] = 'Nhân viên không khớp.'
@@ -243,9 +334,16 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
         form_state['errors']['evaluation_content'] = 'Nội dung không được để trống.'
     if not eval_date:
         form_state['errors']['evaluation_date'] = 'Ngày đánh giá không hợp lệ.'
+    if not category_id:
+        form_state['errors']['category'] = 'Vui lòng chọn loại đánh giá.'
+    if not rating:
+        form_state['errors']['rating'] = 'Vui lòng xếp loại nhân viên.'
 
     if form_state['errors']:
         return form_state
+
+    # Lưu DB thật
+    eval_obj = create_evaluation(current_user, selected_employee_user, form_state['form_data'], uploaded_file)
 
     form_state['preview'] = {
         'employee_name': get_user_display_name(selected_employee_user),
@@ -254,8 +352,10 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
         'evaluation_date_display': eval_date.strftime('%d/%m/%Y'),
         'evaluation_content': content,
         'evidence_reference': form_state['selected_file_name'],
+        'category_name': eval_obj.category.name if eval_obj.category else '',
+        'rating_display': eval_obj.get_rating_display(),
     }
-    form_state['success_message'] = 'Đã hoàn thành bản đánh giá demo. Chưa lưu vào database thật.'
+    form_state['success_message'] = f'Đã lưu đánh giá cho {get_user_display_name(selected_employee_user)} thành công và gửi lên HR.'
     return form_state
 
 
@@ -290,7 +390,7 @@ def build_evaluations_page_context(user, params, post_data=None, uploaded_file=N
     elif filters['selected_employee'] and not selected_employee:
         error_msg = 'Nhân viên đang chọn không còn nằm trong phạm vi hiện tại.'
     elif selected_employee and not filtered_records:
-        empty_msg = 'Nhân viên này chưa có đánh giá mock nào.'
+        empty_msg = 'Nhân viên này chưa có đánh giá nào.'
     elif not selected_employee:
         empty_msg = 'Hãy chọn một nhân viên để bắt đầu đánh giá.'
 

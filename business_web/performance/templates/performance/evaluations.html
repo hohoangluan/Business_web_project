@@ -244,9 +244,16 @@
                 Chọn nhân viên trước, sau đó hoàn thành form đánh giá theo phạm vi quản lý hiện tại
             </p>
         </div>
-        <a href="{% url 'statistics' %}?{{ evaluation_statistics_query }}" class="btn btn-secondary">
-            <i class="fa-solid fa-chart-column"></i> Xem thống kê đánh giá
-        </a>
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            {% if can_acknowledge %}
+            <a href="{% url 'evaluation_hr_approval' %}" class="btn btn-primary">
+                <i class="fa-solid fa-user-check"></i> HR Xác Nhận
+            </a>
+            {% endif %}
+            <a href="{% url 'statistics' %}?{{ evaluation_statistics_query }}" class="btn btn-secondary">
+                <i class="fa-solid fa-chart-column"></i> Xem thống kê đánh giá
+            </a>
+        </div>
     </div>
 
     <form method="get" class="evaluation-toolbar">
@@ -372,7 +379,7 @@
                             <div class="employee-choice-meta">@{{ employee.username }}</div>
                         </div>
                         <span class="badge-soft">
-                            <i class="fa-solid fa-star-half-stroke"></i> {{ employee.review_count }} đánh giá mock
+                            <i class="fa-solid fa-star-half-stroke"></i> {{ employee.review_count }} đánh giá
                         </span>
                     </div>
                     <div class="employee-choice-meta" style="margin-top:0.8rem;">
@@ -450,6 +457,33 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Loại đánh giá</label>
+                    <select name="category">
+                        <option value="">-- Chọn loại đánh giá --</option>
+                        {% for cat in form_state.categories %}
+                        <option value="{{ cat.id }}" {% if form_state.form_data.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if form_state.errors.category %}
+                    <div class="field-error">{{ form_state.errors.category }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Xếp loại nhân viên</label>
+                    <select name="rating">
+                        <option value="">-- Xếp loại (A/B/C/D) --</option>
+                        <option value="A" {% if form_state.form_data.rating == "A" %}selected{% endif %}>A - Xuất sắc</option>
+                        <option value="B" {% if form_state.form_data.rating == "B" %}selected{% endif %}>B - Tốt</option>
+                        <option value="C" {% if form_state.form_data.rating == "C" %}selected{% endif %}>C - Trung bình</option>
+                        <option value="D" {% if form_state.form_data.rating == "D" %}selected{% endif %}>D - Cần cải thiện</option>
+                    </select>
+                    {% if form_state.errors.rating %}
+                    <div class="field-error">{{ form_state.errors.rating }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
                     <label>Nội dung đánh giá</label>
                     <textarea name="evaluation_content" placeholder="Ví dụ: Hoàn thành công việc đúng hạn, phối hợp nhóm tốt, cần cải thiện phần cập nhật tiến độ...">{{ form_state.form_data.evaluation_content }}</textarea>
                     {% if form_state.errors.evaluation_content %}
@@ -461,7 +495,7 @@
                     <label>Minh chứng (nếu có)</label>
                     <input type="file" name="evidence_file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
                     <div class="helper-note" style="margin-top:0.45rem;">
-                        File chỉ dùng để mô phỏng giao diện ở bản này, chưa được lưu vào hệ thống.
+                        Tệp minh chứng đính kèm (hình ảnh, tài liệu báo cáo).
                     </div>
                     {% if form_state.selected_file_name %}
                     <div class="helper-note" style="margin-top:0.2rem;">
@@ -486,9 +520,6 @@
                         <i class="fa-solid fa-chart-column"></i> Xem lại trong statistics
                     </a>
                 </div>
-                <div class="helper-note">
-                    Sau khi hoàn thành trên giao diện mock, bạn có thể xem lại phần đánh giá tương ứng trong statistics.
-                </div>
             </form>
 
             {% if form_state.preview %}
@@ -497,6 +528,8 @@
                 <div style="display:grid; gap:0.7rem;">
                     <div><strong>Nhân viên:</strong> {{ form_state.preview.employee_name }}</div>
                     <div><strong>Người đánh giá:</strong> {{ form_state.preview.reviewer_name }} ({{ form_state.preview.reviewer_role }})</div>
+                    <div><strong>Loại đánh giá:</strong> {{ form_state.preview.category_name }}</div>
+                    <div><strong>Xếp loại:</strong> {{ form_state.preview.rating_display }}</div>
                     <div><strong>Ngày đánh giá:</strong> {{ form_state.preview.evaluation_date_display }}</div>
                     <div><strong>Nội dung:</strong> {{ form_state.preview.evaluation_content }}</div>
                     <div><strong>Minh chứng:</strong> {{ form_state.preview.evidence_reference|default:"Không có" }}</div>
@@ -507,5 +540,96 @@
     </div>
     {% endif %}
     {% endif %}
+
+    <!-- Lịch sử đánh giá đã tạo -->
+    <div class="evaluation-card">
+        <div class="section-card-header">
+            <div>
+                <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:0.3rem;">
+                    Lịch sử đánh giá đã tạo
+                </h3>
+                <p style="color:var(--text-muted); font-size:0.92rem;">
+                    Danh sách các đánh giá bạn đã thực hiện và trạng thái phê duyệt từ HR
+                </p>
+            </div>
+            <span class="badge-soft">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                {{ evaluation_sections.records|length }} đánh giá
+            </span>
+        </div>
+        <div class="section-card-body" style="padding: 0;">
+            {% if evaluation_sections.records %}
+            <div style="overflow-x: auto;">
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; background: #f8fafc;">
+                            <th style="padding: 1rem 1.25rem;">Nhân viên</th>
+                            <th style="padding: 1rem 1.25rem;">Loại đánh giá</th>
+                            <th style="padding: 1rem 1.25rem;">Ngày</th>
+                            <th style="padding: 1rem 1.25rem;">Xếp loại</th>
+                            <th style="padding: 1rem 1.25rem;">Nội dung</th>
+                            <th style="padding: 1rem 1.25rem;">Minh chứng</th>
+                            <th style="padding: 1rem 1.25rem;">Trạng thái</th>
+                            <th style="padding: 1rem 1.25rem;">Phản hồi từ HR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in evaluation_sections.records %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+                            <td style="padding: 1rem 1.25rem; font-weight: 700; color: var(--text-main);">
+                                {{ rec.employee_name }}<br>
+                                <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">@{{ rec.employee_username }}</span>
+                            </td>
+                            <td style="padding: 1rem 1.25rem; font-weight: 600;">{{ rec.category_name }}</td>
+                            <td style="padding: 1rem 1.25rem; white-space: nowrap;">{{ rec.evaluation_date_display }}</td>
+                            <td style="padding: 1rem 1.25rem;">
+                                {% if rec.rating %}
+                                <span class="badge-soft" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+                                    {{ rec.rating }}
+                                </span>
+                                {% else %}
+                                <span style="color: var(--text-muted);">--</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem 1.25rem; max-width: 300px; word-wrap: break-word;">{{ rec.evaluation_content }}</td>
+                            <td style="padding: 1rem 1.25rem;">
+                                {% if rec.evidence_reference %}
+                                <span style="color: #2563eb; font-size: 0.9rem;"><i class="fa-solid fa-file-arrow-down"></i> {{ rec.evidence_reference }}</span>
+                                {% else %}
+                                <span style="color: var(--text-muted);">Không có</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                {% if rec.status == 'acknowledged' %}
+                                <span class="badge-soft" style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+                                    <i class="fa-solid fa-circle-check"></i> HR đã xác nhận
+                                </span>
+                                {% elif rec.status == 'submitted' %}
+                                <span class="badge-soft" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;">
+                                    <i class="fa-solid fa-paper-plane"></i> Đã gửi HR
+                                </span>
+                                {% else %}
+                                <span class="badge-soft" style="background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;">
+                                    <i class="fa-solid fa-file-lines"></i> Nháp
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem 1.25rem; max-width: 200px; word-wrap: break-word; color: #b45309; font-style: italic;">
+                                {{ rec.hr_note|default:"--" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-panel" style="padding: 3rem 1.25rem;">
+                <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; color: var(--text-muted); margin-bottom: 0.75rem;"></i>
+                <h4 style="color: var(--text-main); margin-bottom: 0.25rem;">Chưa có lịch sử đánh giá</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Các đánh giá bạn tạo sẽ hiển thị tại đây sau khi được gửi lên.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

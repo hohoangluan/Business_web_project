@@ -40,6 +40,7 @@ from accounts.services.permission import (
     is_admin_user,
     is_hr_user,
     user_has_role,
+    can_acknowledge_evaluation,
 )
 
 __all__ = [
@@ -75,4 +76,5 @@ __all__ = [
     "send_otp_email",
     "user_has_role",
     "verify_otp",
+    "can_acknowledge_evaluation",
 ]

@@ -1,0 +1,361 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}HR Xác nhận Đánh giá - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    .btn-back {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: var(--text-muted); text-decoration: none; font-weight: 600;
+        margin-bottom: 1rem; transition: color 0.2s;
+    }
+    .btn-back:hover { color: var(--primary); }
+    
+    .badge-status {
+        padding: 0.35rem 0.85rem; border-radius: var(--radius-full);
+        font-weight: 600; font-size: 0.8rem;
+    }
+    
+    .btn-action {
+        border: none; padding: 0.45rem 0.95rem; border-radius: 8px;
+        font-weight: 600; font-size: 0.8rem; cursor: pointer;
+        transition: all 0.2s; margin-right: 0.4rem;
+        display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .btn-action-approve { background: #10b981; color: #fff; }
+    .btn-action-approve:hover { background: #059669; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+    
+    .user-block { display: flex; align-items: center; gap: 0.75rem; }
+    .user-avatar-small {
+        width: 32px; height: 32px; background: var(--gradient-purple);
+        color: #fff; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; font-weight: 700; font-size: 0.85rem;
+    }
+    .user-info-text .name { font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+    .user-info-text .dept { font-size: 0.75rem; color: var(--text-muted); }
+
+    .empty-state { text-align: center; padding: 3rem 1.5rem; color: var(--text-muted); }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Modal styles */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+        z-index: 9998; animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-box {
+        background: #fff; border-radius: 16px; width: 90%; max-width: 480px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2); animation: slideUp 0.3s ease-out; overflow: hidden;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+    .modal-close {
+        background: none; border: none; font-size: 1.3rem; color: var(--text-muted);
+        cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.15s;
+    }
+    .modal-close:hover { background: #f1f5f9; color: #ef4444; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 0.75rem;
+        padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #f8fafc;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+        display: block; font-size: 0.85rem; font-weight: 600;
+        color: var(--text-primary); margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.6rem 0.85rem;
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.9rem; font-family: 'Inter', sans-serif;
+        color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    .btn-cancel-modal {
+        padding: 0.55rem 1.25rem; border: 1px solid #e2e8f0;
+        background: #fff; border-radius: 8px; font-weight: 600;
+        color: var(--text-muted); cursor: pointer;
+    }
+    .btn-cancel-modal:hover { background: #f1f5f9; }
+    .btn-confirm-modal {
+        padding: 0.55rem 1.25rem; border: none;
+        background: #10b981; color: #fff; border-radius: 8px;
+        font-weight: 600; cursor: pointer;
+    }
+    .btn-confirm-modal:hover { background: #059669; }
+
+    /* Tabs */
+    .tabs-nav {
+        display: flex; gap: 0.5rem; border-bottom: 2px solid #e5e7eb; margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+        background: none; border: none; padding: 0.75rem 1.25rem; font-weight: 700;
+        font-size: 0.92rem; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+</style>
+
+<div class="animate-fade">
+    <a href="{% url 'evaluations' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại trang Đánh giá nhân viên
+    </a>
+
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Xác nhận Đánh giá từ HR</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Xét duyệt và ghi nhận các đánh giá năng lực từ Cấp quản lý</p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('pending')">
+            Chờ xác nhận ({{ pending_list|length }})
+        </button>
+        <button class="tab-btn" onclick="switchTab('acknowledged')">
+            Đã xác nhận ({{ acknowledged_list|length }})
+        </button>
+    </div>
+
+    <!-- Tab 1: Chờ xác nhận -->
+    <div id="tab-pending" class="tab-content active">
+        <div class="card">
+            <div class="card-header">
+                <h3 style="margin:0;">
+                    <i class="fa-solid fa-hourglass-half" style="color:#d97706; margin-right:6px;"></i>
+                    Danh sách đánh giá chờ HR xác nhận
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                {% if pending_list %}
+                <div class="table-wrapper" style="border: none; border-radius: 0;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; background: #f8fafc;">
+                                <th style="padding: 1rem 1.25rem;">Nhân viên</th>
+                                <th style="padding: 1rem 1.25rem;">Người đánh giá</th>
+                                <th style="padding: 1rem 1.25rem;">Tiêu chí</th>
+                                <th style="padding: 1rem 1.25rem;">Xếp loại</th>
+                                <th style="padding: 1rem 1.25rem;">Nội dung đánh giá</th>
+                                <th style="padding: 1rem 1.25rem;">Minh chứng</th>
+                                <th style="padding: 1rem 1.25rem; text-align: right;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in pending_list %}
+                            <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+                                <td style="padding: 1rem 1.25rem;">
+                                    <div class="user-block">
+                                        <div class="user-avatar-small" style="background: var(--gradient-blue);">
+                                            {{ rec.employee_name|slice:":1"|upper }}
+                                        </div>
+                                        <div class="user-info-text">
+                                            <div class="name">{{ rec.employee_name }}</div>
+                                            <div class="dept">@{{ rec.employee_username }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    <strong>{{ rec.reviewer_name }}</strong><br>
+                                    <span style="font-size:0.8rem; color:var(--text-muted);">{{ rec.reviewer_role }}</span>
+                                </td>
+                                <td style="padding: 1rem 1.25rem; font-weight: 600;">{{ rec.category_name }}</td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    <span class="badge-soft" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;">
+                                        {{ rec.rating }}
+                                    </span>
+                                </td>
+                                <td style="padding: 1rem 1.25rem; max-width: 250px; word-wrap: break-word;">
+                                    {{ rec.evaluation_content }}<br>
+                                    <small style="color:var(--text-muted); display:block; margin-top:0.25rem;">
+                                        Ngày đánh giá: {{ rec.evaluation_date|date:"d/m/Y" }}
+                                    </small>
+                                </td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    {% if rec.evidence_reference %}
+                                    <span style="color: #2563eb; font-size: 0.9rem;"><i class="fa-solid fa-file-arrow-down"></i> {{ rec.evidence_reference }}</span>
+                                    {% else %}
+                                    <span style="color: var(--text-muted);">Không có</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 1rem 1.25rem; text-align: right;">
+                                    <button class="btn-action btn-action-approve" onclick="openAcknowledgeModal({{ rec.id }}, '{{ rec.employee_name|escapejs }}')">
+                                        <i class="fa-solid fa-check"></i> Xác nhận
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-circle-check" style="display:block; color: #10b981;"></i>
+                    <p>Không có đánh giá nào đang chờ xác nhận.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Đã xác nhận -->
+    <div id="tab-acknowledged" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h3 style="margin:0;">
+                    <i class="fa-solid fa-clipboard-check" style="color:#10b981; margin-right:6px;"></i>
+                    Danh sách đánh giá đã xác nhận
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                {% if acknowledged_list %}
+                <div class="table-wrapper" style="border: none; border-radius: 0;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; background: #f8fafc;">
+                                <th style="padding: 1rem 1.25rem;">Nhân viên</th>
+                                <th style="padding: 1rem 1.25rem;">Người đánh giá</th>
+                                <th style="padding: 1rem 1.25rem;">Tiêu chí</th>
+                                <th style="padding: 1rem 1.25rem;">Xếp loại</th>
+                                <th style="padding: 1rem 1.25rem;">Nội dung đánh giá</th>
+                                <th style="padding: 1rem 1.25rem;">Người xác nhận</th>
+                                <th style="padding: 1rem 1.25rem;">Ghi chú HR</th>
+                                <th style="padding: 1rem 1.25rem; text-align: right;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in acknowledged_list %}
+                            <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+                                <td style="padding: 1rem 1.25rem;">
+                                    <div class="user-block">
+                                        <div class="user-avatar-small" style="background: var(--gradient-purple);">
+                                            {{ rec.employee_name|slice:":1"|upper }}
+                                        </div>
+                                        <div class="user-info-text">
+                                            <div class="name">{{ rec.employee_name }}</div>
+                                            <div class="dept">@{{ rec.employee_username }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    <strong>{{ rec.reviewer_name }}</strong><br>
+                                    <span style="font-size:0.8rem; color:var(--text-muted);">{{ rec.reviewer_role }}</span>
+                                </td>
+                                <td style="padding: 1rem 1.25rem; font-weight: 600;">{{ rec.category_name }}</td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    <span class="badge-soft" style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+                                        {{ rec.rating }}
+                                    </span>
+                                </td>
+                                <td style="padding: 1rem 1.25rem; max-width: 250px; word-wrap: break-word;">
+                                    {{ rec.evaluation_content }}<br>
+                                    <small style="color:var(--text-muted); display:block; margin-top:0.25rem;">
+                                        Ngày đánh giá: {{ rec.evaluation_date|date:"d/m/Y" }}
+                                    </small>
+                                </td>
+                                <td style="padding: 1rem 1.25rem;">
+                                    <strong>{{ rec.acknowledged_by_name }}</strong><br>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">{{ rec.acknowledged_at_display }}</span>
+                                </td>
+                                <td style="padding: 1rem 1.25rem; max-width: 200px; word-wrap: break-word; color: #b45309; font-style: italic;">
+                                    {{ rec.hr_note|default:"--" }}
+                                </td>
+                                <td style="padding: 1rem 1.25rem; text-align: right;">
+                                    <button class="btn-action btn-action-approve" style="background: #3b82f6;" onclick="openUpdateModal({{ rec.id }}, '{{ rec.employee_name|escapejs }}', '{{ rec.hr_note|default:''|escapejs }}')">
+                                        <i class="fa-solid fa-pen-to-square"></i> Cập nhật
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-box-open"></i>
+                    <p>Chưa có đánh giá nào đã xác nhận.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: HR XÁC NHẬN ĐÁNH GIÁ ===== -->
+<div class="modal-overlay" id="acknowledgeModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-user-check" style="color:#10b981; margin-right:8px;"></i><span id="modalTitle">Xác nhận đánh giá nhân viên</span></h3>
+            <button class="modal-close" onclick="closeAcknowledgeModal()" type="button">&times;</button>
+        </div>
+        <form method="post" id="acknowledgeForm" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                    Xác nhận đánh giá năng lực của nhân viên <strong id="acknowledgeEmployeeName"></strong>.
+                </p>
+                <div class="form-group">
+                    <label for="hr_note">Ghi chú của HR (nếu có)</label>
+                    <textarea name="hr_note" id="hr_note" class="form-control" rows="3" placeholder="Nhập nhận xét hoặc lưu ý từ phía nhân sự..." style="resize:none;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-modal" onclick="closeAcknowledgeModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-confirm-modal">
+                    <i class="fa-solid fa-check" style="margin-right:5px;"></i>Đồng ý xác nhận
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function openAcknowledgeModal(pk, name) {
+        document.getElementById('acknowledgeForm').action = '/evaluations/' + pk + '/acknowledge/';
+        document.getElementById('modalTitle').textContent = 'Xác nhận đánh giá nhân viên';
+        document.getElementById('acknowledgeEmployeeName').textContent = name;
+        document.getElementById('hr_note').value = '';
+        document.getElementById('acknowledgeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function openUpdateModal(pk, name, hrNote) {
+        document.getElementById('acknowledgeForm').action = '/evaluations/' + pk + '/acknowledge/';
+        document.getElementById('modalTitle').textContent = 'Cập nhật ghi chú đánh giá';
+        document.getElementById('acknowledgeEmployeeName').textContent = name;
+        document.getElementById('hr_note').value = hrNote;
+        document.getElementById('acknowledgeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAcknowledgeModal() {
+        document.getElementById('acknowledgeModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    document.getElementById('acknowledgeModal').addEventListener('click', function(e) {
+        if (e.target === this) closeAcknowledgeModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAcknowledgeModal();
+    });
+</script>
+{% endblock %}

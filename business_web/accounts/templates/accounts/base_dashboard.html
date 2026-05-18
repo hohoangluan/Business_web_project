@@ -109,6 +109,10 @@ Blocks có thể override:
                     <i class="fa-solid fa-sitemap"></i>
                     <span>Quản lý hồ sơ nhân sự</span>
                 </a>
+                <a href="{% url 'evaluation_hr_approval' %}" class="nav-item {% if active_page == 'evaluation_hr_approval' %}active{% endif %}">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Xác nhận đánh giá</span>
+                </a>
                 {% endif %}
                 <a href="{% url 'reports' %}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
                     <i class="fa-solid fa-file-signature"></i>

@@ -1,51 +1,15 @@
 """
-Mock data cho chức năng đánh giá nhân viên.
-
-Mục tiêu của file này:
-- Giữ toàn bộ dữ liệu demo ở một chỗ duy nhất.
-- Dễ sửa cho người mới: mỗi record chỉ là một dict đơn giản.
-- Không random để giao diện và test luôn ổn định.
+Dịch vụ truy vấn dữ liệu đánh giá từ Database thật.
+Giúp tương thích hoàn hảo với module stats_reports mà không cần sửa code bên đó.
 """
 
-from datetime import timedelta
-
-from django.utils import timezone
-from accounts.services import ensure_work_info
-
-
-LEADER_EVALUATION_TEMPLATES = [
-    {
-        'content': 'Hoàn thành công việc đúng hạn và phối hợp nhóm ổn định.',
-        'evidence': 'Biên bản họp nhóm tuần',
-    },
-    {
-        'content': 'Chủ động hỗ trợ đồng đội và phản hồi công việc nhanh.',
-        'evidence': '',
-    },
-    {
-        'content': 'Cần cải thiện thêm phần cập nhật tiến độ hằng ngày.',
-        'evidence': 'Link bảng theo dõi task nội bộ',
-    },
-]
-
-MANAGER_EVALUATION_TEMPLATES = [
-    {
-        'content': 'Đảm bảo chất lượng đầu ra tốt và giữ nhịp công việc ổn định.',
-        'evidence': 'Báo cáo kết quả công việc tháng',
-    },
-    {
-        'content': 'Có tinh thần trách nhiệm tốt, phù hợp để giao thêm đầu việc.',
-        'evidence': '',
-    },
-    {
-        'content': 'Cần theo dõi sát hơn về tính chủ động trong giai đoạn cao điểm.',
-        'evidence': 'Ghi chú buổi review 1-1',
-    },
-]
-
+from performance.models import Evaluation
+from accounts.services import get_user_display_name, get_user_role_name
 
 def get_demo_display_name(user):
-    """Ưu tiên full name để giao diện nhìn tự nhiên hơn."""
+    """Mô phỏng tên hiển thị để tương thích với các module khác."""
+    if not user:
+        return ""
     profile = getattr(user, 'profile', None)
     if profile and profile.full_name:
         return profile.full_name
@@ -54,56 +18,60 @@ def get_demo_display_name(user):
 
 def build_evaluation_records(users):
     """
-    Tạo danh sách đánh giá demo dựa trên nhân viên đang có trong phạm vi xem.
-    Mỗi nhân viên có thể có:
-    - 1 đánh giá từ leader nếu đã được gán leader
-    - 1 đánh giá từ manager nếu đã được gán manager
+    Lấy danh sách đánh giá từ database thật cho các nhân viên được truyền vào.
+    Chỉ hiển thị các đánh giá đã được HR xác nhận (status='acknowledged').
     """
-    today = timezone.localdate()
+    usernames = [u.username for u in users]
+    evals = Evaluation.objects.filter(
+        employee__username__in=usernames, 
+        status='acknowledged'
+    ).select_related('employee', 'reviewer', 'category')
+    
     records = []
-
-    for index, user in enumerate(users):
-        profile = getattr(user, 'profile', None)
-        if not profile:
-            continue
-
-        work_info = ensure_work_info(user)
-
-        if work_info.leader_user:
-            leader_template = LEADER_EVALUATION_TEMPLATES[index % len(LEADER_EVALUATION_TEMPLATES)]
-            records.append({
-                'employee_username': user.username,
-                'employee_name': get_demo_display_name(user),
-                'reviewer_username': work_info.leader_user.username,
-                'reviewer_name': get_demo_display_name(work_info.leader_user),
-                'reviewer_role': 'Leader',
-                'evaluation_date': today - timedelta(days=1 + index),
-                'evaluation_content': leader_template['content'],
-                'evidence_reference': leader_template['evidence'],
-            })
-
-        if work_info.manager_user:
-            manager_template = MANAGER_EVALUATION_TEMPLATES[index % len(MANAGER_EVALUATION_TEMPLATES)]
-            records.append({
-                'employee_username': user.username,
-                'employee_name': get_demo_display_name(user),
-                'reviewer_username': work_info.manager_user.username,
-                'reviewer_name': get_demo_display_name(work_info.manager_user),
-                'reviewer_role': 'Manager',
-                'evaluation_date': today - timedelta(days=3 + (index * 2)),
-                'evaluation_content': manager_template['content'],
-                'evidence_reference': manager_template['evidence'],
-            })
-
-    records.sort(key=lambda item: item['evaluation_date'], reverse=True)
+    for ev in evals:
+        records.append({
+            'employee_username': ev.employee.username,
+            'employee_name': get_user_display_name(ev.employee),
+            'reviewer_username': ev.reviewer.username,
+            'reviewer_name': get_user_display_name(ev.reviewer),
+            'reviewer_role': get_user_role_name(ev.reviewer).title(),
+            'evaluation_date': ev.evaluation_date,
+            'evaluation_content': ev.content,
+            'evidence_reference': ev.evidence_reference,
+            'status': ev.status,
+            'rating': ev.rating,
+            'category_name': ev.category.name if ev.category else 'Chưa phân loại',
+        })
     return records
 
 
 def build_reviewer_evaluation_records(users, reviewer):
     """
-    Trang đánh giá của manager/leader chỉ nên thấy các đánh giá do chính họ tạo.
+    Lấy đánh giá do reviewer (Manager/Leader) tạo trong DB.
     """
-    return [
-        record for record in build_evaluation_records(users)
-        if record['reviewer_username'] == reviewer.username
-    ]
+    usernames = [u.username for u in users]
+    evals = Evaluation.objects.filter(
+        employee__username__in=usernames, 
+        reviewer=reviewer
+    ).select_related('employee', 'reviewer', 'category')
+    
+    records = []
+    for ev in evals:
+        records.append({
+            'id': ev.id,
+            'employee_username': ev.employee.username,
+            'employee_name': get_user_display_name(ev.employee),
+            'reviewer_username': ev.reviewer.username,
+            'reviewer_name': get_user_display_name(ev.reviewer),
+            'reviewer_role': get_user_role_name(ev.reviewer).title(),
+            'evaluation_date': ev.evaluation_date,
+            'evaluation_content': ev.content,
+            'evidence_reference': ev.evidence_reference,
+            'status': ev.status,
+            'status_display': ev.get_status_display(),
+            'rating': ev.rating,
+            'rating_display': ev.get_rating_display() if ev.rating else 'Chưa xếp loại',
+            'category_name': ev.category.name if ev.category else 'Chưa phân loại',
+            'hr_note': ev.hr_note,
+        })
+    return records
