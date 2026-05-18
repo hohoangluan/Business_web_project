@@ -1,5 +1,4 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG XỬ LÝ TICKETS (Cho quản lý). View: ticket_process_view. MOCK DATA. #}
 {% load static %}
 
 {% block title %}Xử lý Tickets - HR Studio{% endblock %}
@@ -45,6 +44,9 @@
     .btn-action-resolve { background: #10b981; color: #fff; }
     .btn-action-resolve:hover { background: #059669; }
 
+    .btn-action-reject { background: #fee2e2; color: #dc2626; }
+    .btn-action-reject:hover { background: #fecaca; }
+
     .user-block { display: flex; align-items: center; gap: 0.75rem; }
     .user-avatar-small {
         width: 32px; height: 32px; background: var(--gradient-blue);
@@ -53,6 +55,21 @@
     }
     .user-info-text .name { font-weight: 600; color: var(--text-primary); line-height: 1.2; }
     .user-info-text .dept { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Modal rejection styles */
+    .tk-modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4); display: none;
+        align-items: center; justify-content: center;
+        z-index: 9999; backdrop-filter: blur(2px);
+    }
+    .tk-modal-overlay.show { display: flex; }
+    .tk-modal-card {
+        background: var(--bg-card); width: 100%; max-width: 450px;
+        border-radius: var(--radius-lg); padding: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        animation: slideDown 0.3s ease;
+    }
 </style>
 
 <div class="animate-fade">
@@ -71,7 +88,7 @@
     <!-- ===== TICKETS PROCESSING TABLE ===== -->
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Cần xử lý (2 yêu cầu)</h3>
+            <h3>Cần xử lý ({{ tickets.count }} yêu cầu)</h3>
         </div>
         <div class="card-body" style="padding: 0;">
             <div class="table-wrapper" style="border: none; border-radius: 0;">
@@ -87,54 +104,66 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for ticket in tickets %}
                         <tr>
                             <td style="padding-left: 1.5rem;">
                                 <div class="user-block">
-                                    <div class="user-avatar-small">NA</div>
+                                    <div class="user-avatar-small" style="background: {% cycle 'var(--gradient-blue)' 'var(--gradient-pink)' 'var(--gradient-orange)' %};">
+                                        {{ ticket.author.profile.full_name|default:ticket.author.username|slice:":2"|upper }}
+                                    </div>
                                     <div class="user-info-text">
-                                        <div class="name">Nguyễn Văn A</div>
-                                        <div class="dept">Phòng Marketing</div>
+                                        <div class="name">{{ ticket.author.profile.full_name|default:ticket.author.username }}</div>
+                                        <div class="dept">{{ ticket.author.work_info.department.name|default:"Chưa phân ban" }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td>Hôm nay, 14:30</td>
-                            <td style="color: #dc2626; font-weight: 600;">Cao</td>
+                            <td>{{ ticket.created_at|date:"d/m/Y H:i" }}</td>
+                            <td style="font-weight: 600; color: {% if ticket.priority == 'high' %}#dc2626{% elif ticket.priority == 'medium' %}#d97706{% else %}#475569{% endif %};">
+                                {{ ticket.get_priority_display }}
+                            </td>
                             <td>
-                                <div style="font-weight: 600; color:var(--text-main);">Không thể chấm công</div>
+                                <div style="font-weight: 600; color:var(--text-main);">
+                                    {{ ticket.title }}
+                                    {% if ticket.evidence_file %}
+                                    <a href="{{ ticket.evidence_file.url }}" target="_blank" style="margin-left:5px; color:var(--primary); font-size:0.8rem;"><i class="fa-solid fa-paperclip"></i></a>
+                                    {% endif %}
+                                </div>
                                 <div class="text-secondary" style="font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    Hệ thống báo lỗi khi tôi cố gắng chấm công...
+                                    {{ ticket.content }}
                                 </div>
                             </td>
-                            <td><span class="tk-bdg tk-new">Mới</span></td>
                             <td>
-                                <button class="btn-action btn-action-proc" onclick="alert('Chuyển trạng thái thành Đang xử lý')">Tiếp nhận</button>
-                                <button class="btn-action btn-action-resolve" onclick="alert('Đánh dấu Đã giải quyết')"><i class="fa-solid fa-check"></i> Đóng</button>
+                                {% if ticket.status == 'new' %}
+                                <span class="tk-bdg tk-new">Mới</span>
+                                {% elif ticket.status == 'processing' %}
+                                <span class="tk-bdg tk-proc">Đang xử lý</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" action="{% url 'ticket_process' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+                                    
+                                    {% if ticket.status == 'new' %}
+                                    <input type="hidden" name="action" value="receive">
+                                    <button type="submit" class="btn-action btn-action-proc">Tiếp nhận</button>
+                                    {% elif ticket.status == 'processing' %}
+                                    <input type="hidden" name="action" value="resolve">
+                                    <button type="submit" class="btn-action btn-action-resolve"><i class="fa-solid fa-check"></i> Hoàn thành</button>
+                                    {% endif %}
+                                </form>
+
+                                <!-- Button mở modal Từ chối -->
+                                <button type="button" class="btn-action btn-action-reject" onclick="openRejectModal('{{ ticket.id }}')">Từ chối</button>
                             </td>
                         </tr>
-                        
+                        {% empty %}
                         <tr>
-                            <td style="padding-left: 1.5rem;">
-                                <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-pink);">LD</div>
-                                    <div class="user-info-text">
-                                        <div class="name">Lê Đình D</div>
-                                        <div class="dept">Phòng HR</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>Hôm qua, 10:15</td>
-                            <td style="color: #d97706; font-weight: 600;">TB</td>
-                            <td>
-                                <div style="font-weight: 600; color:var(--text-main);">Sai số ngày phép</div>
-                                <div class="text-secondary" style="font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    Số ngày phép còn lại hiển thị không...
-                                </div>
-                            </td>
-                            <td><span class="tk-bdg tk-proc">Đang xử lý</span></td>
-                            <td>
-                                <button class="btn-action btn-action-resolve" onclick="alert('Đã giải quyết xong')"><i class="fa-solid fa-check"></i> Hoàn thành</button>
+                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                Không có ticket nào đang cần xử lý.
                             </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -142,4 +171,47 @@
     </div>
 
 </div>
+
+<!-- ===== MODAL TỪ CHỐI TICKET ===== -->
+<div id="rejectModal" class="tk-modal-overlay">
+    <div class="tk-modal-card">
+        <h3 style="margin-bottom: 1rem; color: #dc2626;"><i class="fa-solid fa-ban"></i> Từ chối Ticket</h3>
+        <form method="POST" action="{% url 'ticket_process' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <input type="hidden" name="ticket_id" id="reject_ticket_id" value="">
+            
+            <div class="form-group">
+                <label>Lý do từ chối <span style="color: red;">*</span></label>
+                <textarea name="rejection_reason" class="form-control" rows="4" style="resize:none;" required placeholder="Nhập lý do tại sao không thể xử lý yêu cầu này..."></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                <button type="button" class="btn-cancel" onclick="closeRejectModal()" style="padding: 0.5rem 1rem; border: none; background: #f1f5f9; border-radius: 6px; cursor: pointer;">Hủy bỏ</button>
+                <button type="submit" class="btn-action btn-action-reject" style="margin: 0;">Xác nhận từ chối</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const rejectModal = document.getElementById('rejectModal');
+    const rejectTicketInput = document.getElementById('reject_ticket_id');
+
+    function openRejectModal(ticketId) {
+        rejectTicketInput.value = ticketId;
+        rejectModal.classList.add('show');
+    }
+
+    function closeRejectModal() {
+        rejectModal.classList.remove('show');
+        rejectTicketInput.value = '';
+    }
+
+    rejectModal.addEventListener('click', function(e) {
+        if (e.target === rejectModal) {
+            closeRejectModal();
+        }
+    });
+</script>
 {% endblock %}

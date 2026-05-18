@@ -1,5 +1,4 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG HỖ TRỢ & KHIẾU NẠI (Tickets). View: ticket_list_view. #}
 {% load static %}
 
 {% block title %}Hỗ trợ & Khiếu nại - HR Studio{% endblock %}
@@ -21,6 +20,22 @@
         background: #7c3aed;
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(124, 58, 237, 0.3);
+    }
+    
+    .btn-cancel {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1.25rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .btn-cancel:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+        border-color: #94a3b8;
     }
     
     .btn-process-nav {
@@ -92,7 +107,7 @@
         padding: 1.25rem 1.5rem;
         margin-bottom: 1rem;
         transition: all 0.2s;
-        cursor: pointer;
+        position: relative;
     }
     .ticket-card:hover {
         border-color: #cbd5e1;
@@ -121,6 +136,7 @@
     .tk-proc { background: #e0e7ff; color: #4338ca; }
     .tk-resolved { background: #dcfce7; color: #15803d; }
     .tk-closed { background: #f1f5f9; color: #475569; }
+    .tk-rejected { background: #fee2e2; color: #dc2626; }
 
     .ticket-desc {
         color: var(--text-secondary);
@@ -136,7 +152,7 @@
         color: var(--text-muted);
     }
     .priority-high { color: #dc2626; font-weight: 600; }
-    .priority-med { color: #d97706; font-weight: 600; }
+    .priority-medium { color: #d97706; font-weight: 600; }
     .priority-low { color: #475569; font-weight: 600; }
 
     /* Cột Phải (FAQ & Khẩn cấp) */
@@ -190,6 +206,78 @@
     }
     .em-contact i { color: #f43f5e; margin-right: 0.4rem; } /* Tông đỏ cho SOS */
     .em-contact .mail-icon { color: #cbd5e1; }
+
+    /* Custom Modal cho Ticket */
+    .tk-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+    }
+    .tk-modal-overlay.show { display: flex; }
+    .tk-modal-card {
+        background: var(--bg-card);
+        width: 100%; max-width: 550px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        overflow: hidden;
+        animation: slideDown 0.3s ease;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light);
+    }
+    .modal-header h3 { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text-main); }
+    .btn-close-modal {
+        background: none; border: none; font-size: 1.5rem; color: var(--text-muted);
+        cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.15s;
+        line-height: 1;
+    }
+    .btn-close-modal:hover { background: #fee2e2; color: #ef4444; }
+
+    /* Styles for Form */
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label {
+        display: block; font-size: 0.88rem; font-weight: 600;
+        color: var(--text-primary); margin-bottom: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.65rem 0.9rem;
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.9rem; font-family: 'Inter', sans-serif;
+        color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
+
+    /* Custom File Input Premium Styling */
+    .form-control[type="file"] {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        background: #f8fafc;
+        border: 1.5px dashed #cbd5e1;
+    }
+    .form-control[type="file"]::file-selector-button {
+        background: var(--gradient-purple, #8b5cf6); /* Fallback for purple */
+        color: #fff;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-right: 0.75rem;
+        box-shadow: 0 2px 6px rgba(139, 92, 246, 0.25);
+    }
+    .form-control[type="file"]::file-selector-button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.35);
+    }
 </style>
 
 <div class="animate-fade">
@@ -198,7 +286,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
         <div>
             <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Hỗ trợ & Khiếu nại</h2>
-            <p style="color:var(--text-muted); font-size:0.95rem;">Gửi yêu cầu hỗ trợ hoặc khiếu nại</p>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Gửi yêu cầu hỗ trợ hoặc khiếu nại của bạn</p>
         </div>
         
         <div style="display: flex; gap: 1rem;">
@@ -208,13 +296,13 @@
             </a>
             {% endif %}
             
-            <button class="btn-create" onclick="alert('Đang mở form tạo Ticket!')">
+            <button class="btn-create" onclick="tkOpenModal()">
                 <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Tạo ticket mới
             </button>
         </div>
     </div>
 
-    <!-- ===== STATS GRID (Tròn dẹt) ===== -->
+    <!-- ===== STATS GRID ===== -->
     <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#fef3c7; color:#d97706; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
@@ -222,17 +310,17 @@
             </div>
             <div>
                 <div class="stat-label">Đang chờ</div>
-                <div class="stat-val-big">2</div>
+                <div class="stat-val-big">{{ stats.waiting }}</div>
             </div>
         </div>
         
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#e0e7ff; color:#4338ca; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                <i class="fa-solid fa-circle-exclamation"></i>
+                <i class="fa-solid fa-gears"></i>
             </div>
             <div>
                 <div class="stat-label">Đang xử lý</div>
-                <div class="stat-val-big">1</div>
+                <div class="stat-val-big">{{ stats.processing }}</div>
             </div>
         </div>
         
@@ -242,17 +330,17 @@
             </div>
             <div>
                 <div class="stat-label">Đã giải quyết</div>
-                <div class="stat-val-big">1</div>
+                <div class="stat-val-big">{{ stats.resolved }}</div>
             </div>
         </div>
         
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#f1f5f9; color:#475569; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                <i class="fa-solid fa-xmark"></i>
+                <i class="fa-solid fa-box-archive"></i>
             </div>
             <div>
                 <div class="stat-label">Đã đóng</div>
-                <div class="stat-val-big">1</div>
+                <div class="stat-val-big">{{ stats.closed }}</div>
             </div>
         </div>
     </div>
@@ -263,81 +351,63 @@
         <!-- Cột Trái: Danh sách Ticket -->
         <div>
             <!-- Bộ lọc -->
-            <div class="filter-bar">
-                <input type="text" class="search-input" placeholder="Tìm kiếm ticket...">
-                <select class="status-select">
-                    <option>Tất cả</option>
-                    <option>Mới</option>
-                    <option>Đang xử lý</option>
-                    <option>Đã giải quyết</option>
+            <form method="GET" class="filter-bar">
+                <input type="text" class="search-input" placeholder="Tìm kiếm (chưa hỗ trợ)..." disabled>
+                <select name="status" class="status-select" onchange="this.form.submit()">
+                    <option value="" {% if not status_filter %}selected{% endif %}>Tất cả</option>
+                    <option value="new" {% if status_filter == 'new' %}selected{% endif %}>Mới</option>
+                    <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Đang xử lý</option>
+                    <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Đã giải quyết</option>
+                    <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Đã đóng</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Bị từ chối</option>
                 </select>
-            </div>
+            </form>
 
             <!-- Các thẻ Ticket Card -->
+            {% for ticket in tickets %}
             <div class="ticket-card">
                 <div class="ticket-title-row">
-                    <span class="ticket-title">Không thể chấm công</span>
+                    <span class="ticket-title">{{ ticket.title }}</span>
+                    {% if ticket.status == 'new' %}
                     <span class="tk-bdg tk-new">Mới</span>
-                </div>
-                <div class="ticket-desc">Hệ thống báo lỗi khi tôi cố gắng chấm công vào sáng nay</div>
-                <div class="ticket-meta">
-                    <span><i class="fa-regular fa-comment"></i> Chấm công</span>
-                    <span class="priority-high">Cao</span>
-                    <span>20/04/2026 14:30</span>
-                </div>
-            </div>
-
-            <div class="ticket-card">
-                <div class="ticket-title-row">
-                    <span class="ticket-title">Sai số ngày phép</span>
+                    {% elif ticket.status == 'processing' %}
                     <span class="tk-bdg tk-proc">Đang xử lý</span>
-                </div>
-                <div class="ticket-desc">Số ngày phép còn lại hiển thị không chính xác trên trang quản lý cá nhân</div>
-                <div class="ticket-meta">
-                    <span><i class="fa-regular fa-comment"></i> Nghỉ phép</span>
-                    <span class="priority-med">Trung bình</span>
-                    <span>19/04/2026 10:15</span>
-                </div>
-            </div>
-
-            <div class="ticket-card">
-                <div class="ticket-title-row">
-                    <span class="ticket-title">Yêu cầu cập nhật thông tin</span>
+                    {% elif ticket.status == 'resolved' %}
                     <span class="tk-bdg tk-resolved">Đã giải quyết</span>
-                </div>
-                <div class="ticket-desc">Cần cập nhật địa chỉ và số điện thoại mới</div>
-                <div class="ticket-meta">
-                    <span><i class="fa-regular fa-comment"></i> Hồ sơ</span>
-                    <span class="priority-low">Thấp</span>
-                    <span>18/04/2026 16:45</span>
-                </div>
-            </div>
-
-            <div class="ticket-card">
-                <div class="ticket-title-row">
-                    <span class="ticket-title">Không nhận được email thông báo</span>
-                    <span class="tk-bdg tk-new">Mới</span>
-                </div>
-                <div class="ticket-desc">Không nhận được email về đơn nghỉ phép đã được duyệt</div>
-                <div class="ticket-meta">
-                    <span><i class="fa-regular fa-comment"></i> Hệ thống</span>
-                    <span class="priority-med">Trung bình</span>
-                    <span>17/04/2026 09:20</span>
-                </div>
-            </div>
-
-            <div class="ticket-card">
-                <div class="ticket-title-row">
-                    <span class="ticket-title">Báo cáo tăng ca sai</span>
+                    {% elif ticket.status == 'closed' %}
                     <span class="tk-bdg tk-closed">Đã đóng</span>
+                    {% elif ticket.status == 'rejected' %}
+                    <span class="tk-bdg tk-rejected">Bị từ chối</span>
+                    {% endif %}
                 </div>
-                <div class="ticket-desc">Số giờ tăng ca trong báo cáo không khớp với thực tế</div>
+                <div class="ticket-desc">{{ ticket.content|linebreaksbr }}</div>
+                
+                {% if ticket.status == 'rejected' and ticket.rejection_reason %}
+                <div style="background: #fee2e2; border-left: 3px solid #ef4444; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.85rem; font-size: 0.9rem; color: #991b1b;">
+                    <strong>Lý do từ chối:</strong> {{ ticket.rejection_reason }}
+                </div>
+                {% endif %}
+
+                {% if ticket.evidence_file %}
+                <div style="margin-bottom: 0.85rem;">
+                    <a href="{{ ticket.evidence_file.url }}" target="_blank" style="font-size: 0.85rem; color: var(--primary);"><i class="fa-solid fa-paperclip"></i> Xem file đính kèm</a>
+                </div>
+                {% endif %}
+
                 <div class="ticket-meta">
-                    <span><i class="fa-regular fa-comment"></i> Tăng ca</span>
-                    <span class="priority-low">Thấp</span>
-                    <span>15/04/2026 11:30</span>
+                    <span>
+                        <i class="fa-regular fa-comment"></i> 
+                        {{ ticket.get_ticket_type_display }}
+                    </span>
+                    <span class="priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+                    <span>{{ ticket.created_at|date:"d/m/Y H:i" }}</span>
                 </div>
             </div>
+            {% empty %}
+            <div style="text-align:center; padding: 3rem; background: var(--bg-main); border: 1px dashed var(--border-light); border-radius: var(--radius-lg); color: var(--text-muted);">
+                Bạn chưa có ticket nào trong trạng thái này.
+            </div>
+            {% endfor %}
             
         </div>
 
@@ -381,4 +451,67 @@
 
     </div>
 </div>
+
+<!-- ===== MODAL TẠO TICKET ===== -->
+<div id="tkCreateModal" class="tk-modal-overlay">
+    <div class="tk-modal-card">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-headset"></i> Tạo Yêu Cầu / Khiếu Nại</h3>
+            <button class="btn-close-modal" type="button" onclick="tkCloseModal()">&times;</button>
+        </div>
+        <form method="POST" action="{% url 'tickets' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>{{ form.ticket_type.label }} <span style="color: red;">*</span></label>
+                        {{ form.ticket_type }}
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>{{ form.priority.label }} <span style="color: red;">*</span></label>
+                        {{ form.priority }}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>{{ form.title.label }} <span style="color: red;">*</span></label>
+                    {{ form.title }}
+                </div>
+                <div class="form-group">
+                    <label>{{ form.content.label }} <span style="color: red;">*</span></label>
+                    {{ form.content }}
+                </div>
+                <div class="form-group">
+                    <label>{{ form.evidence_file.label }}</label>
+                    {{ form.evidence_file }}
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-light); background: #f8fafc;">
+                <button type="button" class="btn-cancel" onclick="tkCloseModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-create" style="margin: 0; padding: 0.6rem 1.5rem;">
+                    <i class="fa-solid fa-paper-plane"></i> Gửi ticket
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const tkModal = document.getElementById('tkCreateModal');
+
+    function tkOpenModal() {
+        tkModal.classList.add('show');
+    }
+
+    function tkCloseModal() {
+        tkModal.classList.remove('show');
+    }
+
+    // Đóng khi click ngoài
+    tkModal.addEventListener('click', function(e) {
+        if (e.target === tkModal) {
+            tkCloseModal();
+        }
+    });
+</script>
 {% endblock %}

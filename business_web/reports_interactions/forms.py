@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from accounts.models import Role
 from accounts.services import get_user_role_name
 from reports_interactions.models import Report
+from reports_interactions.models.ticket_model import Ticket
 
 class ReportForm(forms.ModelForm):
     recipient = forms.ModelChoiceField(
@@ -84,5 +85,34 @@ class ReportForm(forms.ModelForm):
             return work_info.manager_user
         elif role == Role.HR:
             return work_info.manager_user
-        
         return work_info.manager_user or work_info.leader_user
+
+class TicketForm(forms.ModelForm):
+    class Meta:
+        model = Ticket
+        fields = ['ticket_type', 'priority', 'title', 'content', 'evidence_file']
+        widgets = {
+            'ticket_type': forms.Select(attrs={'class': 'form-control'}),
+            'priority': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập tiêu đề ticket...',
+                'autocomplete': 'off'
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Mô tả chi tiết vấn đề bạn đang gặp phải...',
+                'rows': 5,
+                'style': 'resize: none;'
+            }),
+            'evidence_file': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+            }),
+        }
+        labels = {
+            'ticket_type': 'Loại yêu cầu',
+            'priority': 'Mức độ ưu tiên',
+            'title': 'Tiêu đề ticket',
+            'content': 'Nội dung chi tiết',
+            'evidence_file': 'File minh chứng đính kèm (nếu có)',
+        }
