@@ -24,35 +24,62 @@
         padding: 0.25rem 0.6rem;
         border-radius: 4px;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
     }
-    .rp-type-reward { background: #ecfdf5; color: #059669; }
-    .rp-type-penalty { background: #fef2f2; color: #dc2626; }
+    .rp-type-reward { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .rp-type-penalty { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
     
     .btn-action {
         border: none;
-        padding: 0.4rem 0.85rem;
+        padding: 0.45rem 1rem;
         border-radius: 6px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.8rem;
         cursor: pointer;
         transition: all 0.2s;
-        margin-right: 0.4rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
     }
-    .btn-action-appr { background: #10b981; color: #fff; }
-    .btn-action-appr:hover { background: #059669; }
+    .btn-action-appr { background: #10b981; color: #fff; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.2); }
+    .btn-action-appr:hover { background: #059669; transform: translateY(-1px); }
     
-    .btn-action-reject { background: #f1f5f9; color: #475569; }
-    .btn-action-reject:hover { background: #e2e8f0; }
+    .btn-action-reject { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .btn-action-reject:hover { background: #e2e8f0; transform: translateY(-1px); }
 
     .user-block { display: flex; align-items: center; gap: 0.75rem; }
     .user-avatar-small {
-        width: 32px; height: 32px; background: var(--gradient-purple);
+        width: 36px; height: 36px; background: var(--gradient-purple);
         color: #fff; border-radius: 50%; display: flex; 
-        align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+        align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;
     }
     .user-info-text .name { font-weight: 600; color: var(--text-primary); line-height: 1.2; }
     .user-info-text .dept { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Attachment link styling inside approval table */
+    .btn-attachment {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #f3e8ff;
+        color: #6b21a8;
+        border: 1px solid #e9d5ff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        margin-top: 0.3rem;
+    }
+    .btn-attachment:hover {
+        background: #8b5cf6;
+        color: #fff;
+        border-color: #8b5cf6;
+    }
 </style>
 
 <div class="animate-fade">
@@ -65,13 +92,13 @@
     <!-- ===== HEADER ===== -->
     <div style="margin-bottom: 2rem;">
         <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Phê duyệt Đề xuất Thưởng/Phạt</h2>
-        <p style="color:var(--text-muted); font-size:0.95rem;">Xét duyệt các yêu cầu khen thưởng hoặc xử phạt nhân sự</p>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Xét duyệt các yêu cầu khen thưởng hoặc xử phạt nhân sự của toàn công ty (Quyền hạn của HR)</p>
     </div>
 
     <!-- ===== APPROVAL TABLE ===== -->
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Yêu cầu chờ duyệt (2 phiếu)</h3>
+            <h3>Yêu cầu chờ duyệt ({{ pending_records|length }} phiếu)</h3>
         </div>
         <div class="card-body" style="padding: 0;">
             <div class="table-wrapper" style="border: none; border-radius: 0;">
@@ -82,54 +109,85 @@
                             <th>NGƯỜI ĐỀ XUẤT</th>
                             <th>PHÂN LOẠI</th>
                             <th>SỐ TIỀN</th>
-                            <th>LÝ DO</th>
+                            <th>NGÀY ÁP DỤNG</th>
+                            <th>CHI TIẾT LÝ DO</th>
                             <th>THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for r in pending_records %}
                         <tr>
                             <td style="padding-left: 1.5rem;">
                                 <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-blue);">NA</div>
+                                    <div class="user-avatar-small">
+                                        {{ r.employee.username|slice:":2"|upper }}
+                                    </div>
                                     <div class="user-info-text">
-                                        <div class="name">Nguyễn Văn A</div>
-                                        <div class="dept">Phòng Marketing</div>
+                                        <div class="name">{{ r.employee.profile.full_name|default:r.employee.username }}</div>
+                                        <div class="dept">{{ r.employee.profile.department|default:"Chưa phân bộ phận" }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td>Trần Thị B (Leader)</td>
-                            <td><span class="rp-bdg rp-type-reward"><i class="fa-solid fa-gift"></i> Khen thưởng</span></td>
-                            <td style="color: #10b981; font-weight: 700;">+ 1,500,000đ</td>
                             <td>
-                                <div style="font-weight: 600; color:var(--text-main);">Vượt chỉ tiêu Doanh số tháng 4</div>
+                                <div style="font-weight: 600; color: var(--text-main);">
+                                    {{ r.proposer.profile.full_name|default:r.proposer.username }}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    {{ r.proposer.profile.position|default:"Quản lý" }}
+                                </div>
                             </td>
                             <td>
-                                <button class="btn-action btn-action-appr" onclick="alert('Đã DUYỆT phiếu khen thưởng')">Duyệt</button>
-                                <button class="btn-action btn-action-reject" onclick="alert('Đã TỪ CHỐI phiếu này')">Từ chối</button>
+                                {% if r.record_type == 'reward' %}
+                                    <span class="rp-bdg rp-type-reward"><i class="fa-solid fa-gift"></i> Khen thưởng</span>
+                                {% else %}
+                                    <span class="rp-bdg rp-type-penalty"><i class="fa-solid fa-triangle-exclamation"></i> Xử phạt</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-weight: 700; font-size: 0.95rem; {% if r.record_type == 'reward' %}color: #10b981;{% else %}color: #ef4444;{% endif %}">
+                                {{ r.amount_formatted }}
+                            </td>
+                            <td style="font-weight: 500; font-size: 0.85rem; color: #64748b;">
+                                {{ r.application_date|date:"d/m/Y" }}
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color:var(--text-main);">{{ r.reason_title }}</div>
+                                {% if r.reason_detail %}
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{ r.reason_detail }}</div>
+                                {% endif %}
+                                {% if r.evidence_file %}
+                                    <div>
+                                        <a href="{{ r.evidence_file.url }}" target="_blank" class="btn-attachment">
+                                            <i class="fa-solid fa-paperclip"></i> Xem Minh chứng
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" action="" style="margin: 0; display: flex; gap: 0.5rem;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="record_id" value="{{ r.id }}">
+                                    
+                                    <button type="submit" name="action" value="approve" class="btn-action btn-action-appr">
+                                        <i class="fa-solid fa-circle-check"></i> Duyệt
+                                    </button>
+                                    
+                                    <button type="submit" name="action" value="reject" class="btn-action btn-action-reject">
+                                        <i class="fa-solid fa-circle-xmark"></i> Từ chối
+                                    </button>
+                                </form>
                             </td>
                         </tr>
-                        
+                        {% empty %}
                         <tr>
-                            <td style="padding-left: 1.5rem;">
-                                <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-pink);">LD</div>
-                                    <div class="user-info-text">
-                                        <div class="name">Lê Đình D</div>
-                                        <div class="dept">Phòng Thiết kế</div>
-                                    </div>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 4rem;">
+                                <div style="font-size: 2.5rem; margin-bottom: 1rem; color: #cbd5e1;">
+                                    <i class="fa-solid fa-folder-open"></i>
                                 </div>
-                            </td>
-                            <td>Phòng Hành chính Nhân sự</td>
-                            <td><span class="rp-bdg rp-type-penalty"><i class="fa-solid fa-triangle-exclamation"></i> Xử phạt</span></td>
-                            <td style="color: #ef4444; font-weight: 700;">- 500,000đ</td>
-                            <td>
-                                <div style="font-weight: 600; color:var(--text-main);">Đi làm muộn 5 lần trong tháng</div>
-                            </td>
-                            <td>
-                                <button class="btn-action btn-action-appr" onclick="alert('Đã DUYỆT phiếu xử phạt')">Phạt</button>
-                                <button class="btn-action btn-action-reject" onclick="alert('Đã HỦY YÊU CẦU')">Hủy</button>
+                                <h4 style="font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Không có yêu cầu chờ duyệt</h4>
+                                <p style="font-size: 0.85rem; color: #94a3b8;">Tất cả các phiếu khen thưởng và xử phạt đã được xử lý xong!</p>
                             </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
