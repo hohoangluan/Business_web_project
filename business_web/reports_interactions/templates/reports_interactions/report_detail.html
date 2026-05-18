@@ -1,0 +1,154 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Chi tiết Báo cáo - HR Studio{% endblock %}
+
+{% block content %}
+<style>
+    .btn-back {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: var(--text-muted); text-decoration: none; font-weight: 600;
+        margin-bottom: 1rem; transition: color 0.2s;
+    }
+    .btn-back:hover { color: var(--primary); }
+
+    .detail-card {
+        background: #fff; border-radius: 16px; border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02); overflow: hidden; margin-top: 1rem;
+    }
+    
+    .detail-header {
+        padding: 1.75rem 2rem; border-bottom: 1px solid var(--border);
+        background: #f8fafc; display: flex; justify-content: space-between; align-items: flex-start;
+    }
+
+    .detail-body { padding: 2.25rem 2rem; }
+
+    .meta-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+    .meta-item strong { color: var(--text-primary); }
+
+    .content-box {
+        background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
+        padding: 1.5rem; font-size: 0.98rem; line-height: 1.7; color: var(--text-main);
+        white-space: pre-wrap; margin-top: 1.5rem; font-family: 'Inter', sans-serif;
+    }
+
+    .badge-status-lg {
+        padding: 0.5rem 1rem; border-radius: var(--radius-full);
+        font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .badge-lg-pending { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-lg-viewed { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+
+    .alert-banner {
+        padding: 1rem 1.5rem; border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+        margin-top: 2rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+</style>
+
+<div class="animate-fade">
+
+    <!-- ===== BACK LINK ===== -->
+    {% if is_recipient %}
+    <a href="{% url 'report_inbox' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại Hộp thư Báo cáo
+    </a>
+    {% else %}
+    <a href="{% url 'reports' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại trang Quản lý Báo cáo
+    </a>
+    {% endif %}
+
+    <!-- ===== REPORT DETAIL CARD ===== -->
+    <div class="detail-card">
+        
+        <!-- Header -->
+        <div class="detail-header">
+            <div>
+                <span style="font-size:0.8rem; text-transform:uppercase; font-weight:700; letter-spacing:0.05em; color:var(--primary); display:block; margin-bottom:0.4rem;">
+                    Báo cáo cá nhân tự do
+                </span>
+                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.75rem 0; line-height: 1.3;">
+                    {{ report.title }}
+                </h2>
+                
+                <div style="display:flex; flex-wrap:wrap; gap: 1.5rem; margin-top: 0.5rem;">
+                    <div class="meta-item">
+                        <i class="fa-solid fa-user-pen"></i> Người gửi: <strong>{{ report.author.profile.full_name|default:report.author.username }}</strong>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fa-solid fa-user-shield"></i> Người nhận: <strong>{{ report.recipient.profile.full_name|default:report.recipient.username }}</strong>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fa-solid fa-calendar-day"></i> Gửi lúc: <strong>{{ report.created_at|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                {% if report.is_viewed %}
+                <span class="badge-status-lg badge-lg-viewed">
+                    <i class="fa-solid fa-eye"></i> Đã xem
+                </span>
+                {% else %}
+                <span class="badge-status-lg badge-lg-pending">
+                    <i class="fa-solid fa-hourglass-half"></i> Chờ xem
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="detail-body">
+            
+            {% if report.is_viewed %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.88rem; font-weight:600; display:flex; align-items:center; gap:0.5rem; margin-bottom:1.5rem;">
+                <i class="fa-solid fa-circle-check"></i>
+                Đã được Quản lý xem vào lúc <strong>{{ report.viewed_at|date:"d/m/Y H:i" }}</strong>
+            </div>
+            {% endif %}
+
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing:0.02em;">
+                <i class="fa-solid fa-align-left" style="margin-right:6px; color:var(--text-muted);"></i> Nội dung chi tiết:
+            </h4>
+            
+            <div class="content-box">
+                {{ report.content }}
+            </div>
+
+            {% if report.file_attachment %}
+            <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <i class="fa-solid fa-file-pdf" style="font-size: 2.2rem; color: #8b5cf6;"></i>
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">Tài liệu / File đính kèm:</div>
+                        <div style="font-size: 0.82rem; color: var(--text-muted); margin-top:0.15rem;">{{ report.filename }}</div>
+                    </div>
+                </div>
+                <a href="{{ report.file_attachment.url }}" download class="btn btn-primary" style="background: var(--gradient-purple); border: none; padding: 0.6rem 1.35rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15); cursor: pointer; color: #fff;">
+                    <i class="fa-solid fa-download"></i> Tải xuống file đính kèm
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Lock and Warning banner for Author -->
+            {% if is_author %}
+                {% if report.is_viewed %}
+                <div class="alert-banner" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c;">
+                    <i class="fa-solid fa-lock" style="font-size:1.1rem;"></i>
+                    <span><strong>Báo cáo đã khóa:</strong> Quản lý đã đọc báo cáo này. Quyền Sửa/Xóa của bạn đã tự động đóng lại nhằm bảo toàn lịch sử dữ liệu.</span>
+                </div>
+                {% else %}
+                <div class="alert-banner" style="background:#eff6ff; border:1px solid #dbeafe; color:#1e40af;">
+                    <i class="fa-solid fa-circle-info" style="font-size:1.1rem;"></i>
+                    <span><strong>Mẹo:</strong> Báo cáo hiện đang chờ xem. Bạn có thể quay lại danh sách để tự do Chỉnh sửa hoặc Xóa bỏ.</span>
+                </div>
+                {% endif %}
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

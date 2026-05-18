@@ -1,157 +1,133 @@
 {% extends 'accounts/base_dashboard.html' %}
-{# TRANG HỘP THƯ BÁO CÁO (Dành cho Quản lý). View: report_inbox_view. #}
 {% load static %}
 
 {% block title %}Hộp thư Báo cáo - HR Studio{% endblock %}
 
 {% block content %}
 <style>
-    /* CSS Tùy biến */
     .btn-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: var(--text-muted);
-        text-decoration: none;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        transition: color 0.2s;
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: var(--text-muted); text-decoration: none; font-weight: 600;
+        margin-bottom: 1rem; transition: color 0.2s;
     }
-    .btn-back:hover {
-        color: var(--primary);
-    }
+    .btn-back:hover { color: var(--primary); }
     
     .badge-status {
-        padding: 0.25rem 0.65rem;
-        border-radius: var(--radius-full);
-        font-weight: 600;
-        font-size: 0.75rem;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-full);
+        font-weight: 600; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 0.25rem;
     }
     .badge-unread { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-    .badge-read { background: #f1f5f9; color: #64748b; }
+    .badge-read { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
     
     .row-unread {
-        background-color: #f8fafc;
-        border-left: 3px solid var(--primary);
+        background-color: #faf5ff !important; /* Màu tím nhạt sang trọng */
+        border-left: 4px solid var(--primary);
     }
     
     .btn-view {
-        background: #e0e7ff;
-        color: #4338ca;
-        border: none;
-        padding: 0.4rem 0.85rem;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.2s;
+        background: #e0e7ff; color: #4338ca; border: none;
+        padding: 0.45rem 0.95rem; border-radius: 8px; font-weight: 600;
+        font-size: 0.82rem; cursor: pointer; transition: all 0.2s; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 0.3rem;
     }
-    .btn-view:hover {
-        background: #c7d2fe;
-    }
-    
-    .user-block {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
+    .btn-view:hover { background: #c7d2fe; }
+
+    .user-block { display: flex; align-items: center; gap: 0.75rem; }
     .user-avatar-small {
-        width: 32px;
-        height: 32px;
-        background: var(--gradient-purple);
-        color: #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.85rem;
-    }
-    .user-info-text .name {
-        font-weight: 600;
-        color: var(--text-primary);
-        line-height: 1.2;
-    }
-    .user-info-text .dept {
-        font-size: 0.75rem;
-        color: var(--text-muted);
+        width: 32px; height: 32px; background: var(--gradient-purple);
+        color: #fff; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; font-weight: 700; font-size: 0.85rem;
     }
 </style>
 
 <div class="animate-fade">
 
-    <!-- ===== BREADCRUMB ===== -->
+    <!-- ===== BACK LINK ===== -->
     <a href="{% url 'reports' %}" class="btn-back">
         <i class="fa-solid fa-arrow-left"></i> Quay lại mục Quản lý Báo cáo
     </a>
 
-    <!-- ===== HEADER ===== -->
+    <!-- ===== HEADER SECTION ===== -->
     <div style="margin-bottom: 2rem;">
-        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Hộp thư Báo cáo</h2>
-        <p style="color:var(--text-muted); font-size:0.95rem;">Xem báo cáo nội bộ được gửi đến bạn</p>
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Hộp thư Báo cáo nhận được</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Xem và kiểm duyệt các báo cáo tự do gửi trực tiếp đến bạn</p>
     </div>
 
-    <!-- ===== INBOX TABLE ===== -->
+    <!-- ===== RECEIVED REPORTS CARD ===== -->
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Hộp thư đến (1 chưa đọc)</h3>
-            <button class="btn btn-outline btn-sm"><i class="fa-solid fa-check-double" style="margin-right:5px;"></i>Đánh dấu đã đọc tất cả</button>
+            <h3 style="margin:0;">
+                <i class="fa-solid fa-inbox" style="color:var(--primary); margin-right:6px;"></i>
+                Danh sách báo cáo đến 
+                {% if unread_count > 0 %}
+                    <span style="background:#ef4444; color:#fff; font-size:0.8rem; padding:0.2rem 0.6rem; border-radius:50px; margin-left:6px;">{{ unread_count }} chưa đọc</span>
+                {% endif %}
+            </h3>
         </div>
         <div class="card-body" style="padding: 0;">
+            {% if reports %}
             <div class="table-wrapper" style="border: none; border-radius: 0;">
-                <table class="data-table">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th style="padding-left: 1.5rem;">NGƯỜI GỬI</th>
-                            <th>NGÀY GỬI</th>
-                            <th>TIÊU ĐỀ BÁO CÁO</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>THAO TÁC</th>
+                        <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; background: #f8fafc;">
+                            <th style="padding: 1rem 1.5rem;">NGƯỜI GỬI</th>
+                            <th style="padding: 1rem 1.25rem;">NGÀY GỬI</th>
+                            <th style="padding: 1rem 1.25rem;">TIÊU ĐỀ BÁO CÁO</th>
+                            <th style="padding: 1rem 1.25rem;">TRẠNG THÁI</th>
+                            <th style="padding: 1rem 1.5rem; text-align: right;">THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="row-unread">
-                            <td style="padding-left: 1.5rem;">
+                        {% for r in reports %}
+                        <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: middle;" {% if not r.is_viewed %}class="row-unread"{% endif %}>
+                            <td style="padding: 1rem 1.5rem;">
                                 <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-blue);">NA</div>
+                                    <div class="user-avatar-small" style="background: {% if not r.is_viewed %}var(--gradient-blue){% else %}var(--gradient-purple){% endif %};">
+                                        {{ r.author.profile.full_name|slice:":1"|upper|default:r.author.username|slice:":1"|upper }}
+                                    </div>
                                     <div class="user-info-text">
-                                        <div class="name">Nguyễn Văn A</div>
-                                        <div class="dept">Phòng Marketing</div>
+                                        <div class="name" style="font-weight:600; color:var(--text-primary);">
+                                            {{ r.author.profile.full_name|default:r.author.username }}
+                                        </div>
+                                        <div class="dept" style="font-size:0.75rem; color:var(--text-muted);">
+                                            {{ r.author.work_info.department|default:"Nhân viên" }}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
-                            <td>Hôm nay, 16:30</td>
-                            <td style="font-weight: 600; color: var(--text-primary);">
-                                Báo cáo hiệu suất Campaign tháng 4
+                            <td style="padding: 1rem 1.25rem; font-weight: 500;">
+                                {{ r.created_at|date:"d/m/Y H:i" }}
                             </td>
-                            <td><span class="badge-status badge-unread">Chưa đọc</span></td>
-                            <td>
-                                <button class="btn-view" onclick="alert('Đang mở chi tiết báo cáo...')">Xem chi tiết</button>
+                            <td style="padding: 1rem 1.25rem; font-weight: 600; color: var(--text-primary);">
+                                {{ r.title }}
                             </td>
-                        </tr>
-                        
-                        <tr>
-                            <td style="padding-left: 1.5rem;">
-                                <div class="user-block">
-                                    <div class="user-avatar-small" style="background: var(--gradient-pink);">LD</div>
-                                    <div class="user-info-text">
-                                        <div class="name">Lê Đình D</div>
-                                        <div class="dept">Phòng HR</div>
-                                    </div>
-                                </div>
+                            <td style="padding: 1rem 1.25rem;">
+                                {% if r.is_viewed %}
+                                <span class="badge-status badge-read">
+                                    <i class="fa-solid fa-envelope-open"></i> Đã xem
+                                </span>
+                                {% else %}
+                                <span class="badge-status badge-unread">
+                                    <i class="fa-solid fa-envelope"></i> Chưa xem
+                                </span>
+                                {% endif %}
                             </td>
-                            <td>Hôm qua, 09:15</td>
-                            <td style="color: var(--text-main);">
-                                Đề xuất phương án nhân sự đợt 2
-                            </td>
-                            <td><span class="badge-status badge-read">Đã đọc</span></td>
-                            <td>
-                                <button class="btn-view" style="background: #f1f5f9; color: #475569;">Mở lại</button>
+                            <td style="padding: 1rem 1.5rem; text-align: right;">
+                                <a href="{% url 'report_detail' r.id %}" class="btn-view" {% if r.is_viewed %}style="background:#f1f5f9; color:#475569;"{% endif %}>
+                                    <i class="fa-solid fa-book-open"></i> Xem chi tiết
+                                </a>
                             </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div style="text-align: center; padding: 4rem 1.5rem; color: var(--text-muted);">
+                <i class="fa-solid fa-mailbox" style="font-size: 2.5rem; opacity: 0.35; margin-bottom: 0.75rem; display: block;"></i>
+                <p style="font-size: 0.95rem;">Hộp thư báo cáo của bạn đang trống.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
