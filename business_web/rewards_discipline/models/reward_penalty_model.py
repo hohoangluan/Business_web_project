@@ -1,10 +1,10 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
 
 class RewardPenalty(models.Model):
     """
     Phiếu khen thưởng hoặc xử phạt.
-    Placeholder — sẽ được bổ sung khi xây dựng backend thật.
     """
 
     REWARD = 'reward'
@@ -54,7 +54,19 @@ class RewardPenalty(models.Model):
     application_date = models.DateField(
         help_text="Ngày áp dụng.",
     )
+    evidence_file = models.FileField(
+        upload_to='reward_evidence/',
+        null=True,
+        blank=True,
+        help_text="Tài liệu/File minh chứng đính kèm.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def evidence_filename(self):
+        if self.evidence_file:
+            return os.path.basename(self.evidence_file.name)
+        return ""
 
     def __str__(self):
         return f"{self.get_record_type_display()}: {self.employee.username} - {self.reason_title}"

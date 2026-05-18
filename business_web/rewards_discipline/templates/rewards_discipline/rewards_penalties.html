@@ -8,16 +8,23 @@
 <style>
     /* Nút Tạo Phiếu & Phê Duyệt */
     .btn-create {
-        background: #8b5cf6; 
+        background: var(--gradient-purple); 
         color: #fff;
         border: none;
         padding: 0.6rem 1.25rem;
         border-radius: var(--radius);
         font-weight: 600;
         transition: all 0.2s;
-        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.25);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    .btn-create:hover { background: #7c3aed; transform: translateY(-2px); }
+    .btn-create:hover { 
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(139, 92, 246, 0.35);
+    }
     
     .btn-approve-nav {
         background: #f1f5f9;
@@ -46,13 +53,17 @@
         border: 1px solid var(--border-light);
         border-radius: var(--radius-lg);
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.01);
         display: flex; justify-content: space-between; align-items: center;
+        transition: transform 0.3s;
     }
-    .rp-stat-label { font-size: 0.95rem; color: var(--text-muted); font-weight: 600; margin-bottom:0.4rem; }
-    .val-reward { font-size: 1.8rem; font-weight: 800; color: #10b981; } /* Xanh dương */
-    .val-penalty { font-size: 1.8rem; font-weight: 800; color: #ef4444; } /* Đỏ */
-    .val-net { font-size: 1.8rem; font-weight: 800; color: #8b5cf6; } /* Tím tổng kết */
+    .rp-stat-card:hover {
+        transform: translateY(-3px);
+    }
+    .rp-stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom:0.4rem; }
+    .val-reward { font-size: 1.7rem; font-weight: 800; color: #10b981; } /* Xanh dương */
+    .val-penalty { font-size: 1.7rem; font-weight: 800; color: #ef4444; } /* Đỏ */
+    .val-net { font-size: 1.7rem; font-weight: 800; color: #8b5cf6; } /* Tím tổng kết */
 
     /* Bố cục 2 Bảng Khen thưởng và Phạt */
     .rp-tables-grid {
@@ -65,25 +76,221 @@
         border: 1px solid var(--border-light);
         border-radius: var(--radius-lg);
         overflow: hidden; /* Cắt góc tròn cho table */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.01);
     }
     
     /* Đầu bảng Xanh (Thưởng) vs Đỏ (Phạt) */
-    .rp-header-reward { background: #ecfdf5; padding: 1rem 1.5rem; border-bottom: 2px solid #34d399; }
-    .rp-header-penalty { background: #fef2f2; padding: 1rem 1.5rem; border-bottom: 2px solid #f87171; }
+    .rp-header-reward { background: #f0fdf4; padding: 1rem 1.5rem; border-bottom: 2px solid #22c55e; }
+    .rp-header-penalty { background: #fef2f2; padding: 1rem 1.5rem; border-bottom: 2px solid #ef4444; }
     
     .rp-header-title { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .txt-reward { color: #059669; }
-    .txt-penalty { color: #dc2626; }
+    .txt-reward { color: #15803d; }
+    .txt-penalty { color: #b91c1c; }
     
     /* Tùy chỉnh Table Mini */
     .rp-table { width: 100%; border-collapse: collapse; }
     .rp-table th { background: #f8fafc; font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; padding: 0.8rem 1rem; text-align: left; }
-    .rp-table td { padding: 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); }
+    .rp-table td { padding: 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); vertical-align: top; }
     .rp-table tr:last-child td { border-bottom: none; }
     
-    .badge-status { padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
-    .badge-appr { background: #e0e7ff; color: #4338ca; } /* Đã duyệt */
+    .badge-status { padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; display: inline-block; }
+    .badge-appr { background: #e0f2fe; color: #0369a1; } /* Đã duyệt */
     .badge-pend { background: #fef3c7; color: #d97706; } /* Chờ duyệt */
+    .badge-rej { background: #fee2e2; color: #b91c1c; } /* Từ chối */
+
+    /* Filter dropdown box dành cho HR */
+    .hr-filter-box {
+        background: #f8fafc;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+    }
+    .hr-filter-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .select-premium {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-weight: 600;
+        color: #1e293b;
+        background: #fff;
+        outline: none;
+        min-width: 250px;
+        transition: all 0.2s;
+    }
+    .select-premium:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Modal Overlay & Content — dùng class riêng tránh xung đột với global modal của accounts.js */
+    .rp-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.2s ease-out;
+    }
+    .rp-modal-overlay.show {
+        display: flex;
+    }
+    .rp-modal-card {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        overflow: hidden;
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-header {
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 { font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+    .btn-close-modal {
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.8);
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .btn-close-modal:hover { color: #fff; }
+    
+    .modal-body {
+        padding: 1.5rem;
+        max-height: 75vh;
+        overflow-y: auto;
+    }
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .form-group .form-control {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        outline: none;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+    .form-group .form-control:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+    }
+
+    /* Minh chứng File Upload Custom CSS (Premium) */
+    .file-upload-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    .file-upload-input {
+        width: 100%;
+        padding: 1rem;
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 10px;
+        outline: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+    .file-upload-input:hover {
+        border-color: #8b5cf6;
+        background: #f5f3ff;
+    }
+    .file-upload-input::file-selector-button {
+        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1.1rem;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin-right: 0.75rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(139, 92, 246, 0.15);
+    }
+    .file-upload-input:hover::file-selector-button {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px rgba(139, 92, 246, 0.25);
+    }
+
+    /* Attachment premium badge link in tables */
+    .btn-attachment {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #f3e8ff;
+        color: #6b21a8;
+        border: 1px solid #e9d5ff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        margin-top: 0.3rem;
+    }
+    .btn-attachment:hover {
+        background: #8b5cf6;
+        color: #fff;
+        border-color: #8b5cf6;
+        transform: translateY(-1px);
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    .btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-cancel:hover { background: #e2e8f0; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 
 <div class="animate-fade">
@@ -92,30 +299,60 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
         <div>
             <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Khen thưởng & Xử phạt</h2>
-            <p style="color:var(--text-muted); font-size:0.95rem;">Theo dõi tổng dòng tiền thưởng và phạt của bạn</p>
+            <p style="color:var(--text-muted); font-size:0.95rem;">
+                {% if is_hr and selected_user != request.user %}
+                    Đang xem hồ sơ Thưởng/Phạt của: <strong>{{ selected_user.profile.full_name|default:selected_user.username }}</strong>
+                {% else %}
+                    Theo dõi tổng dòng tiền thưởng và phạt của bạn
+                {% endif %}
+            </p>
         </div>
         
         <div style="display: flex; gap: 1rem;">
-            {% if can_approve %}
+            {% if is_hr %}
             <a href="{% url 'rewards_penalties_approval' %}" class="btn-approve-nav">
                 <i class="fa-solid fa-list-check"></i> Phê duyệt Phiếu
             </a>
             {% endif %}
             
-            <button class="btn-create" onclick="alert('Đang mở form tạo Phiếu Thưởng/Phạt')">
-                <i class="fa-solid fa-plus" style="margin-right: 5px;"></i> Tạo phiếu mới
+            {% if can_propose %}
+            <button class="btn-create" onclick="openModal()">
+                <i class="fa-solid fa-plus"></i> Tạo đề xuất mới
             </button>
+            {% endif %}
         </div>
     </div>
+
+    <!-- ===== BỘ LỌC CHỈ DÀNH CHO HR ===== -->
+    {% if is_hr %}
+    <div class="hr-filter-box">
+        <span class="hr-filter-title"><i class="fa-solid fa-filter"></i> Bộ lọc Nhân viên (HR):</span>
+        <form method="GET" action="" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+            <select name="employee_id" class="select-premium" onchange="this.form.submit()">
+                <option value="">--- Chọn nhân viên ---</option>
+                {% for emp in all_employees %}
+                    <option value="{{ emp.id }}" {% if selected_user.id == emp.id %}selected{% endif %}>
+                        {{ emp.profile.full_name|default:emp.username }} ({{ emp.username }})
+                    </option>
+                {% endfor %}
+            </select>
+            {% if selected_user != request.user %}
+                <a href="{% url 'rewards_penalties' %}" class="btn-cancel" style="text-decoration: none; display: inline-flex; align-items: center; padding: 0.5rem 1rem;">
+                    Quay về Cá nhân
+                </a>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
 
     <!-- ===== STATS GRID (3 CỘT) ===== -->
     <div class="rp-stats-grid">
         <div class="rp-stat-card">
             <div>
                 <div class="rp-stat-label">TỔNG TIỀN THƯỞNG</div>
-                <div class="val-reward">+ 5,000,000đ</div>
+                <div class="val-reward">{{ total_reward_formatted }}</div>
             </div>
-            <div style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            <div style="background:#f0fdf4; color:#22c55e; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                 <i class="fa-solid fa-gift"></i>
             </div>
         </div>
@@ -123,7 +360,7 @@
         <div class="rp-stat-card">
             <div>
                 <div class="rp-stat-label">TỔNG TIỀN PHẠT</div>
-                <div class="val-penalty">- 500,000đ</div>
+                <div class="val-penalty">{{ total_penalty_formatted }}</div>
             </div>
             <div style="background:#fef2f2; color:#ef4444; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                 <i class="fa-solid fa-triangle-exclamation"></i>
@@ -133,7 +370,7 @@
         <div class="rp-stat-card">
             <div>
                 <div class="rp-stat-label">THU NHẬP THỰC TẾ (NET)</div>
-                <div class="val-net">+ 4,500,000đ</div>
+                <div class="val-net">{{ net_income_formatted }}</div>
             </div>
             <div style="background:#f5f3ff; color:#8b5cf6; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                 <i class="fa-solid fa-wallet"></i>
@@ -153,37 +390,51 @@
                 <thead>
                     <tr>
                         <th>NGÀY ÁP DỤNG</th>
-                        <th>LÝ DO & CHI TIẾT</th>
-                        <th>SỐ TIỀN</th>
+                        <th>CHI TIẾT ĐỀ XUẤT</th>
+                        <th>SỐ TIỀN THƯỞNG</th>
                         <th>TRẠNG THÁI</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for r in rewards %}
                     <tr>
-                        <td style="font-weight: 500;">15/04/2026</td>
-                        <td style="color: var(--text-main); font-weight: 600;">
-                            Thưởng KPI Quý 1
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Đạt vượt mốc Doanh số 120%</div>
+                        <td style="font-weight: 500; font-size: 0.85rem; color: #64748b;">
+                            {{ r.application_date|date:"d/m/Y" }}
                         </td>
-                        <td style="font-weight: 700; color: #10b981;">+ 3,000,000đ</td>
-                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                        <td>
+                            <div style="color: var(--text-main); font-weight: 600; font-size: 0.95rem;">{{ r.reason_title }}</div>
+                            {% if r.reason_detail %}
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{ r.reason_detail }}</div>
+                            {% endif %}
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+                                Đề xuất: {{ r.proposer.profile.full_name|default:r.proposer.username }}
+                            </div>
+                            {% if r.evidence_file %}
+                                <div>
+                                    <a href="{{ r.evidence_file.url }}" target="_blank" class="btn-attachment">
+                                        <i class="fa-solid fa-paperclip"></i> Minh chứng
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 700; color: #10b981; font-size: 0.95rem;">{{ r.amount_formatted }}</td>
+                        <td>
+                            {% if r.status == 'approved' %}
+                                <span class="badge-status badge-appr"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>
+                            {% elif r.status == 'pending' %}
+                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>
+                            {% else %}
+                                <span class="badge-status badge-rej"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>
+                            {% endif %}
+                        </td>
                     </tr>
+                    {% empty %}
                     <tr>
-                        <td style="font-weight: 500;">20/03/2026</td>
-                        <td style="color: var(--text-main); font-weight: 600;">
-                            Nhân viên Tiêu biểu Tháng
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            Chưa có dữ liệu khen thưởng nào!
                         </td>
-                        <td style="font-weight: 700; color: #10b981;">+ 2,000,000đ</td>
-                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
                     </tr>
-                    <tr>
-                        <td style="font-weight: 500;">25/04/2026</td>
-                        <td style="color: var(--text-main); font-weight: 600;">
-                            Sáng kiến Cải tiến App
-                        </td>
-                        <td style="font-weight: 700; color: var(--text-primary);">+ 1,500,000đ</td>
-                        <td><span class="badge-status badge-pend">Chờ duyệt</span></td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -197,38 +448,168 @@
                 <thead>
                     <tr>
                         <th>NGÀY ÁP DỤNG</th>
-                        <th>LÝ DO & CHI TIẾT</th>
+                        <th>CHI TIẾT ĐỀ XUẤT</th>
                         <th>SỐ TIỀN PHẠT</th>
                         <th>TRẠNG THÁI</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for r in penalties %}
                     <tr>
-                        <td style="font-weight: 500;">10/04/2026</td>
-                        <td style="color: var(--text-main); font-weight: 600;">
-                            Đi trễ quá 3 lần/tháng
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Áp dụng trong kỳ theo dõi T4</div>
+                        <td style="font-weight: 500; font-size: 0.85rem; color: #64748b;">
+                            {{ r.application_date|date:"d/m/Y" }}
                         </td>
-                        <td style="font-weight: 700; color: #ef4444;">- 200,000đ</td>
-                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
+                        <td>
+                            <div style="color: var(--text-main); font-weight: 600; font-size: 0.95rem;">{{ r.reason_title }}</div>
+                            {% if r.reason_detail %}
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{ r.reason_detail }}</div>
+                            {% endif %}
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+                                Đề xuất: {{ r.proposer.profile.full_name|default:r.proposer.username }}
+                            </div>
+                            {% if r.evidence_file %}
+                                <div>
+                                    <a href="{{ r.evidence_file.url }}" target="_blank" class="btn-attachment">
+                                        <i class="fa-solid fa-paperclip"></i> Minh chứng
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 700; color: #ef4444; font-size: 0.95rem;">{{ r.amount_formatted }}</td>
+                        <td>
+                            {% if r.status == 'approved' %}
+                                <span class="badge-status badge-appr"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>
+                            {% elif r.status == 'pending' %}
+                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>
+                            {% else %}
+                                <span class="badge-status badge-rej"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>
+                            {% endif %}
+                        </td>
                     </tr>
+                    {% empty %}
                     <tr>
-                        <td style="font-weight: 500;">05/03/2026</td>
-                        <td style="color: var(--text-main); font-weight: 600;">
-                            Quên thẻ nhân viên dự hội thảo
-                        </td>
-                        <td style="font-weight: 700; color: #ef4444;">- 300,000đ</td>
-                        <td><span class="badge-status badge-appr">Đã duyệt</span></td>
-                    </tr>
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                            Không có phiếu xử phạt nào khác!
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            Chưa có dữ liệu xử phạt nào!
                         </td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
 
     </div>
 </div>
+
+<!-- ===== MODAL TẠO ĐỀ XUẤT MỚI (CHỈ HIỂN THỊ NẾU CAN_PROPOSE) ===== -->
+{% if can_propose and form %}
+<div id="createModal" class="rp-modal-overlay">
+    <div class="rp-modal-card">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-award"></i> Tạo Đề xuất Thưởng / Phạt</h3>
+            <button class="btn-close-modal" type="button" onclick="rpCloseModal()">&times;</button>
+        </div>
+        <form method="POST" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            
+            <div class="modal-body">
+                
+                <div class="form-group">
+                    <label>{{ form.employee.label }} <span style="color: red;">*</span></label>
+                    {{ form.employee }}
+                    {% if form.employee.errors %}
+                        <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.employee.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>{{ form.record_type.label }} <span style="color: red;">*</span></label>
+                        {{ form.record_type }}
+                        {% if form.record_type.errors %}
+                            <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.record_type.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>{{ form.amount.label }} <span style="color: red;">*</span></label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                            <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ form.application_date.label }} <span style="color: red;">*</span></label>
+                    {{ form.application_date }}
+                    {% if form.application_date.errors %}
+                        <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.application_date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>{{ form.reason_title.label }} <span style="color: red;">*</span></label>
+                    {{ form.reason_title }}
+                    {% if form.reason_title.errors %}
+                        <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.reason_title.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>{{ form.reason_detail.label }}</label>
+                    {{ form.reason_detail }}
+                    {% if form.reason_detail.errors %}
+                        <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.reason_detail.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>{{ form.evidence_file.label }}</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" name="evidence_file" id="id_evidence_file" class="file-upload-input">
+                    </div>
+                    {% if form.evidence_file.errors %}
+                        <div style="color: red; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.evidence_file.errors }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="rpCloseModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-create">
+                    <i class="fa-solid fa-paper-plane"></i> Gửi đề xuất
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal() {
+        var modal = document.getElementById('createModal');
+        modal.classList.add('show');
+        // Điền ngày mặc định là hôm nay nếu chưa có giá trị
+        var dateInput = modal.querySelector('input[type="date"]');
+        if (dateInput && !dateInput.value) {
+            var today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+    }
+    function rpCloseModal() {
+        document.getElementById('createModal').classList.remove('show');
+    }
+    // Đóng modal khi click ra ngoài vùng card (không dùng window.onclick để tránh xung đột)
+    document.addEventListener('DOMContentLoaded', function() {
+        var modal = document.getElementById('createModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) rpCloseModal();
+            });
+        }
+    });
+</script>
+{% endif %}
+
 {% endblock %}
