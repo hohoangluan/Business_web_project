@@ -7,6 +7,7 @@ from accounts.services.permission.access_control_service import (
     can_manage_work_info,
     can_submit_evaluation_demo,
     has_admin_business_access,
+    can_acknowledge_evaluation,
 )
 from accounts.services.permission.permission_service import has_custom_permission
 from accounts.services.permission.role_service import (
@@ -28,4 +29,5 @@ __all__ = [
     "is_admin_user",
     "is_hr_user",
     "user_has_role",
+    "can_acknowledge_evaluation",
 ]

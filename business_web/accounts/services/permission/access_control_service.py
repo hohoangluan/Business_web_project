@@ -45,3 +45,10 @@ def can_submit_evaluation_demo(user):
     """Return whether the user can submit demo evaluations."""
 
     return can_access_evaluations(user)
+
+
+def can_acknowledge_evaluation(user):
+    """Return whether the user can acknowledge performance evaluations."""
+
+    return user_has_role(user, Role.HR) or has_admin_business_access(user)
+
