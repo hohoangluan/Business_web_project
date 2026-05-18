@@ -1,79 +1,123 @@
 """
-Mock data cho thống kê chấm công/nghỉ phép/tăng ca.
-Dùng dữ liệu ổn định (không random) để giao diện luôn nhất quán.
+Lấy dữ liệu thật từ database cho thống kê chấm công/nghỉ phép/tăng ca.
 """
 
 from datetime import timedelta
 from django.utils import timezone
 from accounts.services import ensure_work_info
+from leaves.models import LeaveRequest
+from overtime.models import OvertimeRequest
+from attendance.models import AttendanceRecord
 
 
-def build_statistics_records(users):
+def build_statistics_records(users, time_range=None):
     """
-    Tạo dữ liệu thống kê mock theo ngày cho danh sách user truyền vào.
-    Chưa có model thật — file này gom demo data vào một chỗ để dễ sửa.
+    Truy xuất dữ liệu thống kê từ CSDL thực.
     """
     today = timezone.localdate()
-    start_date = today - timedelta(days=179)
-    records = []
+    if time_range:
+        start_date = time_range['start_date']
+        end_date = time_range['end_date']
+    else:
+        start_date = today - timedelta(days=179)
+        end_date = today
 
-    for user in users:
-        profile = getattr(user, 'profile', None)
+    user_ids = [u.id for u in users]
+    
+    # 1. Lấy dữ liệu Leave
+    approved_leaves = LeaveRequest.objects.filter(
+        user_id__in=user_ids,
+        status=LeaveRequest.APPROVED,
+        start_date__lte=end_date,
+        end_date__gte=start_date
+    )
+    
+    # 2. Lấy dữ liệu Overtime
+    approved_overtimes = OvertimeRequest.objects.filter(
+        user_id__in=user_ids,
+        status=OvertimeRequest.APPROVED,
+        overtime_date__range=(start_date, end_date)
+    )
+    
+    # 3. Lấy dữ liệu Attendance
+    attendances = AttendanceRecord.objects.filter(
+        user_id__in=user_ids,
+        record_date__range=(start_date, end_date)
+    )
+    
+    aggregated = {}
+    
+    # Cache user info
+    user_map = {}
+    for u in users:
+        profile = getattr(u, 'profile', None)
         if not profile:
             continue
+        work_info = ensure_work_info(u)
+        manager_user = work_info.manager_user
+        leader_user = work_info.leader_user
+        user_map[u.username] = {
+            'employee_username': u.username,
+            'employee_name': profile.full_name or u.username,
+            'department': work_info.department or 'Chưa phân phòng ban',
+            'manager_username': manager_user.username if manager_user else '',
+            'leader_username': leader_user.username if leader_user else '',
+        }
+        
+    def get_or_create_daily_record(username, d):
+        key = (username, d)
+        if key not in aggregated:
+            u_info = user_map.get(username)
+            if not u_info:
+                return None
+            aggregated[key] = {
+                'record_date': d,
+                'employee_username': u_info['employee_username'],
+                'employee_name': u_info['employee_name'],
+                'department': u_info['department'],
+                'manager_username': u_info['manager_username'],
+                'leader_username': u_info['leader_username'],
+                'leave_days': 0,
+                'leave_requests': 0,
+                'overtime_hours': 0,
+                'late_count': 0,
+                'absence_days': 0,
+                'attendance_rate': 0,
+            }
+        return aggregated[key]
 
-        work_info = ensure_work_info(user)
-        current_date = start_date
-        while current_date <= today:
-            record = build_daily_record(user, profile, work_info, current_date)
-            if record is not None:
-                records.append(record)
-            current_date += timedelta(days=1)
-
-    return records
-
-
-def build_daily_record(user, profile, work_info, work_date):
-    """
-    Mỗi record là một dòng thống kê theo ngày.
-    Cuối tuần được bỏ qua để dữ liệu nhìn tự nhiên hơn.
-    """
-    if work_date.weekday() >= 5:
-        return None
-
-    seed = make_seed(user.username, work_date)
-    leave_days = 1 if seed % 29 == 0 else 0
-    absence_days = 1 if leave_days == 0 and seed % 43 == 0 else 0
-
-    if leave_days or absence_days:
-        overtime_hours = 0
-        late_count = 0
-        attendance_rate = 0
-    else:
-        overtime_hours = seed % 4
-        late_count = 1 if seed % 5 == 0 else 0
-        attendance_rate = 92 if late_count else 100
-
-    manager_user = work_info.manager_user
-    leader_user = work_info.leader_user
-
-    return {
-        'record_date': work_date,
-        'employee_username': user.username,
-        'employee_name': profile.full_name or user.username,
-        'department': work_info.department or 'Chưa phân phòng ban',
-        'manager_username': manager_user.username if manager_user else '',
-        'leader_username': leader_user.username if leader_user else '',
-        'leave_days': leave_days,
-        'leave_requests': 1 if leave_days else 0,
-        'overtime_hours': overtime_hours,
-        'late_count': late_count,
-        'absence_days': absence_days,
-        'attendance_rate': attendance_rate,
-    }
-
-
-def make_seed(username, work_date):
-    """Tạo seed cố định từ username + ngày để dữ liệu ổn định."""
-    text = f'{username}-{work_date:%Y%m%d}'
-    return sum(ord(char) for char in text)
+    # Process Leave
+    for leave in approved_leaves:
+        d = max(leave.start_date, start_date)
+        e = min(leave.end_date, end_date)
+        request_counted = False
+        while d <= e:
+            if d.weekday() < 5: # Chỉ tính ngày trong tuần
+                rec = get_or_create_daily_record(leave.user.username, d)
+                if rec:
+                    rec['leave_days'] += 1
+                    if not request_counted:
+                        rec['leave_requests'] += 1
+                        request_counted = True
+            d += timedelta(days=1)
+            
+    # Process Overtime
+    for ot in approved_overtimes:
+        rec = get_or_create_daily_record(ot.user.username, ot.overtime_date)
+        if rec:
+            rec['overtime_hours'] += float(ot.hours)
+            
+    # Process Attendance
+    for att in attendances:
+        rec = get_or_create_daily_record(att.user.username, att.record_date)
+        if rec:
+            if att.status == 'late':
+                rec['late_count'] += 1
+                rec['attendance_rate'] = 90
+            elif att.status == 'absent':
+                rec['absence_days'] += 1
+                rec['attendance_rate'] = 0
+            else: # on_time
+                rec['attendance_rate'] = 100
+                
+    return list(aggregated.values())

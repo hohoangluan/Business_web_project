@@ -523,7 +523,7 @@ def build_statistics_page_context(user, params):
     scope_users = get_scope_users(user, scope)
     filters = build_statistics_filters(scope_users, scope, params)
     time_range = get_time_range_from_params(params)
-    records = build_statistics_records(filters['filtered_users'])
+    records = build_statistics_records(filters['filtered_users'], time_range)
     filtered_records = filter_statistics_records(records, filters, time_range)
     summary_rows = build_statistics_summary_rows(filters['filtered_users'], filtered_records)
 
