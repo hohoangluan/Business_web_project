@@ -8,6 +8,7 @@ from attendance.services.face_service import (
     get_employee_face,
     delete_employee_face,
 )
+from attendance.services.face_api_client import FaceApiError
 
 
 @login_required
@@ -54,20 +55,28 @@ def upload_image_base64_view(request):
 
     try:
         face = save_employee_face(user=request.user, image_file=image_file)
-        return JsonResponse({
-            "success": True,
-            "message": "Lưu ảnh thành công.",
-            "data": {
-                "base64": face.face_base64,
-                "content_type": face.content_type,
-                "updated_at": face.updated_at.isoformat(),
-            },
-        })
+    except FaceApiError as exc:
+        status = 400 if exc.code == 'no_face' else 502
+        return JsonResponse(
+            {"success": False,
+             "error": exc.message or exc.code,
+             "code": exc.code},
+            status=status,
+        )
     except ValueError as e:
         return JsonResponse(
             {"success": False, "error": str(e)},
             status=400,
         )
+    return JsonResponse({
+        "success": True,
+        "message": "Lưu ảnh thành công.",
+        "data": {
+            "base64": face.face_base64,
+            "content_type": face.content_type,
+            "updated_at": face.updated_at.isoformat(),
+        },
+    })
 
 
 @login_required

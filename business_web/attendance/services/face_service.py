@@ -1,70 +1,64 @@
-"""Service lưu và truy xuất ảnh base64 khuôn mặt nhân viên."""
+"""Persist employee face image AND mirror to FastAPI registry.
+
+Remote-first: if FastAPI rejects, no local row is created. The local
+EmployeeFace row stores base64 for preview and the pinned slot_id so
+re-enrollment always overwrites the same Mongo document.
+"""
 from django.contrib.auth.models import User
 
 from attendance.models import EmployeeFace
+from attendance.services import face_api_client
 from attendance.services.image_service import image_to_base64
 
 
 def save_employee_face(user, image_file) -> EmployeeFace:
-    """
-    Chuyển ảnh sang base64 và lưu vào database cho nhân viên.
+    # 1. Read raw bytes once (without disturbing later base64 conversion).
+    image_file.seek(0)
+    raw_bytes = image_file.read()
+    image_file.seek(0)
 
-    Nếu nhân viên đã có ảnh trước đó, sẽ cập nhật ảnh mới (ghi đè).
-
-    Args:
-        user: Django User object (nhân viên).
-        image_file: File ảnh (Django UploadedFile).
-
-    Returns:
-        EmployeeFace: Bản ghi đã lưu/cập nhật.
-
-    Raises:
-        ValueError: Nếu không thể chuyển ảnh sang base64.
-    """
+    # 2. Base64 for local preview.
     base64_str = image_to_base64(image_file)
     content_type = getattr(image_file, 'content_type', 'image/png')
 
-    face, created = EmployeeFace.objects.update_or_create(
+    # 3. Resolve slot_id (existing or default 1).
+    existing = EmployeeFace.objects.filter(user=user).first()
+    slot_id = existing.slot_id if existing else 1
+
+    # 4. Local extraction
+    result = face_api_client.register_face_remote(
+        employee_id=str(user.id),
+        image_bytes=raw_bytes,
+        filename=getattr(image_file, 'name', 'face.jpg'),
+        slot_id=slot_id,
+    )
+    embedding = result.get('embedding')
+
+    # 5. Local upsert.
+    face, _ = EmployeeFace.objects.update_or_create(
         user=user,
         defaults={
             'face_base64': base64_str,
             'content_type': content_type,
+            'slot_id': slot_id,
+            'embedding': embedding,
         },
     )
     return face
 
 
 def get_employee_face(user) -> dict | None:
-    """
-    Lấy ảnh base64 khuôn mặt của nhân viên từ database.
-
-    Args:
-        user: Django User object.
-
-    Returns:
-        dict với keys 'base64', 'content_type', 'updated_at' nếu tìm thấy.
-        None nếu nhân viên chưa có ảnh.
-    """
     try:
         face = EmployeeFace.objects.get(user=user)
-        return {
-            'base64': face.face_base64,
-            'content_type': face.content_type,
-            'updated_at': face.updated_at,
-        }
     except EmployeeFace.DoesNotExist:
         return None
+    return {
+        'base64': face.face_base64,
+        'content_type': face.content_type,
+        'updated_at': face.updated_at,
+    }
 
 
 def delete_employee_face(user) -> bool:
-    """
-    Xóa ảnh khuôn mặt của nhân viên.
-
-    Args:
-        user: Django User object.
-
-    Returns:
-        True nếu xóa thành công, False nếu không tìm thấy.
-    """
     deleted_count, _ = EmployeeFace.objects.filter(user=user).delete()
     return deleted_count > 0

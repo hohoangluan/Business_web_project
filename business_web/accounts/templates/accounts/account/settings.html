@@ -149,6 +149,14 @@
                     </select>
                 </div>
                 
+                <div class="st-form-group" style="margin-top: 1.5rem; padding: 1.5rem; background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed var(--border-light);">
+                    <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Khuôn mặt nhận diện</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Cập nhật khuôn mặt để sử dụng cho tính năng chấm công. Tính năng này sẽ đăng ký hoặc ghi đè khuôn mặt hiện tại của bạn.</div>
+                    <button type="button" class="btn btn-outline" id="open-register-camera-btn" style="background:#fff;">
+                        <i class="fa-solid fa-camera"></i> Đăng ký / Cập nhật khuôn mặt
+                    </button>
+                </div>
+                
                 <button class="st-btn-save" onclick="alert('Đã lưu cấu hình cá nhân!')">Lưu thay đổi</button>
             </div>
 
@@ -230,6 +238,24 @@
 
         </div>
     </div>
+
+    {# Camera modal for face registration #}
+    <div id="register-camera-modal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:1.5rem;max-width:640px;width:90%;">
+            <h3 style="margin-bottom:1rem;">Đăng ký khuôn mặt mới</h3>
+            <div id="reg-camera-error" style="display:none;background:#fee2e2;color:#7f1d1d;padding:0.75rem;border-radius:var(--radius-md);margin-bottom:1rem;"></div>
+            <video id="reg-camera-video" autoplay playsinline muted style="width:100%;border-radius:var(--radius-md);background:#000;"></video>
+            <canvas id="reg-camera-canvas" width="640" height="480" style="display:none;"></canvas>
+            <div style="margin-top:1rem;display:flex;gap:0.75rem;justify-content:flex-end;">
+                <button type="button" class="btn btn-outline" id="reg-cancel-camera-btn">Hủy</button>
+                <button type="button" class="btn btn-primary" id="reg-capture-btn">Chụp & Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    {# Toast #}
+    <div id="reg-toast" style="display:none;position:fixed;bottom:2rem;right:2rem;background:#1f2937;color:#fff;padding:0.75rem 1.25rem;border-radius:var(--radius-md);box-shadow:0 8px 20px rgba(0,0,0,0.2);z-index:1001;"></div>
+
 </div>
 
 <script>
@@ -242,5 +268,129 @@
         event.currentTarget.classList.add('active');
         document.getElementById(tabId).classList.add('active');
     }
+
+    (function () {
+        const openBtn  = document.getElementById('open-register-camera-btn');
+        if (!openBtn) return;
+        
+        const cancelBtn = document.getElementById('reg-cancel-camera-btn');
+        const captureBtn = document.getElementById('reg-capture-btn');
+        const modal = document.getElementById('register-camera-modal');
+        const video = document.getElementById('reg-camera-video');
+        const canvas = document.getElementById('reg-camera-canvas');
+        const errBox = document.getElementById('reg-camera-error');
+        const toast = document.getElementById('reg-toast');
+
+        let stream = null;
+
+        function showToast(msg, kind) {
+            toast.textContent = msg;
+            toast.style.background = kind === 'error' ? '#b91c1c' : (kind === 'warn' ? '#a16207' : '#1f2937');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        }
+
+        function showCameraError(msg) {
+            errBox.textContent = msg;
+            errBox.style.display = 'block';
+            video.style.display = 'none';
+            captureBtn.disabled = true;
+        }
+
+        function stopStream() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        }
+
+        function closeModal() {
+            stopStream();
+            modal.style.display = 'none';
+            errBox.style.display = 'none';
+            video.style.display = '';
+            captureBtn.disabled = false;
+            captureBtn.innerHTML = 'Chụp & Lưu';
+        }
+
+        openBtn.addEventListener('click', async () => {
+            const host = location.hostname;
+            if (location.protocol !== 'https:' && host !== 'localhost' && host !== '127.0.0.1') {
+                modal.style.display = 'flex';
+                showCameraError('Trang phải chạy trên HTTPS để dùng camera.');
+                return;
+            }
+            modal.style.display = 'flex';
+            errBox.style.display = 'none';
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                    audio: false,
+                });
+                video.srcObject = stream;
+            } catch (e) {
+                showCameraError('Không thể mở camera: ' + e.message);
+            }
+        });
+
+        cancelBtn.addEventListener('click', closeModal);
+
+        captureBtn.addEventListener('click', async () => {
+            captureBtn.disabled = true;
+            captureBtn.innerHTML = 'Đang xử lý...';
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(async (blob) => {
+                const form = new FormData();
+                form.append('image', blob, 'face.jpg');
+                
+                // Get CSRF token
+                let csrf = '';
+                const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfElement) {
+                    csrf = csrfElement.value;
+                } else {
+                    // Create one if it doesn't exist
+                    showCameraError('Lỗi CSRF Token. Refresh trang.');
+                    return;
+                }
+                
+                let resp;
+                try {
+                    resp = await fetch('{% url "upload_image_base64" %}', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrf },
+                        body: form,
+                    });
+                } catch (e) {
+                    showToast('Lỗi mạng. Hãy thử lại.', 'error');
+                    closeModal();
+                    return;
+                }
+                
+                let body = {};
+                try { body = await resp.json(); } catch (_) {}
+
+                if (resp.status === 200 && body.success) {
+                    showToast('Đăng ký khuôn mặt thành công!');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else if (resp.status === 400 && body.code === 'no_face') {
+                    showToast('Không phát hiện khuôn mặt nào trong ảnh. Thử lại.', 'warn');
+                    captureBtn.disabled = false;
+                    captureBtn.innerHTML = 'Chụp & Lưu';
+                    return; // Don't close modal so they can try again
+                } else {
+                    showToast(body.error || ('Lỗi máy chủ (' + resp.status + ')'), 'error');
+                }
+                closeModal();
+            }, 'image/jpeg', 0.90); // higher quality for registration
+        });
+
+        // Ensure CSRF exists on the page
+        if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+            const f = document.createElement('form');
+            f.style.display = 'none';
+            f.innerHTML = '{% csrf_token %}';
+            document.body.appendChild(f);
+        }
+    })();
 </script>
 {% endblock %}
