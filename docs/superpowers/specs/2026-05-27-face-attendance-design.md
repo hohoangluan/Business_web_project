@@ -20,6 +20,7 @@ Add a face-recognition check-in/check-out flow to the existing `attendance` Djan
 - Replace template fake-alert buttons with real webcam capture and result UI.
 - Unit + integration tests for each new service and the view.
 - **Remove hardcoded `MONGO_URI` credentials** from `backend/backend/main.py` and `backend/backend/db_tools.py`. Service must fail fast at startup when `MONGO_URI` env var is unset. Add `.env.example` documenting the variable. Rotate the leaked Atlas password (out-of-band — separate action by repo owner).
+- **Forgotten-checkout handling**: a Django management command `close_open_attendance` that sets `status='no_checkout'` on yesterday's records where `check_in_time` is set and `check_out_time is None`. A banner on the attendance page warns the current user when their most recent record before today is in that state.
 
 **Out (explicitly):**
 - Liveness / anti-spoof.
@@ -81,14 +82,20 @@ business_web/attendance/
 │   └── __init__.py
 ├── templates/attendance/
 │   └── attendance.html               MOD  webcam capture + real API
+├── management/
+│   ├── __init__.py                              NEW
+│   └── commands/
+│       ├── __init__.py                          NEW
+│       └── close_open_attendance.py             NEW  closes yesterday's open records
 ├── tests/
-│   ├── test_face_api_client.py            NEW
-│   ├── test_face_verification_service.py  NEW
-│   ├── test_attendance_logging_service.py NEW
-│   ├── test_face_lockout_service.py       NEW
-│   ├── test_face_attendance_view.py       NEW
-│   └── fixtures/sample_face.jpg           NEW
-└── urls.py                                 MOD  add /attendance/check/
+│   ├── test_face_api_client.py                  NEW
+│   ├── test_face_verification_service.py        NEW
+│   ├── test_attendance_logging_service.py       NEW
+│   ├── test_face_lockout_service.py             NEW
+│   ├── test_face_attendance_view.py             NEW
+│   ├── test_close_open_attendance_command.py    NEW
+│   └── fixtures/sample_face.jpg                 NEW
+└── urls.py                                       MOD  add /attendance/check/
 ```
 
 ### 4.2 Settings additions (`business_web/business_web/settings.py`)
@@ -168,11 +175,36 @@ def get_or_create_today_record(user: User) -> AttendanceRecord: ...
 def decide_next_action(record: AttendanceRecord) -> str:  # 'check_in'|'check_out'|'done'
 def record_check_in(user: User) -> AttendanceRecord: ...
 def record_check_out(user: User) -> AttendanceRecord: ...  # idempotent guard
+def get_open_previous_record(user: User) -> AttendanceRecord | None: ...
+def close_open_records_before(cutoff_date: date) -> int: ...  # used by mgmt command
 ```
 
 - `get_or_create_today_record` uses `timezone.localdate()`.
 - `record_check_in` writes `check_in_time = timezone.localtime().time()` and sets `status='on_time'` when `now <= WORK_START_TIME + WORK_LATE_GRACE_MIN`, else `'late'`.
 - `record_check_out` only writes if `check_out_time is None`.
+- `get_open_previous_record(user)` returns the most recent `AttendanceRecord` for `user` strictly before `localdate()` where `check_in_time is not None` and `check_out_time is None`, else `None`. Used by the dashboard banner.
+- `close_open_records_before(cutoff_date)` updates all records with `record_date < cutoff_date AND check_in_time IS NOT NULL AND check_out_time IS NULL` to `status='no_checkout'`. Returns count. Idempotent (skips already-closed rows by also filtering on `status != 'no_checkout'`). Pure DB write — no per-row Python loop.
+
+### 5.3.1 Status vocabulary
+
+`AttendanceRecord.status` values used by this module:
+
+| value | meaning |
+|---|---|
+| `''` (empty default) | new record before any check-in (existing default) |
+| `on_time` | `check_in_time` recorded ≤ `WORK_START_TIME + WORK_LATE_GRACE_MIN` |
+| `late` | `check_in_time` recorded after grace |
+| `no_checkout` | yesterday-or-older record with check-in but no check-out; set by `close_open_attendance` |
+
+### 5.3.2 Management command `close_open_attendance`
+
+`business_web/attendance/management/commands/close_open_attendance.py` (new dirs).
+
+```
+python manage.py close_open_attendance [--cutoff YYYY-MM-DD]
+```
+
+Defaults `--cutoff` to `timezone.localdate()` (close everything strictly older than today). Single call to `close_open_records_before`. Prints affected count. Intended to be wired to Windows Task Scheduler / cron at ~00:05 daily; scheduling itself is out of scope (operator action), but the command must exist and be tested.
 
 ### 5.4 `face_lockout_service.py`
 
@@ -324,11 +356,12 @@ Django   face_check_view
 | 1 | FastAPI cold start (weights download) | 15 s client timeout → 503; UI: "Dịch vụ chưa sẵn sàng." |
 | 2 | User not enrolled | `/recognize` → `status='fail'` → `no_match` → UI prompts to enroll. |
 | 3 | Blank frame / no face | Client raises `no_face` → 400, **not counted as failure**. |
-| 4 | Image too large (>5 MB) | View rejects pre-call with 400 `image_too_large`. Frontend downscales to ≤800 px. |
+| 4 | Image too large (>2 MB) | View rejects pre-call with 400 `image_too_large`. Frontend downscales to 480×640 JPEG q=0.80 (≈60–120 KB typical). The 2 MB ceiling is a defensive cap against tampered clients; honest captures sit well below it. |
 | 5 | Empty FAISS registry | FastAPI `"No employee data found"` → treat as `no_match` (same as #2). |
 | 6 | Concurrent double-click | View `select_for_update` (SQLite no-op, Postgres safe); second call sees `check_in_time` set → returns `check_out` or `done`. Idempotent. |
 | 7 | Check-out before check-in (forgot scan in) | `decide_next_action` sees `check_in_time is None` → returns `check_in`, regardless of clock time. |
 | 8 | Midnight crossing | `timezone.localdate()` re-evaluated each scan → new day = new record = new `check_in`. Documented limitation. |
+| 8a | Forgotten check-out (user checks in Monday, doesn't check out, scans Tuesday) | Tuesday scan creates Tuesday record (correct). Monday record stays open until the `close_open_attendance` management command runs (§5.3.2) and stamps `status='no_checkout'`. Dashboard banner from `get_open_previous_record` warns the user on their next visit so they can notify HR. Reporting treats `no_checkout` as a distinct status (not "absent"). |
 | 9 | Lockout race | `cache.add` + `cache.incr`; acceptable for class scope. |
 | 10 | Enrollment partial (remote ok, local crash) | Orphan Mongo slot; next re-enroll overwrites same `(employee_id, slot_id)`. No compensating delete. |
 | 11 | Wrong-person attack | Lockout after `FACE_LOCKOUT_MAX_FAILS` for `FACE_LOCKOUT_DURATION_SEC`. No liveness — out of scope. |
@@ -387,6 +420,8 @@ business_web/attendance/tests/
 - `record_check_in` after grace → `late`.
 - `record_check_out` idempotent.
 - Unique per `(user, date)`.
+- `get_open_previous_record`: returns yesterday's open record; returns `None` when yesterday closed; returns `None` when no record at all.
+- `close_open_records_before(today)` over a fixture of (closed, open, today's open): touches only the past-open one and stamps `status='no_checkout'`; returns 1. Second call returns 0 (idempotent).
 
 **`face_lockout_service`** (cache, `override_settings` short TTL)
 - One failure → not locked, count 1.
@@ -403,12 +438,18 @@ business_web/attendance/tests/
 - Second scan → 200, `check_out_time` set.
 - Third scan → 200, `action='done'`.
 
+**Management command** (`close_open_attendance`)
+- Setup: yesterday open record + today open record + day-before-yesterday already closed.
+- Run command → only yesterday's record gets `status='no_checkout'`. Today's record untouched. Closed record untouched.
+- Run command again → 0 affected.
+- `--cutoff` flag respected (records strictly earlier than cutoff).
+
 ## 9. Frontend integration (`attendance/templates/attendance/attendance.html`)
 
 Replace fake-alert buttons with one **"Chấm công"** button that opens a modal:
-- Use `navigator.mediaDevices.getUserMedia({video: {width:800, height:600, facingMode:'user'}, audio:false})`.
+- Use `navigator.mediaDevices.getUserMedia({video: {width: {ideal: 640}, height: {ideal: 480}, facingMode:'user'}, audio:false})`. Browsers honor `ideal` and fall back gracefully on lower-spec cameras.
 - Preview ~3 s, then click capture.
-- Draw frame to `<canvas>` 800×600, `canvas.toBlob('image/jpeg', 0.85)`.
+- Draw the video frame onto a `<canvas>` sized **640×480** (matches the requested `getUserMedia` resolution; standard FaceNet-friendly input — the face crop stays well above the model's 160×160 minimum). Use `canvas.toBlob('image/jpeg', 0.80)` — payload ≈60–120 KB, roughly 10× smaller than 800×600 at q=0.85, keeping latency low on 4G.
 - `FormData` append `image`, POST `/attendance/check/` with CSRF token.
 - Response handling:
   - 200 → toast: "Chấm vào lúc HH:MM" / "Chấm ra lúc HH:MM"; refresh today's row in history table.
@@ -426,18 +467,23 @@ Replace fake-alert buttons with one **"Chấm công"** button that opens a modal
 
 Enrollment view (`upload_image_base64_view`) keeps its current `<input type="file">` since enrollment is a deliberate one-time action under the user's account control, but the **daily check** flow is camera-only.
 
-`attendance_view` is extended to pass real history rows (current month, last 10) for the table, replacing mock data.
+`attendance_view` is extended to pass real history rows (current month, last 10) for the table, replacing mock data, and to call `attendance_logging_service.get_open_previous_record(request.user)`. When that returns a record, the template renders a non-blocking warning banner above the hero block:
+
+> "Bạn quên chấm ra ngày `<dd/MM/yyyy>`. Liên hệ HR để bổ sung."
+
+Banner is dismissible client-side per session. It is informational only — does not block the current day's flow.
 
 ## 10. Done definition
 
 - All tests in §8.2 pass under `manage.py test attendance`.
 - Manual demo path:
-  1. Start FastAPI (`uvicorn main:app --port 7860`).
+  1. Start FastAPI (`uvicorn main:app --port 7860`) — fails immediately if `MONGO_URI` env var not set (verifies §5.8).
   2. User enrolls via existing upload page.
   3. User clicks **Chấm công** → row appears with `check_in_time`.
   4. User clicks **Chấm công** again same day → `check_out_time` filled.
   5. Third click same day → toast: "Bạn đã chấm công hôm nay".
   6. Holding another user's photo to webcam → 403; after 3 attempts → 423 lock.
+  7. Simulate forgotten check-out: insert yesterday's record with only `check_in_time`. Run `python manage.py close_open_attendance`. Refresh page → banner appears; record status = `no_checkout`.
 
 ## 11. Out-of-scope follow-ups
 
