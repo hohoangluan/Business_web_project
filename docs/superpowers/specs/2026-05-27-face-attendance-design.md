@@ -20,7 +20,8 @@ Add a face-recognition check-in/check-out flow to the existing `attendance` Djan
 - Replace template fake-alert buttons with real webcam capture and result UI.
 - Unit + integration tests for each new service and the view.
 - **Remove hardcoded `MONGO_URI` credentials** from `backend/backend/main.py` and `backend/backend/db_tools.py`. Service must fail fast at startup when `MONGO_URI` env var is unset. Add `.env.example` documenting the variable. Rotate the leaked Atlas password (out-of-band — separate action by repo owner).
-- **Forgotten-checkout handling**: a Django management command `close_open_attendance` that sets `status='no_checkout'` on yesterday's records where `check_in_time` is set and `check_out_time is None`. A banner on the attendance page warns the current user when their most recent record before today is in that state.
+- **Forgotten-checkout handling**: a Django management command `close_open_attendance` that sets `status='no_checkout'` on yesterday's records where `check_in_time` is set and `check_out_time is None`. A clickable banner on the attendance page warns the user and links into an **employee-side adjustment request submission** flow.
+- **Adjustment request submission (employee side only)**: new model `AttendanceAdjustmentRequest`, a form to enter reason + claimed out-time + optional evidence, and a "submitted" confirmation. When submitted, the underlying `AttendanceRecord.status` flips to `pending_adjustment`. HR-side approval UI (review queue, approve/reject, write back actual times) is **out of scope** here.
 
 **Out (explicitly):**
 - Liveness / anti-spoof.
@@ -72,16 +73,22 @@ business_web/attendance/
 │   ├── face_service.py               MOD  add register-remote on save
 │   ├── image_service.py              KEEP base64 helpers
 │   └── __init__.py
-├── views/
-│   ├── face_attendance_view.py       NEW  POST /attendance/check/
-│   ├── image_upload_view.py          MOD  remote enroll on upload
-│   └── __init__.py                   KEEP attendance_view (history wired)
 ├── models/
-│   ├── attendance_record_model.py    KEEP
-│   ├── employee_face_model.py        KEEP
-│   └── __init__.py
+│   ├── attendance_record_model.py             KEEP
+│   ├── employee_face_model.py                 MOD  add slot_id field (default 1)
+│   ├── attendance_adjustment_request_model.py NEW  employee-submitted fix request
+│   └── __init__.py                            MOD  export new model
+├── forms/
+│   ├── __init__.py                            NEW
+│   └── attendance_adjustment_form.py          NEW  ModelForm for the request
+├── views/
+│   ├── face_attendance_view.py                NEW  POST /attendance/check/
+│   ├── attendance_adjustment_view.py          NEW  GET/POST /attendance/adjustment/<record_id>/
+│   ├── image_upload_view.py                   MOD  remote enroll on upload
+│   └── __init__.py                            MOD  attendance_view passes history + banner
 ├── templates/attendance/
-│   └── attendance.html               MOD  webcam capture + real API
+│   ├── attendance.html                        MOD  webcam capture + banner + cognitive-conflict hint
+│   └── adjustment_request_form.html           NEW  reason + time + evidence form
 ├── management/
 │   ├── __init__.py                              NEW
 │   └── commands/
@@ -94,8 +101,9 @@ business_web/attendance/
 │   ├── test_face_lockout_service.py             NEW
 │   ├── test_face_attendance_view.py             NEW
 │   ├── test_close_open_attendance_command.py    NEW
+│   ├── test_attendance_adjustment_view.py       NEW
 │   └── fixtures/sample_face.jpg                 NEW
-└── urls.py                                       MOD  add /attendance/check/
+└── urls.py                                       MOD  add /attendance/check/ and /attendance/adjustment/<id>/
 ```
 
 ### 4.2 Settings additions (`business_web/business_web/settings.py`)
@@ -195,6 +203,7 @@ def close_open_records_before(cutoff_date: date) -> int: ...  # used by mgmt com
 | `on_time` | `check_in_time` recorded ≤ `WORK_START_TIME + WORK_LATE_GRACE_MIN` |
 | `late` | `check_in_time` recorded after grace |
 | `no_checkout` | yesterday-or-older record with check-in but no check-out; set by `close_open_attendance` |
+| `pending_adjustment` | employee has submitted an `AttendanceAdjustmentRequest` for this record and HR has not reviewed it yet. Set when the request is created; reverted to `on_time`/`late` by HR approval (HR action — out of scope of this phase). |
 
 ### 5.3.2 Management command `close_open_attendance`
 
@@ -221,19 +230,36 @@ Counter incremented with `cache.add` (init) + `cache.incr`.
 
 ### 5.5 `face_service.py` (modified)
 
+#### 5.5.1 Slot management — Django is the source of truth
+
+The FastAPI service supports up to 5 image slots per employee. From Django we use a **single deterministic slot per user** so re-enrollment always overwrites the same Mongo document instead of consuming a new slot and leaving an orphan.
+
+Schema change: add `slot_id = PositiveSmallIntegerField(default=1)` to `EmployeeFace` (range 1–5, hard-coded `1` for this phase; field exists so future multi-slot enrollment is a non-migration change). New migration `0003_employeeface_slot_id`.
+
+#### 5.5.2 `save_employee_face`
+
 ```python
 def save_employee_face(user, image_file) -> EmployeeFace:
     # 1. raw_bytes = image_file.read(); image_file.seek(0)
     # 2. base64_str = image_service.image_to_base64(image_file)
-    # 3. face_api_client.register_face_remote(str(user.id), raw_bytes,
-    #                                         filename=image_file.name)
+    # 3. existing = EmployeeFace.objects.filter(user=user).first()
+    #    slot_id = existing.slot_id if existing else 1
+    # 4. face_api_client.register_face_remote(
+    #        employee_id=str(user.id),
+    #        image_bytes=raw_bytes,
+    #        filename=image_file.name,
+    #        slot_id=slot_id)            # <-- ALWAYS explicit, never None
     #    -> raises FaceApiError; do NOT save local row in that case
-    # 4. EmployeeFace.objects.update_or_create(user=..., defaults={...})
+    # 5. EmployeeFace.objects.update_or_create(
+    #        user=user,
+    #        defaults={'face_base64': base64_str,
+    #                  'content_type': content_type,
+    #                  'slot_id': slot_id})
 ```
 
-Atomic: remote-first. If FastAPI fails, no local row created/updated.
+Atomic: remote-first. If FastAPI fails, no local row created/updated. By always passing the existing `slot_id`, re-enrollment overwrites the same FastAPI/Mongo slot in place — **no orphan slots in MongoDB**.
 
-Partial-failure note: if FastAPI succeeded but the local `update_or_create` then crashes, an orphan slot remains in Mongo. Acceptable because the next re-enrollment overwrites the same `(employee_id, slot_id)` upsert. Documented; no compensating delete (FastAPI has no DELETE endpoint).
+Partial-failure note: if FastAPI succeeded but the local `update_or_create` then crashes, the next re-enrollment still hits the same explicit slot and overwrites cleanly. No compensating delete needed.
 
 ### 5.6 `face_attendance_view.py`
 
@@ -248,8 +274,20 @@ Pipeline:
 2. Extract `image_bytes` from `request.FILES['image']` (preferred) or JSON body `image_base64`.
 3. `verify_face_for_user(request.user, image_bytes)`.
 4. Failure branches (map `reason` → HTTP per Section 6.4). Only `wrong_person` increments the fail counter (no_match is a benign "not enrolled / unknown face" signal and must not lock out new users).
-5. On success: `clear_failures`, fetch today's record, dispatch via `decide_next_action`.
-6. Return JSON with action, time, status, confidence.
+5. **On success — race-safe DB section:**
+   ```python
+   with transaction.atomic():
+       record = (AttendanceRecord.objects
+                 .select_for_update()
+                 .get_or_create(user=request.user,
+                                record_date=timezone.localdate()))[0]
+       action = decide_next_action(record)
+       if action == 'check_in':  record_check_in(request.user, record)
+       elif action == 'check_out': record_check_out(request.user, record)
+   clear_failures(request.user)
+   ```
+   `select_for_update` + `transaction.atomic` serializes concurrent double-clicks: the second request blocks until the first commits, then sees the updated row and falls through to `check_out` or `done`. On SQLite `select_for_update` is a no-op but the surrounding atomic block still provides write isolation; on Postgres/MySQL the row lock guarantees no duplicate inserts.
+6. Return JSON with `action`, `time`, `status`, `confidence`, and (when applicable) `previous_open_record` summary used by the frontend cognitive-conflict notice (§9).
 
 ### 5.7 `image_upload_view.py` (modified)
 
@@ -283,6 +321,80 @@ MONGO_URI=mongodb+srv://<user>:<password>@<cluster>/?retryWrites=true&w=majority
 ```
 
 Add `.env` to `backend/backend/.gitignore` if not already present. The leaked password from the previous default **must be rotated in MongoDB Atlas** by the repo owner — that action is out-of-band and not gated by this code change. Note this in the README of `backend/backend/`.
+
+#### 5.8.1 Startup warm-up (already in place — confirm + extend)
+
+`sync_faiss_with_db` already issues a `DeepFace.represent(np.zeros((224,224,3)), enforce_detection=False)` to detect the embedding dimension; that call also warms the Facenet512 weights into RAM, so the first real `/recognize` no longer pays the cold-start cost. This phase keeps that behaviour, plus:
+
+- Reorder `sync_faiss_with_db` so the dummy inference is **always** run, even when the DB is empty (today it returns early when `records` is empty, which still warms the model because the warm call sits before the `records` check — verify this in code, do not regress).
+- Add a startup log line: `"[WARMUP] Facenet512 loaded; first inference latency ≈X ms"` measured around the dummy call. Helps operators confirm warm-up actually happened before traffic.
+- Django side: `face_api_client.health_check()` is also called once during Django `AppConfig.ready()` (best-effort, swallows errors). Purpose: when Django starts after FastAPI, the first HTTP round-trip is paid before any user clicks the button. Failure is logged at `WARNING` and does not block Django startup (developers may be running Django without the face service for unrelated work).
+
+### 5.9 `AttendanceAdjustmentRequest` model
+
+New file `models/attendance_adjustment_request_model.py`.
+
+```python
+class AttendanceAdjustmentRequest(models.Model):
+    REASON_CHOICES = [
+        ('forgot',         'Quên chấm ra'),
+        ('technical',      'Lỗi kỹ thuật / hệ thống'),
+        ('business_trip',  'Đi công tác / ra ngoài làm việc'),
+        ('other',          'Khác'),
+    ]
+    STATUS_CHOICES = [
+        ('pending',  'Chờ HR duyệt'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối'),
+    ]
+
+    record         = models.OneToOneField(AttendanceRecord,
+                                          on_delete=models.CASCADE,
+                                          related_name='adjustment_request')
+    submitted_by   = models.ForeignKey(User, on_delete=models.PROTECT,
+                                       related_name='+')
+    reason         = models.CharField(max_length=20, choices=REASON_CHOICES)
+    reason_detail  = models.TextField(blank=True, default='')
+    claimed_check_out_time = models.TimeField(
+                            help_text="Giờ ra thực tế nhân viên khai báo.")
+    evidence       = models.FileField(upload_to='attendance/adjustments/%Y/%m/',
+                                      null=True, blank=True,
+                                      help_text="Ảnh / PDF chứng từ tùy chọn.")
+    status         = models.CharField(max_length=10, choices=STATUS_CHOICES,
+                                      default='pending')
+    submitted_at   = models.DateTimeField(auto_now_add=True)
+    reviewed_at    = models.DateTimeField(null=True, blank=True)
+    reviewed_by    = models.ForeignKey(User, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='+')
+    hr_note        = models.TextField(blank=True, default='')
+```
+
+Constraints:
+- One adjustment request per `AttendanceRecord` (`OneToOneField`).
+- Only records with `status='no_checkout'` are eligible for submission (enforced in the view, not at the DB level — keeps schema flexible).
+- `evidence` upload size capped at 5 MB and MIME validated to `image/*` or `application/pdf` in the form clean method.
+
+Migration: `0003_attendanceadjustmentrequest` (combined with the `EmployeeFace.slot_id` change, or a separate `0004` — implementation choice in writing-plans).
+
+### 5.10 `attendance_adjustment_view.py` + form
+
+Form: `AttendanceAdjustmentForm(ModelForm)` over fields `reason`, `reason_detail`, `claimed_check_out_time`, `evidence`. Server-side `clean_evidence` validates MIME and size.
+
+View: single function `submit_adjustment_view(request, record_id)`.
+
+Pipeline:
+1. `@login_required`. Lookup `AttendanceRecord` by `id=record_id, user=request.user` (404 otherwise — cannot adjust someone else's record).
+2. Reject if `record.status != 'no_checkout'` → 400 `{error: 'not_eligible'}`.
+3. Reject if `AttendanceAdjustmentRequest` already exists for that record → 409 `{error: 'already_submitted'}`.
+4. GET → render `adjustment_request_form.html` (form + record date + employee name).
+5. POST → bind form. On valid:
+   - `transaction.atomic`:
+     - Create `AttendanceAdjustmentRequest` with `submitted_by=request.user`, `status='pending'`.
+     - `record.status = 'pending_adjustment'`; `record.save(update_fields=['status'])`.
+   - Redirect to attendance dashboard with success flash: "Đã gửi yêu cầu điều chỉnh tới HR."
+6. On invalid → re-render with errors.
+
+No HR review action lives here — HR-side queue/approve/reject is explicitly out of scope (§11).
 
 ## 6. Data flow
 
@@ -358,10 +470,11 @@ Django   face_check_view
 | 3 | Blank frame / no face | Client raises `no_face` → 400, **not counted as failure**. |
 | 4 | Image too large (>2 MB) | View rejects pre-call with 400 `image_too_large`. Frontend downscales to 480×640 JPEG q=0.80 (≈60–120 KB typical). The 2 MB ceiling is a defensive cap against tampered clients; honest captures sit well below it. |
 | 5 | Empty FAISS registry | FastAPI `"No employee data found"` → treat as `no_match` (same as #2). |
-| 6 | Concurrent double-click | View `select_for_update` (SQLite no-op, Postgres safe); second call sees `check_in_time` set → returns `check_out` or `done`. Idempotent. |
+| 6 | Concurrent double-click | View wraps the lookup-and-write in `transaction.atomic` + `select_for_update` (§5.6). Second call blocks until first commits, then sees the updated row → returns `check_out` or `done`. Idempotent; no duplicate inserts even on Postgres/MySQL. |
 | 7 | Check-out before check-in (forgot scan in) | `decide_next_action` sees `check_in_time is None` → returns `check_in`, regardless of clock time. |
 | 8 | Midnight crossing | `timezone.localdate()` re-evaluated each scan → new day = new record = new `check_in`. Documented limitation. |
-| 8a | Forgotten check-out (user checks in Monday, doesn't check out, scans Tuesday) | Tuesday scan creates Tuesday record (correct). Monday record stays open until the `close_open_attendance` management command runs (§5.3.2) and stamps `status='no_checkout'`. Dashboard banner from `get_open_previous_record` warns the user on their next visit so they can notify HR. Reporting treats `no_checkout` as a distinct status (not "absent"). |
+| 8a | Forgotten check-out (user checks in Monday, doesn't check out, scans Tuesday) | Tuesday scan creates Tuesday record (correct, **enforced via `select_for_update` per §5.6**). Monday record stays open until `close_open_attendance` runs (§5.3.2) and stamps `status='no_checkout'`. Dashboard banner from §9.1 prompts the user to submit an `AttendanceAdjustmentRequest` (§5.9–§5.10). Modal also displays the cognitive-conflict notice (§9.2) so the user cannot mistake today's scan for retroactively fixing yesterday. Reporting treats `no_checkout` and `pending_adjustment` as distinct statuses (not "absent"). |
+| 8b | User submits adjustment, then tries to submit again | View returns 409 `already_submitted`. Banner switches to read-only "pending review" copy (§9.1). |
 | 9 | Lockout race | `cache.add` + `cache.incr`; acceptable for class scope. |
 | 10 | Enrollment partial (remote ok, local crash) | Orphan Mongo slot; next re-enroll overwrites same `(employee_id, slot_id)`. No compensating delete. |
 | 11 | Wrong-person attack | Lockout after `FACE_LOCKOUT_MAX_FAILS` for `FACE_LOCKOUT_DURATION_SEC`. No liveness — out of scope. |
@@ -444,6 +557,21 @@ business_web/attendance/tests/
 - Run command again → 0 affected.
 - `--cutoff` flag respected (records strictly earlier than cutoff).
 
+**`attendance_adjustment_view`** (integration)
+- GET on own `no_checkout` record → 200, form rendered.
+- GET on someone else's record → 404.
+- GET on a record whose `status != 'no_checkout'` → 400 `not_eligible`.
+- POST valid form → request created, record status flips to `pending_adjustment`, redirect with flash.
+- POST when an `AttendanceAdjustmentRequest` already exists → 409 `already_submitted`.
+- Evidence over 5 MB or wrong MIME → form invalid, re-render with error.
+
+**Race-condition concurrency**
+- Use `TestCase.assertNumQueries` plus a thread/`threading.Barrier` harness (or simpler: two sequential `client.post` calls within a single `transaction.atomic` block) to confirm second call sees `check_in_time` set and routes to `check_out`. SQLite acceptable; document that strong guarantees are Postgres-only.
+
+**Startup warm-up**
+- Patch `DeepFace.represent` and assert `sync_faiss_with_db` calls it once at startup even with an empty DB.
+- Patch `face_api_client.health_check` and assert `AppConfig.ready()` invokes it once, swallows exceptions, logs a warning on failure.
+
 ## 9. Frontend integration (`attendance/templates/attendance/attendance.html`)
 
 Replace fake-alert buttons with one **"Chấm công"** button that opens a modal:
@@ -467,11 +595,26 @@ Replace fake-alert buttons with one **"Chấm công"** button that opens a modal
 
 Enrollment view (`upload_image_base64_view`) keeps its current `<input type="file">` since enrollment is a deliberate one-time action under the user's account control, but the **daily check** flow is camera-only.
 
-`attendance_view` is extended to pass real history rows (current month, last 10) for the table, replacing mock data, and to call `attendance_logging_service.get_open_previous_record(request.user)`. When that returns a record, the template renders a non-blocking warning banner above the hero block:
+#### 9.1 Forgotten-checkout banner (active, not passive)
 
-> "Bạn quên chấm ra ngày `<dd/MM/yyyy>`. Liên hệ HR để bổ sung."
+`attendance_view` is extended to pass real history rows (current month, last 10) for the table, replacing mock data, and to call `attendance_logging_service.get_open_previous_record(request.user)`. When that returns a record, the template renders an action-oriented banner above the hero block:
 
-Banner is dismissible client-side per session. It is informational only — does not block the current day's flow.
+> "Hệ thống đã tự động đóng phiên làm việc ngày `<dd/MM/yyyy>` của bạn do thiếu giờ chấm ra. Hãy tiếp tục chấm công cho hôm nay.
+> **[Gửi yêu cầu điều chỉnh tới HR]**"
+
+The action button links to `/attendance/adjustment/<record_id>/` (rendered only when `record.status == 'no_checkout'` and no existing `adjustment_request`). Once an adjustment has been submitted (`record.status == 'pending_adjustment'`), the banner becomes:
+
+> "Yêu cầu điều chỉnh ngày `<dd/MM/yyyy>` đang chờ HR duyệt."
+
+with no button (read-only). Banner is dismissible per session for UI noise control but reappears on next dashboard load until the record is resolved.
+
+#### 9.2 Cognitive-conflict notice inside the daily-check flow
+
+When the user opens the **Chấm công** modal **and** `get_open_previous_record` returned non-null, the modal header shows an explicit clarification line in muted orange before the camera preview:
+
+> "Bạn đang chấm công cho **HÔM NAY** (`<today dd/MM>`). Phiên ngày `<prev dd/MM>` đã được đóng tự động và không thể chỉnh sửa qua camera — dùng nút **Gửi yêu cầu điều chỉnh** ở banner phía trên."
+
+This prevents the user from believing a successful scan retroactively fills in yesterday's missing check-out time. The view echoes `previous_open_record: {date, id}` in the 200 response when applicable so the success toast can also reinforce: "Đã chấm vào lúc HH:MM cho ngày `<today>`."
 
 ## 10. Done definition
 
@@ -483,7 +626,9 @@ Banner is dismissible client-side per session. It is informational only — does
   4. User clicks **Chấm công** again same day → `check_out_time` filled.
   5. Third click same day → toast: "Bạn đã chấm công hôm nay".
   6. Holding another user's photo to webcam → 403; after 3 attempts → 423 lock.
-  7. Simulate forgotten check-out: insert yesterday's record with only `check_in_time`. Run `python manage.py close_open_attendance`. Refresh page → banner appears; record status = `no_checkout`.
+  7. Simulate forgotten check-out: insert yesterday's record with only `check_in_time`. Run `python manage.py close_open_attendance`. Refresh page → active banner with "Gửi yêu cầu điều chỉnh tới HR" button appears; record status = `no_checkout`.
+  8. Click the banner button → adjustment form loads. Submit with reason="forgot" + claimed out-time + small image evidence → success flash; record status flips to `pending_adjustment`; banner reverts to read-only "đang chờ HR duyệt" copy.
+  9. Open **Chấm công** modal while banner is active → cognitive-conflict notice visible above the camera preview.
 
 ## 11. Out-of-scope follow-ups
 
@@ -493,4 +638,6 @@ Banner is dismissible client-side per session. It is informational only — does
 - Per-team late thresholds; leave/holiday integration into `AttendanceRecord.status`.
 - Background retry for failed enrollment.
 - Admin bulk enrollment UI.
+- **HR-side adjustment review workflow** (review queue, approve/reject UI, writing the approved `check_out_time` back to `AttendanceRecord`, notifying the employee). The submission side ships this phase; the approval side is a separate phase.
+- Multi-slot Django enrollment (the schema field exists but the UX/UI for capturing 5 angles is deferred).
 - Rotation of the previously-leaked MongoDB Atlas password (manual Atlas console action by repo owner).
