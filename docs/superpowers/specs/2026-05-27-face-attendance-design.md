@@ -19,13 +19,13 @@ Add a face-recognition check-in/check-out flow to the existing `attendance` Djan
 - Auto direction selection: first scan of the day → check-in; second → check-out; third → no-op.
 - Replace template fake-alert buttons with real webcam capture and result UI.
 - Unit + integration tests for each new service and the view.
+- **Remove hardcoded `MONGO_URI` credentials** from `backend/backend/main.py` and `backend/backend/db_tools.py`. Service must fail fast at startup when `MONGO_URI` env var is unset. Add `.env.example` documenting the variable. Rotate the leaked Atlas password (out-of-band — separate action by repo owner).
 
 **Out (explicitly):**
 - Liveness / anti-spoof.
 - Kiosk (1:N identify) mode.
 - Background async (Celery) retries.
 - Admin bulk enrollment UI.
-- Rotating the FastAPI Mongo credentials (flagged as separate work).
 - Adding auth to FastAPI (relies on 127.0.0.1 binding for now).
 - Per-team / per-employee late thresholds.
 - Holiday/leave integration with attendance status.
@@ -53,9 +53,9 @@ Add a face-recognition check-in/check-out flow to the existing `attendance` Djan
   - `GET /health` — pre-flight.
 - Bound to localhost port `7860` (Docker `EXPOSE 7860`, dev `uvicorn main:app`).
 
-### 3.3 Known issue (flagged, not fixed here)
+### 3.3 Credential leak fix (in scope this phase)
 
-`backend/backend/main.py:15` and `backend/backend/db_tools.py:6` embed a full MongoDB connection string with username + password as the `os.getenv` default. This must be removed and the service refused to start without `MONGO_URI` set. Spec notes it; fix tracked separately.
+`backend/backend/main.py:15` and `backend/backend/db_tools.py:6` embed a full MongoDB Atlas connection string with username + password as the `os.getenv` default. This phase removes those defaults and forces fail-fast startup when `MONGO_URI` is unset. See §5.8 for the exact change. Atlas password rotation itself is an out-of-band action by the repo owner.
 
 ## 4. Architecture
 
@@ -228,6 +228,30 @@ Pipeline:
 ```
 with status `502` (remote dependency), or `400` when `code == 'no_face'`.
 
+### 5.8 FastAPI credential hardening (`backend/backend/main.py`, `backend/backend/db_tools.py`)
+
+Replace:
+
+```python
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://kimluanlu95_db_user:...")
+```
+
+with:
+
+```python
+MONGO_URI = os.environ["MONGO_URI"]  # raises KeyError at import time if unset
+```
+
+(or an explicit `if not MONGO_URI: raise RuntimeError("MONGO_URI env var is required")` for a clearer message).
+
+Add `backend/backend/.env.example`:
+
+```
+MONGO_URI=mongodb+srv://<user>:<password>@<cluster>/?retryWrites=true&w=majority&appName=<app>
+```
+
+Add `.env` to `backend/backend/.gitignore` if not already present. The leaked password from the previous default **must be rotated in MongoDB Atlas** by the repo owner — that action is out-of-band and not gated by this code change. Note this in the README of `backend/backend/`.
+
 ## 6. Data flow
 
 ### 6.1 Enrollment
@@ -314,11 +338,12 @@ Django   face_check_view
 
 ### 7.1 Security checklist
 
-- FastAPI Mongo credentials are hardcoded — must be removed (out of scope here, tracked separately). Spec mandates env-only before any non-localhost deployment.
+- FastAPI Mongo credentials are hardcoded — **removed in this phase** (§5.8). Service fails fast without `MONGO_URI`. Atlas password rotation is an out-of-band action by the repo owner.
 - FastAPI has no auth; only safe because `127.0.0.1`. Do not expose externally without an auth layer.
 - Django view uses `@login_required` + `@require_POST` + CSRF (default middleware).
 - Image bytes never logged. `face.verify` logs reason + confidence only.
 - Lockout keys namespaced per user; no cross-user leak.
+- Daily check has **no file-upload fallback** — webcam-only to prevent stored-photo bypass (§9).
 - Replay/liveness: explicitly out of scope.
 
 ### 7.2 Logging channels
@@ -391,7 +416,15 @@ Replace fake-alert buttons with one **"Chấm công"** button that opens a modal
   - 423 → toast: "Đã khóa, thử lại sau X giây".
   - 503 → toast: "Dịch vụ chưa sẵn sàng".
   - Always: stop video tracks, close modal.
-- Fallback if `getUserMedia` blocked: `<input type="file" accept="image/*" capture="user">`.
+
+**No file-input fallback.** Allowing arbitrary image upload defeats the purpose of webcam-based attendance — a user could submit a stored photo of themselves (or anyone) and bypass the live-capture requirement. Instead, when `getUserMedia` is unavailable or denied, the modal shows a blocking permission-required state:
+
+- `NotAllowedError` (permission denied) → message: "Bạn đã từ chối quyền truy cập Camera. Hãy mở quyền Camera trong cài đặt trình duyệt rồi thử lại." with a "Hướng dẫn" link to a help anchor that explains per-browser steps (Chrome / Edge / Firefox). No bypass button.
+- `NotFoundError` (no camera hardware) → message: "Không tìm thấy camera. Cần thiết bị có webcam để chấm công." Modal closes; user cannot proceed.
+- `NotReadableError` (device busy) → message: "Camera đang được ứng dụng khác sử dụng. Đóng ứng dụng đó rồi thử lại."
+- HTTPS-required note: webcam access requires `https://` or `localhost`. If `location.protocol === 'http:'` and host is not `localhost`/`127.0.0.1`, the modal shows: "Trang phải chạy trên HTTPS để dùng camera."
+
+Enrollment view (`upload_image_base64_view`) keeps its current `<input type="file">` since enrollment is a deliberate one-time action under the user's account control, but the **daily check** flow is camera-only.
 
 `attendance_view` is extended to pass real history rows (current month, last 10) for the table, replacing mock data.
 
@@ -408,10 +441,10 @@ Replace fake-alert buttons with one **"Chấm công"** button that opens a modal
 
 ## 11. Out-of-scope follow-ups
 
-- Remove hardcoded `MONGO_URI` default from `backend/backend/main.py` and `db_tools.py`.
 - Add auth layer to FastAPI before any non-localhost deploy.
 - Liveness / anti-spoof.
 - Kiosk (1:N) mode.
 - Per-team late thresholds; leave/holiday integration into `AttendanceRecord.status`.
 - Background retry for failed enrollment.
 - Admin bulk enrollment UI.
+- Rotation of the previously-leaked MongoDB Atlas password (manual Atlas console action by repo owner).
