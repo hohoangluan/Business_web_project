@@ -18,6 +18,14 @@ class EmployeeFace(models.Model):
     face_base64 = models.TextField(
         help_text="Chuỗi base64 của ảnh khuôn mặt nhân viên.",
     )
+    slot_id = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="FastAPI slot ID (1-5). Pinned to 1 for now; field exists so multi-slot is non-migration.",
+    )
+    embedding = models.JSONField(
+        null=True, blank=True,
+        help_text="Vector khuôn mặt (512 chiều) từ InsightFace.",
+    )
     content_type = models.CharField(
         max_length=50,
         default='image/png',

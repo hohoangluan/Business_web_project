@@ -125,6 +125,29 @@
         </button>
     </div>
 
+    {# Forgotten-checkout banner #}
+    {% if open_previous_record %}
+    <div class="forgotten-banner" role="alert" style="background:#fff7ed;border:1px solid #fdba74;border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;color:#9a3412;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.25rem;"></i>
+        <div style="flex:1;">
+            {% if banner_eligible_for_adjustment %}
+                Hệ thống đã tự động đóng phiên làm việc ngày
+                <strong>{{ open_previous_record.record_date|date:"d/m/Y" }}</strong>
+                của bạn do thiếu giờ chấm ra. Hãy tiếp tục chấm công cho hôm nay.
+            {% else %}
+                Yêu cầu điều chỉnh ngày
+                <strong>{{ open_previous_record.record_date|date:"d/m/Y" }}</strong>
+                đang chờ HR duyệt.
+            {% endif %}
+        </div>
+        {% if banner_eligible_for_adjustment %}
+            <a class="btn btn-primary" href="{% url 'attendance_adjustment' open_previous_record.id %}">
+                Gửi yêu cầu điều chỉnh tới HR
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- ===== HERO BANNER: CLOCK ===== -->
     <div class="attendance-hero">
         <div class="hero-left">
@@ -133,13 +156,9 @@
             <div class="date-display" id="live-date">Đang tải...</div>
         </div>
         <div class="hero-right">
-            <button class="btn-attendance btn-checkin" onclick="alert('Đã ghi nhận giờ vào: ' + document.getElementById('live-clock').innerText)">
-                <i class="fa-solid fa-person-walking-arrow-right"></i>
-                Chấm vào
-            </button>
-            <button class="btn-attendance btn-checkout" onclick="alert('Chưa thể chấm ra lúc này!')">
-                <i class="fa-solid fa-person-walking-arrow-loop-left"></i>
-                Chấm ra
+            <button class="btn-attendance btn-checkin" id="open-camera-btn" type="button">
+                <i class="fa-solid fa-camera"></i>
+                Chấm công
             </button>
         </div>
     </div>
@@ -153,7 +172,7 @@
             </div>
             <div class="stats-info-block">
                 <div class="stat-title">Tháng này</div>
-                <div class="stat-val">182h 30m</div>
+                <div class="stat-val">--</div>
             </div>
         </div>
         
@@ -164,7 +183,7 @@
             </div>
             <div class="stats-info-block">
                 <div class="stat-title">Ngày đúng giờ</div>
-                <div class="stat-val">18/20</div>
+                <div class="stat-val">--</div>
             </div>
         </div>
         
@@ -175,7 +194,7 @@
             </div>
             <div class="stats-info-block">
                 <div class="stat-title">Đi trễ</div>
-                <div class="stat-val">2</div>
+                <div class="stat-val">--</div>
             </div>
         </div>
         
@@ -186,7 +205,7 @@
             </div>
             <div class="stats-info-block">
                 <div class="stat-title">Trung bình/ngày</div>
-                <div class="stat-val">9h 07m</div>
+                <div class="stat-val">--</div>
             </div>
         </div>
     </div>
@@ -209,46 +228,70 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for r in history_rows %}
                         <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">20/04/2026</td>
-                            <td><i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#10b981;"></i> 08:30</td>
-                            <td><i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i> 17:45</td>
-                            <td><span style="font-weight: 500;">9h 15m</span></td>
-                            <td><span class="table-badge badge-ontime">Đúng giờ</span></td>
+                            <td style="padding-left:1.5rem;font-weight:500;">{{ r.record_date|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if r.check_in_time %}
+                                    <i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#10b981;"></i>
+                                    {{ r.check_in_time|time:"H:i" }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if r.check_out_time %}
+                                    <i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i>
+                                    {{ r.check_out_time|time:"H:i" }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>—</td>
+                            <td>
+                                {% if r.status == 'on_time' %}
+                                    <span class="table-badge badge-ontime">Đúng giờ</span>
+                                {% elif r.status == 'late' %}
+                                    <span class="table-badge badge-late">Đi trễ</span>
+                                {% elif r.status == 'no_checkout' %}
+                                    <span class="table-badge" style="background:#fff7ed;color:#9a3412;">Thiếu chấm ra</span>
+                                {% elif r.status == 'pending_adjustment' %}
+                                    <span class="table-badge" style="background:#eef2ff;color:#3730a3;">Chờ HR duyệt</span>
+                                {% else %}—{% endif %}
+                            </td>
                         </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">19/04/2026</td>
-                            <td><i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#10b981;"></i> 08:25</td>
-                            <td><i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i> 17:35</td>
-                            <td><span style="font-weight: 500;">9h 10m</span></td>
-                            <td><span class="table-badge badge-ontime">Đúng giờ</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">18/04/2026</td>
-                            <td><i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#f59e0b;"></i> 08:45</td>
-                            <td><i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i> 17:40</td>
-                            <td><span style="font-weight: 500;">8h 55m</span></td>
-                            <td><span class="table-badge badge-late">Đi trễ</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">17/04/2026</td>
-                            <td><i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#10b981;"></i> 08:30</td>
-                            <td><i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i> 17:30</td>
-                            <td><span style="font-weight: 500;">9h 00m</span></td>
-                            <td><span class="table-badge badge-ontime">Đúng giờ</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 1.5rem; font-weight: 500;">16/04/2026</td>
-                            <td><i class="fa-solid fa-arrow-right-to-bracket time-arrow" style="color:#10b981;"></i> 08:15</td>
-                            <td><i class="fa-solid fa-arrow-right-from-bracket time-arrow" style="color:#ef4444;"></i> 18:00</td>
-                            <td><span style="font-weight: 500;">9h 45m</span></td>
-                            <td><span class="table-badge badge-ontime">Đúng giờ</span></td>
-                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">Chưa có lịch sử trong tháng.</td></tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    {# Camera modal #}
+    <div id="camera-modal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:1.5rem;max-width:640px;width:90%;">
+            <h3 style="margin-bottom:1rem;">Chấm công bằng khuôn mặt</h3>
+
+            {% if open_previous_record %}
+            <div id="cognitive-conflict-notice" style="background:#fff7ed;border-left:4px solid #fb923c;padding:0.75rem 1rem;margin-bottom:1rem;color:#9a3412;font-size:0.92rem;">
+                Bạn đang chấm công cho <strong>HÔM NAY</strong>
+                ({{ today_short }}).
+                Phiên ngày <strong>{{ open_previous_record.record_date|date:"d/m" }}</strong>
+                đã được đóng tự động và không thể chỉnh sửa qua camera —
+                dùng nút <strong>Gửi yêu cầu điều chỉnh</strong> ở banner phía trên.
+            </div>
+            {% endif %}
+
+            <div id="camera-error" style="display:none;background:#fee2e2;color:#7f1d1d;padding:0.75rem;border-radius:var(--radius-md);margin-bottom:1rem;"></div>
+            <video id="camera-video" autoplay playsinline muted style="width:100%;border-radius:var(--radius-md);background:#000;"></video>
+            <canvas id="camera-canvas" width="640" height="480" style="display:none;"></canvas>
+            <div style="margin-top:1rem;display:flex;gap:0.75rem;justify-content:flex-end;">
+                <button type="button" class="btn btn-outline" id="cancel-camera-btn">Hủy</button>
+                <button type="button" class="btn btn-primary" id="capture-btn">Chấm công</button>
+            </div>
+        </div>
+    </div>
+
+    {# Toast #}
+    <div id="toast" style="display:none;position:fixed;bottom:2rem;right:2rem;background:#1f2937;color:#fff;padding:0.75rem 1.25rem;border-radius:var(--radius-md);box-shadow:0 8px 20px rgba(0,0,0,0.2);z-index:1001;"></div>
 
 </div>
 
@@ -279,5 +322,136 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cập nhật sau mỗi 1 giây (1000ms)
     setInterval(updateClock, 1000);
 });
+
+(function () {
+    const openBtn  = document.getElementById('open-camera-btn');
+    const cancelBtn = document.getElementById('cancel-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const errBox = document.getElementById('camera-error');
+    const toast = document.getElementById('toast');
+
+    let stream = null;
+
+    function showToast(msg, kind) {
+        toast.textContent = msg;
+        toast.style.background = kind === 'error' ? '#b91c1c' : (kind === 'warn' ? '#a16207' : '#1f2937');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    function showCameraError(msg) {
+        errBox.textContent = msg;
+        errBox.style.display = 'block';
+        video.style.display = 'none';
+        captureBtn.disabled = true;
+    }
+
+    function stopStream() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    }
+
+    function closeModal() {
+        stopStream();
+        modal.style.display = 'none';
+        errBox.style.display = 'none';
+        video.style.display = '';
+        captureBtn.disabled = false;
+        captureBtn.innerText = 'Chấm công';
+    }
+
+    openBtn.addEventListener('click', async () => {
+        // HTTPS check (allow localhost).
+        const host = location.hostname;
+        if (location.protocol !== 'https:' && host !== 'localhost' && host !== '127.0.0.1') {
+            modal.style.display = 'flex';
+            showCameraError('Trang phải chạy trên HTTPS để dùng camera.');
+            return;
+        }
+        modal.style.display = 'flex';
+        errBox.style.display = 'none';
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                audio: false,
+            });
+            video.srcObject = stream;
+        } catch (e) {
+            if (e.name === 'NotAllowedError') {
+                showCameraError('Bạn đã từ chối quyền truy cập Camera. Hãy mở quyền Camera trong cài đặt trình duyệt rồi thử lại.');
+            } else if (e.name === 'NotFoundError') {
+                showCameraError('Không tìm thấy camera. Cần thiết bị có webcam để chấm công.');
+            } else if (e.name === 'NotReadableError') {
+                showCameraError('Camera đang được ứng dụng khác sử dụng. Đóng ứng dụng đó rồi thử lại.');
+            } else {
+                showCameraError('Không thể mở camera: ' + e.message);
+            }
+        }
+    });
+
+    cancelBtn.addEventListener('click', closeModal);
+
+    captureBtn.addEventListener('click', async () => {
+        captureBtn.innerText = 'Đang nhận diện...';
+        captureBtn.disabled = true;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+            const form = new FormData();
+            form.append('image', blob, 'check.jpg');
+            const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            let resp;
+            try {
+                resp = await fetch('{% url "face_check" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrf },
+                    body: form,
+                });
+            } catch (e) {
+                closeModal();
+                showToast('Lỗi mạng. Hãy thử lại.', 'error');
+                return;
+            }
+            
+            // Tắt camera ngay sau khi có phản hồi
+            closeModal();
+            
+            let body = {};
+            try { body = await resp.json(); } catch (_) {}
+
+            if (resp.status === 200) {
+                const label = body.action === 'check_in' ? 'Chấm vào' :
+                              body.action === 'check_out' ? 'Chấm ra' :
+                              'Bạn đã chấm công hôm nay';
+                const time = body.time ? ' lúc ' + body.time : '';
+                showToast(label + time);
+                setTimeout(() => window.location.reload(), 1200);
+            } else if (resp.status === 401) {
+                showToast('Không nhận diện được khuôn mặt. Bạn đã đăng ký chưa?', 'warn');
+            } else if (resp.status === 403) {
+                showToast('Khuôn mặt không khớp. Còn ' + (body.fails_left ?? '?') + ' lần thử.', 'error');
+            } else if (resp.status === 423) {
+                showToast('Đã khóa. Thử lại sau ' + body.retry_after + ' giây.', 'error');
+            } else if (resp.status === 503) {
+                showToast('Dịch vụ chưa sẵn sàng. Thử lại sau.', 'error');
+            } else if (resp.status === 400) {
+                showToast('Ảnh không hợp lệ. Thử lại.', 'warn');
+            } else {
+                showToast('Lỗi không xác định (' + resp.status + ').', 'error');
+            }
+        }, 'image/jpeg', 0.80);
+    });
+
+    // CSRF token form (hidden) — Django needs one on the page.
+    if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+        const f = document.createElement('form');
+        f.style.display = 'none';
+        f.innerHTML = '{% csrf_token %}';
+        document.body.appendChild(f);
+    }
+})();
 </script>
 {% endblock %}

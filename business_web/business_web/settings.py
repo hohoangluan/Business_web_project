@@ -148,3 +148,14 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# =============================================================================
+# FACE RECOGNITION / ATTENDANCE
+# =============================================================================
+from datetime import time as _time
+
+FACE_LOCKOUT_MAX_FAILS = config('FACE_LOCKOUT_MAX_FAILS', default=3, cast=int)
+FACE_LOCKOUT_DURATION_SEC = config('FACE_LOCKOUT_DURATION_SEC', default=300, cast=int)
+WORK_START_TIME = _time(8, 30)
+WORK_LATE_GRACE_MIN = config('WORK_LATE_GRACE_MIN', default=5, cast=int)
+
