@@ -30,6 +30,12 @@ Giao diện dùng Django Templates + Tailwind CSS + Alpine.js, theme Pastel Ligh
 
 ## 2. Cấu trúc thư mục
 
+> **Quy ước bố cục app:** App nhiều mảng chức năng chia code theo feature bên trong mỗi
+> thư mục theo loại (xem `accounts`, `attendance`: `services/face/`, `views/adjustment/`,
+> `templates/attendance/record/`, `tests/face/`...). `models/` và `migrations/` giữ phẳng;
+> mỗi type-package `__init__.py` re-export public API. Chi tiết:
+> `docs/superpowers/specs/2026-05-31-attendance-folder-sectioning-design.md`.
+
 ```text
 business_web/
 ├── manage.py
