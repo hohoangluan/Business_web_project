@@ -13,7 +13,7 @@ from attendance.models import AttendanceRecord
 from attendance.services.face.face_verification_service import VerifyResult
 
 
-FIXTURE = Path(__file__).resolve().parent / 'fixtures' / 'sample_face.jpg'
+FIXTURE = Path(__file__).resolve().parent.parent / 'fixtures' / 'sample_face.jpg'
 
 
 def _upload():
