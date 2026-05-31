@@ -16,7 +16,7 @@ class UploadImageErrorMappingTests(TestCase):
         self.client.login(username='alice', password='secret')
         self.url = reverse('upload_image_base64')
 
-    @patch('attendance.views.image_upload_view.save_employee_face')
+    @patch('attendance.views.face.image_upload_view.save_employee_face')
     def test_no_face_returns_400_with_code(self, mock_save):
         mock_save.side_effect = FaceApiError('no_face', 'No face detected')
         upload = SimpleUploadedFile(
@@ -28,7 +28,7 @@ class UploadImageErrorMappingTests(TestCase):
         self.assertFalse(body['success'])
         self.assertEqual(body['code'], 'no_face')
 
-    @patch('attendance.views.image_upload_view.save_employee_face')
+    @patch('attendance.views.face.image_upload_view.save_employee_face')
     def test_unreachable_returns_502(self, mock_save):
         mock_save.side_effect = FaceApiError('unreachable', 'down')
         upload = SimpleUploadedFile(
@@ -39,7 +39,7 @@ class UploadImageErrorMappingTests(TestCase):
         body = resp.json()
         self.assertEqual(body['code'], 'unreachable')
 
-    @patch('attendance.views.image_upload_view.save_employee_face')
+    @patch('attendance.views.face.image_upload_view.save_employee_face')
     def test_timeout_returns_502(self, mock_save):
         mock_save.side_effect = FaceApiError('timeout', 'slow')
         upload = SimpleUploadedFile(

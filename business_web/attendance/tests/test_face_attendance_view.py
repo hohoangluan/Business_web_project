@@ -38,7 +38,7 @@ class FaceCheckViewTests(TestCase):
         resp = self.client.post(self.url, {'image': _upload()})
         self.assertEqual(resp.status_code, 302)
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_first_scan_creates_check_in(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             success=True, confidence=95.4,
@@ -54,7 +54,7 @@ class FaceCheckViewTests(TestCase):
         )
         self.assertIsNotNone(rec.check_in_time)
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_second_scan_sets_check_out(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             True, 95.4, str(self.user.id), 'ok',
@@ -72,7 +72,7 @@ class FaceCheckViewTests(TestCase):
         )
         self.assertIsNotNone(rec.check_out_time)
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_third_scan_returns_done(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             True, 95.4, str(self.user.id), 'ok',
@@ -87,7 +87,7 @@ class FaceCheckViewTests(TestCase):
         body = resp.json()
         self.assertEqual(body['action'], 'done')
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_wrong_person_403_and_counter_increments(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             success=False, confidence=88.0, matched_employee_id='9999',
@@ -101,7 +101,7 @@ class FaceCheckViewTests(TestCase):
         self.assertIn('fails_left', body)
         self.assertFalse(AttendanceRecord.objects.filter(user=self.user).exists())
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_three_wrong_attempts_then_locked_423(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             False, 88.0, '9999', 'wrong_person',
@@ -115,7 +115,7 @@ class FaceCheckViewTests(TestCase):
         self.assertTrue(body['locked'])
         self.assertGreater(body['retry_after'], 0)
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_no_match_does_not_increment_counter(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             False, None, None, 'no_match',
@@ -129,7 +129,7 @@ class FaceCheckViewTests(TestCase):
         resp = self.client.post(self.url, {'image': _upload()})
         self.assertEqual(resp.status_code, 401)
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_service_down_503_no_record(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             False, None, None, 'service_down',
@@ -139,7 +139,7 @@ class FaceCheckViewTests(TestCase):
         self.assertEqual(resp.status_code, 503)
         self.assertFalse(AttendanceRecord.objects.filter(user=self.user).exists())
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_no_face_400(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             False, None, None, 'no_face',
@@ -149,7 +149,7 @@ class FaceCheckViewTests(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json()['error'], 'no_face_detected')
 
-    @patch('attendance.views.face_attendance_view.verify_face_for_user')
+    @patch('attendance.views.face.face_attendance_view.verify_face_for_user')
     def test_previous_open_record_echoed(self, mock_verify):
         mock_verify.return_value = VerifyResult(
             True, 95.4, str(self.user.id), 'ok',
