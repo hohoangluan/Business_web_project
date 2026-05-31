@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from attendance.services.face_api_client import FaceApiError
+from attendance.services.face.face_api_client import FaceApiError
 
 
 class UploadImageErrorMappingTests(TestCase):

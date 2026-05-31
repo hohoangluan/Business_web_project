@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from attendance.models import AttendanceRecord
-from attendance.services.face_verification_service import VerifyResult
+from attendance.services.face.face_verification_service import VerifyResult
 
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures' / 'sample_face.jpg'

@@ -10,16 +10,16 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from attendance.models import AttendanceRecord
-from attendance.services.attendance_logging_service import (
+from attendance.services.record.attendance_logging_service import (
     decide_next_action,
     get_open_previous_record,
     record_check_in,
     record_check_out,
 )
-from attendance.services.face_lockout_service import (
+from attendance.services.face.face_lockout_service import (
     clear_failures, is_locked, register_failure,
 )
-from attendance.services.face_verification_service import verify_face_for_user
+from attendance.services.face.face_verification_service import verify_face_for_user
 
 logger = logging.getLogger('face.attendance')
 

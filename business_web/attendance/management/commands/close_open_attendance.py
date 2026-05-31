@@ -9,7 +9,7 @@ from datetime import datetime, date
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from attendance.services.attendance_logging_service import close_open_records_before
+from attendance.services.record.attendance_logging_service import close_open_records_before
 
 
 class Command(BaseCommand):

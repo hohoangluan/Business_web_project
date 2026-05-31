@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from attendance.services import face_api_client
+from attendance.services.face import face_api_client
 
 logger = logging.getLogger('face.verify')
 

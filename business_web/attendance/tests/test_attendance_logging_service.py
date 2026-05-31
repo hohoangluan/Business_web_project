@@ -40,7 +40,7 @@ class RecordCheckInTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('alice', password='x')
 
-    @patch('attendance.services.attendance_logging_service.timezone')
+    @patch('attendance.services.record.attendance_logging_service.timezone')
     def test_on_time_status_within_grace(self, mock_tz):
         # 8:32 → within 5-min grace after 8:30
         mock_tz.localdate.return_value = date(2026, 5, 27)
@@ -49,7 +49,7 @@ class RecordCheckInTests(TestCase):
         self.assertEqual(r.status, 'on_time')
         self.assertEqual(r.check_in_time, time(8, 32))
 
-    @patch('attendance.services.attendance_logging_service.timezone')
+    @patch('attendance.services.record.attendance_logging_service.timezone')
     def test_late_status_past_grace(self, mock_tz):
         mock_tz.localdate.return_value = date(2026, 5, 27)
         mock_tz.localtime.return_value.time.return_value = time(8, 45)

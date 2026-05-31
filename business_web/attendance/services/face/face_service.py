@@ -7,8 +7,8 @@ re-enrollment always overwrites the same Mongo document.
 from django.contrib.auth.models import User
 
 from attendance.models import EmployeeFace
-from attendance.services import face_api_client
-from attendance.services.image_service import image_to_base64
+from attendance.services.face import face_api_client
+from attendance.services.face.image_service import image_to_base64
 
 
 def save_employee_face(user, image_file) -> EmployeeFace:

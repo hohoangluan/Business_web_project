@@ -3,12 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 
-from attendance.services.face_service import (
+from attendance.services.face.face_service import (
     save_employee_face,
     get_employee_face,
     delete_employee_face,
 )
-from attendance.services.face_api_client import FaceApiError
+from attendance.services.face.face_api_client import FaceApiError
 
 
 @login_required

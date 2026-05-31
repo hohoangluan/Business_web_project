@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from attendance.models import EmployeeFace
 from attendance.services import face_service
-from attendance.services.face_api_client import FaceApiError
+from attendance.services.face.face_api_client import FaceApiError
 
 
 def make_upload(content=b'\xff\xd8\xfffake jpeg bytes', name='face.jpg',
@@ -20,7 +20,7 @@ class SaveEmployeeFaceTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('alice', password='x')
 
-    @patch('attendance.services.face_service.face_api_client.register_face_remote')
+    @patch('attendance.services.face.face_service.face_api_client.register_face_remote')
     def test_first_enrollment_uses_slot_1(self, mock_reg):
         mock_reg.return_value = {'status': 'success', 'embedding': [0.1] * 512}
         face = face_service.save_employee_face(self.user, make_upload())
@@ -29,7 +29,7 @@ class SaveEmployeeFaceTests(TestCase):
         self.assertEqual(kwargs['slot_id'], 1)
         self.assertEqual(kwargs['employee_id'], str(self.user.id))
 
-    @patch('attendance.services.face_service.face_api_client.register_face_remote')
+    @patch('attendance.services.face.face_service.face_api_client.register_face_remote')
     def test_re_enrollment_reuses_existing_slot(self, mock_reg):
         mock_reg.return_value = {'status': 'success', 'embedding': [0.1] * 512}
         EmployeeFace.objects.create(
@@ -43,7 +43,7 @@ class SaveEmployeeFaceTests(TestCase):
             EmployeeFace.objects.get(user=self.user).slot_id, 3
         )
 
-    @patch('attendance.services.face_service.face_api_client.register_face_remote',
+    @patch('attendance.services.face.face_service.face_api_client.register_face_remote',
            side_effect=FaceApiError('unreachable', 'down'))
     def test_remote_failure_no_local_row_created(self, _):
         with self.assertRaises(FaceApiError):

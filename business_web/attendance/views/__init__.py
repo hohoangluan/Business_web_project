@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from accounts.services import ensure_profile
 from attendance.models import AttendanceRecord, AttendanceAdjustmentRequest
-from attendance.services.attendance_logging_service import get_open_previous_record
+from attendance.services.record.attendance_logging_service import get_open_previous_record
 
 
 def _history_rows(user, limit=10):
