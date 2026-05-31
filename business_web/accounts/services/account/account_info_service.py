@@ -10,8 +10,12 @@ def ensure_profile(user):
     Đảm bảo user có UserProfile.
     Nếu chưa có (VD: user tạo trước khi có profile system), tự động tạo.
     """
-    profile, created = UserProfile.objects.get_or_create(user=user)
-    return profile
+    try:
+        return UserProfile.objects.get(user=user)
+    except UserProfile.DoesNotExist:
+        import uuid
+        tmp_id = f"TMP-{uuid.uuid4().hex[:8].upper()}"
+        return UserProfile.objects.create(user=user, employee_id=tmp_id)
 
 
 def ensure_work_info(user):
