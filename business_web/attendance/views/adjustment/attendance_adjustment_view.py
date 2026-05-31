@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from attendance.forms.attendance_adjustment_form import AttendanceAdjustmentForm
+from attendance.forms.adjustment.attendance_adjustment_form import AttendanceAdjustmentForm
 from attendance.models import AttendanceAdjustmentRequest, AttendanceRecord
 
 
