@@ -51,6 +51,6 @@ def submit_adjustment_view(request, record_id):
 
     return render(
         request,
-        'attendance/adjustment_request_form.html',
+        'attendance/adjustment/adjustment_request_form.html',
         {'form': form, 'record': record, 'active_page': 'attendance'},
     )

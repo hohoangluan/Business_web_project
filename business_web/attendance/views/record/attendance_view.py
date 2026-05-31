@@ -31,7 +31,7 @@ def attendance_view(request):
         and not AttendanceAdjustmentRequest.objects.filter(record=open_prev).exists()
     )
 
-    return render(request, 'attendance/attendance.html', {
+    return render(request, 'attendance/record/attendance.html', {
         'active_page': 'attendance',
         'open_previous_record': open_prev,
         'banner_eligible_for_adjustment': eligible,
