@@ -1,6 +1,5 @@
 """POST /attendance/check/ — runs face verification, logs attendance."""
 import logging
-from datetime import time as _time
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
