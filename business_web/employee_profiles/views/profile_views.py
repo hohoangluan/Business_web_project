@@ -64,12 +64,14 @@ def profile_view(request):
         profile.full_name = full_name
         request.user.email = email
         request.user.save(update_fields=['email'])
-        if phone_number:
-            profile.phone_number = phone_number
-        if date_of_birth:
-            profile.date_of_birth = date_of_birth
-
         profile.save()
+        
+        personal_info = ensure_personal_info(request.user)
+        if phone_number:
+            personal_info.phone_number = phone_number
+        if date_of_birth:
+            personal_info.date_of_birth = date_of_birth
+        personal_info.save()
 
         # Lưu các thông tin mở rộng khác từ POST
         save_personal_info_from_data(request.user, request.POST)
@@ -250,18 +252,19 @@ def hr_create_profile_view(request):
 
             # Tạo User + Profile
             user = User.objects.create_user(username=username, email=email, password=password)
-            profile = ensure_profile(
-                user,
-                employee_id=employee_id,
-                full_name=full_name,
-                email=email,
-            )
-            profile.phone_number = phone
-            profile.date_of_birth = dob
+            profile = ensure_profile(user)
+            profile.employee_id = employee_id
+            profile.full_name = full_name
             if role_name:
                 role, _ = Role.objects.get_or_create(name=role_name)
                 profile.role = role
             profile.save()
+
+            # Save basic personal info
+            personal_info = ensure_personal_info(user)
+            personal_info.phone_number = phone
+            personal_info.date_of_birth = dob
+            personal_info.save()
 
             # Lưu thông tin công việc
             save_work_info_from_data(user, {
@@ -357,7 +360,6 @@ def edit_work_info_view(request, user_id):
             save_personal_info_from_data(target_user, form.cleaned_data)
             save_emergency_contact_from_data(target_user, form.cleaned_data)
             save_education_info_from_data(target_user, form.cleaned_data)
-
             messages.success(request, f'Đã cập nhật hồ sơ nhân sự cho "{target_user.username}".')
             return redirect('hr_view_profile', user_id=target_user.pk)
     else:

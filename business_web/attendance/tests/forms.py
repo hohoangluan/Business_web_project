@@ -1,1 +1,0 @@
-"""Forms cho attendance — placeholder."""
