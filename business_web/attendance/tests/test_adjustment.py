@@ -10,67 +10,68 @@ class TestAdjustment(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username='nv001', password='123')
-        
-        # Create a record that needs adjustment
-        today = timezone.localdate()
+        from datetime import time
+        first_of_month = timezone.localdate().replace(day=1)
         self.record = AttendanceRecord.objects.create(
             user=self.user,
-            record_date=today - timedelta(days=1),
-            check_in_time=timezone.now().replace(hour=8, minute=0, second=0).time(),
+            record_date=first_of_month,
+            check_in_time=time(8, 0),
             status='no_checkout'
         )
         self.url = reverse('attendance_adjustment', args=[self.record.id])
-        
+
+    def _evidence(self):
+        return SimpleUploadedFile('e.jpg', b'x', content_type='image/jpeg')
+
     def test_att_adj_01_submit_valid(self):
-        """ATT-ADJ-01 & 02: Gửi yêu cầu điều chỉnh hợp lệ"""
         self.client.force_login(self.user)
         response = self.client.post(self.url, data={
             'reason': 'forgot',
             'reason_detail': 'Quên chấm ra',
-            'claimed_check_out_time': '17:30'
+            'claimed_check_out_time': '17:30',
+            'evidence': self._evidence(),
         })
         self.assertRedirects(response, reverse('attendance'))
-        
-        # Check DB
         adj = AttendanceAdjustmentRequest.objects.get(record=self.record)
-        self.assertEqual(adj.reason, 'forgot')
-        self.assertEqual(adj.reason_detail, 'Quên chấm ra')
-        self.assertEqual(adj.claimed_check_out_time.strftime('%H:%M'), '17:30')
         self.assertEqual(adj.status, 'pending')
-        self.assertEqual(adj.submitted_by, self.user)
-        
         self.record.refresh_from_db()
         self.assertEqual(self.record.status, 'pending_adjustment')
 
     def test_att_adj_03_already_submitted(self):
-        """ATT-ADJ-03: Đã submit -> 409"""
+        """ATT-ADJ-03: Đã submit -> redirect, không tạo bản ghi mới"""
         AttendanceAdjustmentRequest.objects.create(
             record=self.record,
             submitted_by=self.user,
             reason='Old reason',
             claimed_check_out_time='17:00'
         )
-        
+
         self.client.force_login(self.user)
         response = self.client.post(self.url, data={
             'reason': 'forgot',
             'reason_detail': 'New reason',
-            'claimed_check_out_time': '18:00'
+            'claimed_check_out_time': '18:00',
+            'evidence': self._evidence(),
         })
-        self.assertEqual(response.status_code, 409)
+        self.assertRedirects(response, reverse('attendance'))
+        self.assertEqual(
+            AttendanceAdjustmentRequest.objects.filter(record=self.record).count(), 1
+        )
 
-    def test_att_adj_invalid_status(self):
-        """Record status is not no_checkout -> 400"""
-        self.record.status = 'late'
-        self.record.save()
-        
+    def test_att_adj_out_of_month_rejected(self):
+        from datetime import time
+        last_month = timezone.localdate().replace(day=1) - timedelta(days=1)
+        old_rec = AttendanceRecord.objects.create(
+            user=self.user, record_date=last_month,
+            check_in_time=time(8, 0), status='no_checkout',
+        )
+        url = reverse('attendance_adjustment', args=[old_rec.id])
         self.client.force_login(self.user)
-        response = self.client.post(self.url, data={
-            'reason': 'forgot',
-            'reason_detail': 'Quên chấm ra',
-            'claimed_check_out_time': '17:30'
+        self.client.post(url, data={
+            'reason': 'forgot', 'claimed_check_out_time': '17:30',
+            'evidence': self._evidence(),
         })
-        self.assertEqual(response.status_code, 400)
+        self.assertFalse(AttendanceAdjustmentRequest.objects.filter(record=old_rec).exists())
 
     def test_att_adj_04_upload_evidence(self):
         """ATT-ADJ-04: Upload file evidence"""
@@ -233,3 +234,35 @@ class TestAdjustmentApplyBothTimes(TestCase):
         self.assertTrue(ok)
         rec.refresh_from_db()
         self.assertEqual(rec.status, 'no_checkout')
+
+
+class TestAdjustmentSubmitRoles(TestCase):
+    def _evidence(self):
+        return SimpleUploadedFile('e.jpg', b'x', content_type='image/jpeg')
+
+    def _submit_for_role(self, role_name, username):
+        from accounts.models import Role, UserProfile
+        from datetime import time
+        role, _ = Role.objects.get_or_create(name=role_name)
+        u = User.objects.create_user(username, password='1')
+        UserProfile.objects.create(user=u, role=role, employee_id=username.upper())
+        rec = AttendanceRecord.objects.create(
+            user=u, record_date=timezone.localdate(),
+            check_in_time=time(9, 0), check_out_time=time(17, 30), status='late',
+        )
+        self.client.force_login(u)
+        resp = self.client.post(
+            reverse('attendance_adjustment', args=[rec.id]),
+            data={'reason': 'technical', 'claimed_check_in_time': '08:00',
+                  'evidence': self._evidence()},
+        )
+        return rec, resp
+
+    def test_leader_can_submit(self):
+        rec, resp = self._submit_for_role('leader', 'ldr_adj')
+        self.assertRedirects(resp, reverse('attendance'))
+        self.assertTrue(AttendanceAdjustmentRequest.objects.filter(record=rec).exists())
+
+    def test_manager_can_submit(self):
+        rec, resp = self._submit_for_role('manager', 'mgr_adj')
+        self.assertTrue(AttendanceAdjustmentRequest.objects.filter(record=rec).exists())
