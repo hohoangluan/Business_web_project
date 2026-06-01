@@ -157,5 +157,6 @@ from datetime import time as _time
 FACE_LOCKOUT_MAX_FAILS = config('FACE_LOCKOUT_MAX_FAILS', default=3, cast=int)
 FACE_LOCKOUT_DURATION_SEC = config('FACE_LOCKOUT_DURATION_SEC', default=300, cast=int)
 WORK_START_TIME = _time(8, 30)
+WORK_END_TIME = _time(17, 30)
 WORK_LATE_GRACE_MIN = config('WORK_LATE_GRACE_MIN', default=5, cast=int)
 

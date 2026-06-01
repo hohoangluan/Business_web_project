@@ -51,3 +51,23 @@ class TestAttendanceView(TestCase):
         """Check require login"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
+
+
+class TestShiftClassify(TestCase):
+    def test_classify_status(self):
+        from datetime import time
+        from attendance.services.record.attendance_logging_service import classify_status
+        ss, se = time(8, 30), time(17, 30)
+        self.assertEqual(classify_status(time(8, 30), time(17, 30), ss, se), 'on_time')
+        self.assertEqual(classify_status(time(9, 0), time(17, 30), ss, se), 'late')
+        self.assertEqual(classify_status(time(8, 30), time(16, 0), ss, se), 'early_leave')
+        self.assertEqual(classify_status(time(8, 30), None, ss, se), 'on_time')
+
+    def test_get_shift_times_fallback(self):
+        from django.contrib.auth.models import User
+        from contracts.services import get_shift_times
+        from django.conf import settings
+        u = User.objects.create_user('noshift', password='1')
+        start, end = get_shift_times(u)
+        self.assertEqual(start, settings.WORK_START_TIME)
+        self.assertEqual(end, settings.WORK_END_TIME)
