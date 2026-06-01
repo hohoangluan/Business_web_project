@@ -85,3 +85,45 @@ class TestAdjustment(TestCase):
         self.assertRedirects(response, reverse('attendance'))
         adj = AttendanceAdjustmentRequest.objects.get(record=self.record)
         self.assertTrue(adj.evidence.name.startswith('attendance/adjustments/'))
+
+
+class TestAdjustmentReview(TestCase):
+    def setUp(self):
+        from accounts.models import Role, UserProfile
+        self.hr = User.objects.create_user('hruser', password='1')
+        hr_role, _ = Role.objects.get_or_create(name='hr')
+        UserProfile.objects.create(user=self.hr, role=hr_role, employee_id='HR01')
+        self.emp = User.objects.create_user('empadj', password='1')
+        today = timezone.localdate()
+        self.record = AttendanceRecord.objects.create(
+            user=self.emp, record_date=today - timedelta(days=1),
+            check_in_time=timezone.now().replace(hour=8, minute=0).time(),
+            status='pending_adjustment',
+        )
+        self.adj = AttendanceAdjustmentRequest.objects.create(
+            record=self.record, submitted_by=self.emp, reason='forgot',
+            claimed_check_out_time='17:30', status='pending',
+        )
+
+    def test_hr_approve_sets_checkout_and_status(self):
+        from attendance.services.record.adjustment_review_service import approve_adjustment
+        ok, _ = approve_adjustment(self.hr, self.adj.id, 'Đồng ý')
+        self.assertTrue(ok)
+        self.adj.refresh_from_db(); self.record.refresh_from_db()
+        self.assertEqual(self.adj.status, 'approved')
+        self.assertEqual(self.adj.reviewed_by, self.hr)
+        self.assertEqual(self.record.check_out_time.strftime('%H:%M'), '17:30')
+        self.assertEqual(self.record.status, 'on_time')
+
+    def test_hr_reject_resets_record(self):
+        from attendance.services.record.adjustment_review_service import reject_adjustment
+        ok, _ = reject_adjustment(self.hr, self.adj.id, 'Thiếu chứng từ')
+        self.assertTrue(ok)
+        self.adj.refresh_from_db(); self.record.refresh_from_db()
+        self.assertEqual(self.adj.status, 'rejected')
+        self.assertEqual(self.record.status, 'no_checkout')
+
+    def test_non_hr_cannot_access_review(self):
+        self.client.force_login(self.emp)
+        resp = self.client.get(reverse('attendance_adjustment_review'))
+        self.assertEqual(resp.status_code, 302)

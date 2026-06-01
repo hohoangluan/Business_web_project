@@ -7,6 +7,11 @@ from attendance.views.face.image_upload_view import (
     upload_image_base64_view,
 )
 from attendance.views.adjustment.attendance_adjustment_view import submit_adjustment_view
+from attendance.views.adjustment.adjustment_review_view import (
+    adjustment_approve_action,
+    adjustment_reject_action,
+    adjustment_review_view,
+)
 
 __all__ = [
     "attendance_view",
@@ -14,4 +19,7 @@ __all__ = [
     "get_image_base64_view",
     "submit_adjustment_view",
     "upload_image_base64_view",
+    "adjustment_approve_action",
+    "adjustment_reject_action",
+    "adjustment_review_view",
 ]

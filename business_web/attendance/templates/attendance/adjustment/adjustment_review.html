@@ -1,0 +1,88 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Duyệt điều chỉnh chấm công{% endblock %}
+
+{% block content %}
+<div class="card" style="margin:2rem auto; padding:2rem;">
+    <h2 style="margin-bottom:1.5rem;">Duyệt yêu cầu điều chỉnh chấm công</h2>
+
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert">{{ m }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <h3 style="margin:1rem 0;">Đang chờ duyệt</h3>
+    <table class="table" style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Ngày</th>
+                <th>Lý do</th>
+                <th>Giờ ra khai báo</th>
+                <th>Minh chứng</th>
+                <th>Xử lý</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for adj in pending %}
+            <tr>
+                <td>{{ adj.submitted_by.username }}</td>
+                <td>{{ adj.record.record_date|date:"d/m/Y" }}</td>
+                <td>
+                    {{ adj.get_reason_display }}
+                    {% if adj.reason_detail %}<br><small>{{ adj.reason_detail }}</small>{% endif %}
+                </td>
+                <td>{{ adj.claimed_check_out_time|time:"H:i" }}</td>
+                <td>
+                    {% if adj.evidence %}
+                        <a href="{{ adj.evidence.url }}" target="_blank">Xem</a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{% url 'attendance_adjustment_approve' adj.id %}" style="margin-bottom:.5rem;">
+                        {% csrf_token %}
+                        <input type="text" name="hr_note" placeholder="Ghi chú (tùy chọn)">
+                        <button class="btn btn-primary" type="submit">Duyệt</button>
+                    </form>
+                    <form method="post" action="{% url 'attendance_adjustment_reject' adj.id %}">
+                        {% csrf_token %}
+                        <input type="text" name="hr_note" placeholder="Lý do từ chối">
+                        <button class="btn btn-outline" type="submit">Từ chối</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">Không có yêu cầu nào đang chờ duyệt.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin:2rem 0 1rem;">Đã xử lý</h3>
+    <table class="table" style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Ngày</th>
+                <th>Trạng thái</th>
+                <th>Người duyệt</th>
+                <th>Ghi chú HR</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for adj in reviewed %}
+            <tr>
+                <td>{{ adj.submitted_by.username }}</td>
+                <td>{{ adj.record.record_date|date:"d/m/Y" }}</td>
+                <td>{{ adj.get_status_display }}</td>
+                <td>{{ adj.reviewed_by.username }}</td>
+                <td>{{ adj.hr_note }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Chưa có yêu cầu nào được xử lý.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
