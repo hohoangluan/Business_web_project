@@ -3,8 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from attendance.models import AttendanceAdjustmentRequest
-from attendance.services.record.attendance_logging_service import classify_status
-from contracts.services import get_shift_times
+from attendance.services.record.attendance_logging_service import recompute_record_status
 
 
 def get_pending_adjustments():
@@ -32,12 +31,12 @@ def approve_adjustment(hr_user, adj_id, hr_note=''):
         return False, 'Yêu cầu đã được xử lý.'
     with transaction.atomic():
         record = adj.record
-        record.check_out_time = adj.claimed_check_out_time
-        shift_start, shift_end = get_shift_times(record.user)
-        record.status = classify_status(
-            record.check_in_time, record.check_out_time, shift_start, shift_end,
-        )
-        record.save(update_fields=['check_out_time', 'status'])
+        if adj.claimed_check_in_time:
+            record.check_in_time = adj.claimed_check_in_time
+        if adj.claimed_check_out_time:
+            record.check_out_time = adj.claimed_check_out_time
+        record.status = recompute_record_status(record)
+        record.save(update_fields=['check_in_time', 'check_out_time', 'status'])
         adj.status = 'approved'
         adj.reviewed_by = hr_user
         adj.reviewed_at = timezone.now()
@@ -55,7 +54,7 @@ def reject_adjustment(hr_user, adj_id, hr_note=''):
         return False, 'Yêu cầu đã được xử lý.'
     with transaction.atomic():
         record = adj.record
-        record.status = 'no_checkout'
+        record.status = recompute_record_status(record)
         record.save(update_fields=['status'])
         adj.status = 'rejected'
         adj.reviewed_by = hr_user

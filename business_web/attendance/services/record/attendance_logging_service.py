@@ -42,6 +42,17 @@ def classify_status(check_in_time, check_out_time, shift_start, shift_end):
     return status
 
 
+def recompute_record_status(record):
+    """Suy lại status của record từ giờ vào/ra hiện có (dùng ca HĐ)."""
+    from contracts.services import get_shift_times
+    if record.check_in_time is None and record.check_out_time is None:
+        return 'absent'
+    if record.check_out_time is None:
+        return 'no_checkout'
+    shift_start, shift_end = get_shift_times(record.user)
+    return classify_status(record.check_in_time, record.check_out_time, shift_start, shift_end)
+
+
 def record_check_in(user, now=None) -> AttendanceRecord:
     from contracts.services import get_shift_times
     today = timezone.localdate()

@@ -174,3 +174,62 @@ class TestAdjustmentForm(TestCase):
             files={'evidence': self._file()},
         )
         self.assertTrue(form.is_valid(), form.errors)
+
+
+class TestAdjustmentApplyBothTimes(TestCase):
+    def setUp(self):
+        from accounts.models import Role, UserProfile
+        self.hr = User.objects.create_user('hr_apply', password='1')
+        hr_role, _ = Role.objects.get_or_create(name='hr')
+        UserProfile.objects.create(user=self.hr, role=hr_role, employee_id='HRAP')
+        self.emp = User.objects.create_user('emp_apply', password='1')
+        from datetime import time
+        self.rec_late = AttendanceRecord.objects.create(
+            user=self.emp, record_date=timezone.localdate(),
+            check_in_time=time(9, 0), check_out_time=time(17, 30), status='late',
+        )
+
+    def test_approve_applies_both_times(self):
+        from datetime import time
+        from attendance.services.record.adjustment_review_service import approve_adjustment
+        adj = AttendanceAdjustmentRequest.objects.create(
+            record=self.rec_late, submitted_by=self.emp, reason='technical',
+            claimed_check_in_time=time(8, 0), claimed_check_out_time=time(17, 30),
+            status='pending',
+        )
+        ok, _ = approve_adjustment(self.hr, adj.id, 'ok')
+        self.assertTrue(ok)
+        self.rec_late.refresh_from_db()
+        self.assertEqual(self.rec_late.check_in_time, time(8, 0))
+        self.assertEqual(self.rec_late.check_out_time, time(17, 30))
+        self.assertEqual(self.rec_late.status, 'on_time')
+
+    def test_reject_restores_late_status(self):
+        from datetime import time
+        from attendance.services.record.adjustment_review_service import reject_adjustment
+        self.rec_late.status = 'pending_adjustment'
+        self.rec_late.save(update_fields=['status'])
+        adj = AttendanceAdjustmentRequest.objects.create(
+            record=self.rec_late, submitted_by=self.emp, reason='technical',
+            claimed_check_in_time=time(8, 0), status='pending',
+        )
+        ok, _ = reject_adjustment(self.hr, adj.id, 'thiếu')
+        self.assertTrue(ok)
+        self.rec_late.refresh_from_db()
+        self.assertEqual(self.rec_late.status, 'late')
+
+    def test_reject_restores_no_checkout(self):
+        from datetime import time
+        from attendance.services.record.adjustment_review_service import reject_adjustment
+        rec = AttendanceRecord.objects.create(
+            user=self.emp, record_date=timezone.localdate() - timedelta(days=2),
+            check_in_time=time(8, 0), check_out_time=None, status='pending_adjustment',
+        )
+        adj = AttendanceAdjustmentRequest.objects.create(
+            record=rec, submitted_by=self.emp, reason='forgot',
+            claimed_check_out_time=time(17, 30), status='pending',
+        )
+        ok, _ = reject_adjustment(self.hr, adj.id, 'x')
+        self.assertTrue(ok)
+        rec.refresh_from_db()
+        self.assertEqual(rec.status, 'no_checkout')
