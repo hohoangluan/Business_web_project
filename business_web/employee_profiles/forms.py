@@ -157,6 +157,14 @@ class EmployeeProfileForm(forms.Form):
         max_length=100, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 08:30 - 17:30'}),
     )
+    shift_start_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+    )
+    shift_end_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+    )
     contract_attachment_reference = forms.CharField(
         max_length=255, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: HD_NV001.pdf'}),

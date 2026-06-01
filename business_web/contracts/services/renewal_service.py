@@ -59,9 +59,9 @@ def get_expiring_contracts(days_threshold=THRESHOLD_FAR):
     deadline = today + timedelta(days=days_threshold)
 
     # Lọc theo vòng lặp vì ngày lưu dạng chuỗi DD/MM/YYYY
-    all_contracts = ContractInfo.objects.select_related('user').exclude(
-        contract_end_date=''
-    )
+    all_contracts = ContractInfo.objects.select_related('user').filter(
+        is_active=True,
+    ).exclude(contract_end_date='')
 
     results = []
     for contract in all_contracts:

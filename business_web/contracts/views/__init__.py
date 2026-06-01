@@ -26,4 +26,5 @@ def contract_view(request):
     return render(request, 'contracts/contract.html', {
         'active_page': 'contract',
         'contract_context': contract_context,
+        'contract_info': contract_info,
     })

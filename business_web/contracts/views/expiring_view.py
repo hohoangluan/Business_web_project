@@ -15,6 +15,7 @@ from contracts.services.renewal_service import (
     get_recipients_for_contract,
 )
 from contracts.services.email_service import send_renewal_reminder_email
+from contracts.services import get_active_contract
 
 
 @login_required
@@ -52,9 +53,8 @@ def hr_send_reminder_view(request, user_id):
 
     target_user = get_object_or_404(User, pk=user_id)
 
-    try:
-        contract = target_user.contract_info
-    except Exception:
+    contract = get_active_contract(target_user)
+    if contract is None:
         messages.error(request, f"Nhân viên {target_user.username} chưa có thông tin hợp đồng.")
         return redirect('hr_expiring_contracts')
 

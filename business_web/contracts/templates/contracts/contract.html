@@ -50,19 +50,19 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Số hợp đồng</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_number }}</div>
+                        <div class="info-value">{{ contract_info.contract_number }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Loại hợp đồng</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_type }}</div>
+                        <div class="info-value">{{ contract_info.contract_type }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ngày ký hợp đồng</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_signed_date }}</div>
+                        <div class="info-value">{{ contract_info.contract_signed_date }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ngày bắt đầu hiệu lực</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_start_date }}</div>
+                        <div class="info-value">{{ contract_info.contract_start_date }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ngày hết hạn</div>
@@ -70,7 +70,7 @@
                     </div>
                     <div class="info-item">
                         <div class="info-label">Số ngày nghỉ phép/năm</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_annual_leave_days }} ngày</div>
+                        <div class="info-value">{{ contract_info.contract_annual_leave_days }} ngày</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Phòng ban áp dụng</div>
@@ -82,13 +82,13 @@
                     </div>
                     <div class="info-item">
                         <div class="info-label">Ca làm tiêu chuẩn</div>
-                        <div class="info-value">{{ request.user.contract_info.contract_standard_shift }}</div>
+                        <div class="info-value">{{ contract_info.contract_standard_shift }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">File tham chiếu hợp đồng</div>
                         <div class="info-value">
-                            {% if request.user.contract_info.contract_attachment_reference %}
-                                <i class="fa-solid fa-paperclip" style="color:var(--primary); margin-right: 4px;"></i>{{ request.user.contract_info.contract_attachment_reference }}
+                            {% if contract_info.contract_attachment_reference %}
+                                <i class="fa-solid fa-paperclip" style="color:var(--primary); margin-right: 4px;"></i>{{ contract_info.contract_attachment_reference }}
                             {% else %}
                                 <span class="empty">Chưa cập nhật</span>
                             {% endif %}

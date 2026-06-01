@@ -60,3 +60,22 @@ class TestContracts(TestCase):
         self.client.force_login(self.hr)
         response = self.client.post(reverse('hr_send_reminder', args=[self.employee.id]))
         self.assertRedirects(response, reverse('hr_expiring_contracts'))
+
+
+class TestContractHistory(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user('ctruser', password='1')
+
+    def test_get_active_contract_returns_active(self):
+        from contracts.models import ContractInfo
+        from contracts.services import get_active_contract
+        old = ContractInfo.objects.create(user=self.user, contract_number='OLD', is_active=False)
+        new = ContractInfo.objects.create(user=self.user, contract_number='NEW', is_active=True)
+        self.assertEqual(get_active_contract(self.user), new)
+
+    def test_user_can_have_multiple_contracts(self):
+        from contracts.models import ContractInfo
+        ContractInfo.objects.create(user=self.user, contract_number='C1', is_active=False)
+        ContractInfo.objects.create(user=self.user, contract_number='C2', is_active=True)
+        self.assertEqual(self.user.contracts.count(), 2)

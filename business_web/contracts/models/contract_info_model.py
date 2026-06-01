@@ -3,16 +3,19 @@ from django.contrib.auth.models import User
 
 class ContractInfo(models.Model):
     """
-    Thông tin hợp đồng lao động hiện tại của nhân viên.
-    Mỗi User có đúng 1 ContractInfo (OneToOne).
-    Truy cập: request.user.contract_info
+    Thông tin hợp đồng lao động của nhân viên (có lưu lịch sử).
+    1 User → N ContractInfo, 1 HĐ active tại 1 thời điểm.
     """
 
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='contract_info',
-        help_text="User sở hữu hợp đồng này.",
+        related_name='contracts',
+        help_text="Nhân viên sở hữu hợp đồng này.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Hợp đồng đang hiệu lực?",
     )
 
     # ----- Thông tin hợp đồng -----
@@ -56,6 +59,14 @@ class ContractInfo(models.Model):
         blank=True,
         default='',
         help_text="Ca làm tiêu chuẩn. VD: 08:30 - 17:30 (Thứ 2 đến Thứ 6).",
+    )
+    shift_start_time = models.TimeField(
+        null=True, blank=True,
+        help_text="Giờ bắt đầu ca (đi trễ tính từ đây).",
+    )
+    shift_end_time = models.TimeField(
+        null=True, blank=True,
+        help_text="Giờ kết thúc ca (về sớm tính từ đây).",
     )
     contract_attachment_reference = models.CharField(
         max_length=255,

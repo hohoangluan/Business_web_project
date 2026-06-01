@@ -82,3 +82,8 @@ def build_contract_page_context(contract_info):
         'show_expiry_warning': show_expiry_warning,
         'days_until_expiry': days_until_expiry,
     }
+
+
+def get_active_contract(user):
+    """Trả hợp đồng đang hiệu lực (is_active=True) mới nhất, hoặc None."""
+    return user.contracts.filter(is_active=True).order_by('-id').first()
