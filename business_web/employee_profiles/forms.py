@@ -202,26 +202,21 @@ class EmployeeProfileForm(forms.Form):
     def clean(self):
         """Công việc và hợp đồng phải đủ, cá nhân có thể để trống."""
         cleaned_data = super().clean()
-        required_messages = {
-            'employee_id': 'Mã nhân viên không được để trống.',
-            'department': 'Phòng ban không được để trống.',
-            'employee_type': 'Loại nhân viên không được để trống.',
-            'position': 'Chức vụ không được để trống.',
-            'workplace': 'Nơi làm việc không được để trống.',
-            'probation_start': 'Ngày bắt đầu thử việc không được để trống.',
-            'official_start_date': 'Ngày làm việc chính thức không được để trống.',
-            'work_status': 'Trạng thái làm việc không được để trống.',
-            'manager_user': 'Cần gán quản lý trực tiếp.',
-            'leader_user': 'Cần gán leader phụ trách.',
-            'contract_number': 'Số hợp đồng không được để trống.',
-            'contract_type': 'Loại hợp đồng không được để trống.',
-            'contract_signed_date': 'Ngày ký hợp đồng không được để trống.',
-            'contract_start_date': 'Ngày bắt đầu hiệu lực không được để trống.',
-            'contract_annual_leave_days': 'Số ngày nghỉ phép/năm không được để trống.',
-            'contract_standard_shift': 'Ca làm tiêu chuẩn không được để trống.',
-        }
+        # Các trường trước đây bị bắt buộc (required) trong clean()
+        # Đã được gỡ bỏ để HR có thể lưu dữ liệu từng phần (như chỉ lưu số HĐ).
+        required_messages = {}
         for field_name, error_message in required_messages.items():
             value = cleaned_data.get(field_name)
             if value in [None, '']:
                 self.add_error(field_name, error_message)
+                
+        # Validate date format DD/MM/YYYY for contract dates
+        import re
+        date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
+        date_fields = ['contract_signed_date', 'contract_start_date', 'contract_end_date']
+        for field_name in date_fields:
+            value = cleaned_data.get(field_name)
+            if value and not date_pattern.match(value.strip()):
+                self.add_error(field_name, 'Định dạng ngày phải là DD/MM/YYYY.')
+                
         return cleaned_data

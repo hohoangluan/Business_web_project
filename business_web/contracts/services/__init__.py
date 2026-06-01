@@ -24,7 +24,7 @@ def parse_ddmmyyyy_date(raw_value):
 
 def has_complete_contract_info(contract_info):
     """Kiểm tra đã có đủ thông tin hợp đồng tối thiểu để hiển thị chưa."""
-    return all([
+    return any([
         contract_info.contract_number,
         contract_info.contract_type,
         contract_info.contract_signed_date,
