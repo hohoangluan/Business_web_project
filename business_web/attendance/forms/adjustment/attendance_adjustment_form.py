@@ -18,9 +18,11 @@ class AttendanceAdjustmentForm(forms.ModelForm):
             'claimed_check_in_time', 'claimed_check_out_time', 'evidence',
         ]
         widgets = {
-            'reason_detail': forms.Textarea(attrs={'rows': 3}),
-            'claimed_check_in_time': forms.TimeInput(attrs={'type': 'time'}),
-            'claimed_check_out_time': forms.TimeInput(attrs={'type': 'time'}),
+            'reason': forms.Select(attrs={'class': 'adj-input'}),
+            'reason_detail': forms.Textarea(attrs={'rows': 3, 'class': 'adj-input', 'placeholder': 'Mô tả thêm cho HR (tùy chọn)...'}),
+            'claimed_check_in_time': forms.TimeInput(attrs={'type': 'time', 'class': 'adj-input adj-time'}),
+            'claimed_check_out_time': forms.TimeInput(attrs={'type': 'time', 'class': 'adj-input adj-time'}),
+            'evidence': forms.ClearableFileInput(attrs={'class': 'adj-file', 'accept': 'image/*,application/pdf'}),
         }
 
     def clean_evidence(self):
