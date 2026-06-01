@@ -55,7 +55,7 @@ def recompute_record_status(record):
 
 ### A3. submit_adjustment_view — mở rộng + UX
 `attendance/views/adjustment/attendance_adjustment_view.py`:
-- Bỏ điều kiện `record.status != 'no_checkout'`. Thay bằng: record thuộc `request.user` (đã có get_object_or_404 user=request.user) **và** `record.record_date >= first_of_month` (tháng hiện tại). Ngoài tháng → message + redirect attendance.
+- Bỏ điều kiện `record.status != 'no_checkout'`. Thay bằng: record thuộc `request.user` (đã có get_object_or_404 user=request.user) **và** record nằm trong **đúng tháng dương lịch hiện tại** — so khớp `(record_date.year, record_date.month) == (today.year, today.month)` (ngày 1 → cuối tháng theo lịch, KHÔNG phụ thuộc lúc bật hệ thống/ngày tham gia). Ngoài tháng → message + redirect attendance.
 - Đã có request (OneToOne) → message "Đã gửi yêu cầu cho ngày này" + redirect (thay JsonResponse 409).
 - Submit thành công: set `record.status='pending_adjustment'`, message, redirect.
 - GET: render form.
