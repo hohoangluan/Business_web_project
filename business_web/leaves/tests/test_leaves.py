@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.contrib.auth.models import User
 from leaves.models import LeaveRequest
@@ -156,3 +157,38 @@ class TestLeaves(TestCase):
         req.refresh_from_db()
         self.assertEqual(req.status, LeaveRequest.REJECTED)
         self.assertEqual(req.rejected_reason, 'Đang bận dự án')
+
+
+class TestLeaveAttachment(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='nvleave', password='123')
+        self.client.force_login(self.user)
+        self.today = timezone.localdate()
+
+    def test_create_leave_with_attachment(self):
+        from datetime import timedelta
+        pdf = SimpleUploadedFile('don.pdf', b'%PDF-1.4 fake', content_type='application/pdf')
+        resp = self.client.post(reverse('leave'), data={
+            'leave_type': 'annual',
+            'start_date': (self.today + timedelta(days=1)).isoformat(),
+            'end_date': (self.today + timedelta(days=2)).isoformat(),
+            'reason': 'Việc gia đình',
+            'attachment': pdf,
+        })
+        from leaves.models import LeaveRequest
+        req = LeaveRequest.objects.get(user=self.user)
+        self.assertTrue(req.attachment.name.startswith('leaves/attachments/'))
+
+    def test_reject_oversize_attachment(self):
+        from datetime import timedelta
+        big = SimpleUploadedFile('big.pdf', b'x' * (5 * 1024 * 1024 + 1), content_type='application/pdf')
+        from leaves.forms import LeaveRequestForm
+        form = LeaveRequestForm(data={
+            'leave_type': 'annual',
+            'start_date': (self.today + timedelta(days=1)).isoformat(),
+            'end_date': (self.today + timedelta(days=2)).isoformat(),
+            'reason': 'x',
+        }, files={'attachment': big})
+        self.assertFalse(form.is_valid())
+        self.assertIn('attachment', form.errors)

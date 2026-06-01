@@ -107,6 +107,13 @@ class LeaveRequest(models.Model):
         help_text="Lý do từ chối (nếu bị từ chối).",
     )
 
+    attachment = models.FileField(
+        upload_to='leaves/attachments/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text='Tệp minh chứng (PDF/JPG/PNG, ≤5MB).',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
