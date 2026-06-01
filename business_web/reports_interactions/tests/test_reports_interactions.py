@@ -165,3 +165,28 @@ class TestReportsInteractions(TestCase):
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, Ticket.STATUS_REJECTED)
         self.assertEqual(ticket.rejection_reason, 'Not valid')
+
+
+class TestReportStatus(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.author = User.objects.create_user('rauthor', password='1')
+        self.mgr = User.objects.create_user('rmgr', password='1')
+
+    def _make(self, **kw):
+        from reports_interactions.models import Report
+        return Report.objects.create(author=self.author, recipient=self.mgr,
+                                      title='t', content='c', **kw)
+
+    def test_default_status_submitted(self):
+        r = self._make()
+        self.assertEqual(r.status, 'submitted')
+        self.assertTrue(r.can_edit_or_delete)
+
+    def test_needs_update_allows_edit(self):
+        r = self._make(status='needs_update')
+        self.assertTrue(r.can_edit_or_delete)
+
+    def test_acknowledged_locks(self):
+        r = self._make(status='acknowledged')
+        self.assertFalse(r.can_edit_or_delete)

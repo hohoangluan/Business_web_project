@@ -9,6 +9,15 @@ class Report(models.Model):
     Một khi báo cáo đã được người nhận xem (is_viewed = True), người gửi không thể sửa hay xóa.
     """
 
+    SUBMITTED = 'submitted'
+    NEEDS_UPDATE = 'needs_update'
+    ACKNOWLEDGED = 'acknowledged'
+    STATUS_CHOICES = [
+        (SUBMITTED, 'Đã gửi'),
+        (NEEDS_UPDATE, 'Yêu cầu cập nhật'),
+        (ACKNOWLEDGED, 'Đã tiếp nhận'),
+    ]
+
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -45,13 +54,21 @@ class Report(models.Model):
         blank=True,
         help_text="Thời điểm quản lý xem báo cáo.",
     )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=SUBMITTED,
+        help_text='Trạng thái nghiệp vụ của báo cáo.',
+    )
+    manager_note = models.TextField(
+        blank=True, default='',
+        help_text='Phản hồi/chỉ đạo của quản lý.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def can_edit_or_delete(self):
-        """Báo cáo chỉ có thể sửa hoặc xóa khi chưa được quản lý xem."""
-        return not self.is_viewed
+        """Khóa chỉnh sửa khi đã được quản lý tiếp nhận (acknowledged)."""
+        return self.status != self.ACKNOWLEDGED
 
     @property
     def filename(self):

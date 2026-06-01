@@ -45,6 +45,9 @@ def report_view(request):
             form = ReportForm(request.POST, request.FILES, instance=report, user=request.user)
             if form.is_valid():
                 form.save()
+                if report.status == Report.NEEDS_UPDATE:
+                    report.status = Report.SUBMITTED
+                    report.save(update_fields=['status'])
                 messages.success(request, 'Đã cập nhật báo cáo thành công!')
                 return redirect('reports')
             else:
@@ -95,6 +98,20 @@ def report_detail_view(request, pk):
         report.is_viewed = True
         report.viewed_at = timezone.now()
         report.save()
+
+    if request.method == 'POST' and (is_recipient or is_superuser):
+        action = request.POST.get('action')
+        if action == 'request_update':
+            report.status = report.NEEDS_UPDATE
+            report.manager_note = request.POST.get('manager_note', '').strip()
+            report.save(update_fields=['status', 'manager_note'])
+            messages.success(request, 'Đã yêu cầu nhân viên cập nhật báo cáo.')
+            return redirect('report_detail', pk=report.pk)
+        elif action == 'acknowledge':
+            report.status = report.ACKNOWLEDGED
+            report.save(update_fields=['status'])
+            messages.success(request, 'Đã tiếp nhận báo cáo.')
+            return redirect('report_detail', pk=report.pk)
 
     return render(request, 'reports_interactions/report_detail.html', {
         'active_page': 'reports',
