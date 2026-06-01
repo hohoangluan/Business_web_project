@@ -10,7 +10,7 @@ class OvertimeRequestForm(forms.ModelForm):
 
     class Meta:
         model = OvertimeRequest
-        fields = ['overtime_date', 'start_time', 'end_time', 'hours', 'reason']
+        fields = ['overtime_date', 'start_time', 'end_time', 'hours', 'reason', 'attachment']
         widgets = {
             'overtime_date': forms.DateInput(
                 attrs={
@@ -47,6 +47,7 @@ class OvertimeRequestForm(forms.ModelForm):
                     'style': 'resize: none;',
                 },
             ),
+            'attachment': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'overtime_date': 'Ngày tăng ca',
@@ -54,7 +55,22 @@ class OvertimeRequestForm(forms.ModelForm):
             'end_time': 'Giờ kết thúc',
             'hours': 'Số giờ',
             'reason': 'Lý do',
+            'attachment': 'Tệp minh chứng (nếu có)',
         }
+
+    MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+    ALLOWED_ATTACHMENT_MIME = {'application/pdf', 'image/jpeg', 'image/png'}
+
+    def clean_attachment(self):
+        f = self.cleaned_data.get('attachment')
+        if not f:
+            return f
+        if f.size > self.MAX_ATTACHMENT_BYTES:
+            raise forms.ValidationError('Tệp tối đa 5 MB.')
+        content_type = getattr(f, 'content_type', '') or ''
+        if content_type not in self.ALLOWED_ATTACHMENT_MIME:
+            raise forms.ValidationError('Chấp nhận PDF / JPG / PNG.')
+        return f
 
     def clean_overtime_date(self):
         """Ngày tăng ca không được ở quá khứ quá xa (> 30 ngày trước)."""
