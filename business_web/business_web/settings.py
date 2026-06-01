@@ -66,9 +66,11 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'cloudinary_storage',    # phải đứng trước staticfiles
-    'cloudinary',
     'django.contrib.staticfiles',
+    # cloudinary cho MEDIA → phải đứng SAU staticfiles, nếu không lệnh
+    # collectstatic của cloudinary_storage đè lệnh Django và copy 0 file.
+    'cloudinary_storage',
+    'cloudinary',
     # ----- Project apps -----
     'accounts',              # Auth, dashboard, admin user management
     'employee_profiles',     # Hồ sơ nhân viên
