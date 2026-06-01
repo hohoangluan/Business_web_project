@@ -9,6 +9,28 @@ from attendance.models import AttendanceRecord
 from django.core.files.uploadedfile import SimpleUploadedFile
 from attendance.services.face.face_verification_service import VerifyResult
 
+class TestRequestTimeCapture(TestCase):
+    def test_check_in_uses_passed_now(self):
+        from django.contrib.auth.models import User
+        from datetime import datetime
+        from django.utils import timezone as tz
+        from attendance.services.record.attendance_logging_service import record_check_in
+        u = User.objects.create_user('nowuser', password='1')
+        fixed = tz.make_aware(datetime(2026, 6, 1, 7, 59, 0))
+        rec = record_check_in(u, now=fixed)
+        self.assertEqual(rec.check_in_time.strftime('%H:%M'), '07:59')
+
+    def test_slow_verify_does_not_shift_time(self):
+        from django.contrib.auth.models import User
+        from datetime import datetime
+        from django.utils import timezone as tz
+        from attendance.services.record.attendance_logging_service import record_check_in
+        u = User.objects.create_user('slowuser', password='1')
+        early = tz.make_aware(datetime(2026, 6, 1, 8, 0, 0))
+        rec = record_check_in(u, now=early)
+        self.assertEqual(rec.check_in_time.strftime('%H:%M'), '08:00')
+
+
 class TestFaceCheck(TestCase):
     def setUp(self):
         self.client = Client()

@@ -57,6 +57,9 @@ def _previous_open_payload(user):
 @login_required
 @require_POST
 def face_check_view(request):
+    # Capture request time at the start to avoid face verification delays affecting timestamp
+    request_time = timezone.localtime()
+
     # 1. Lockout gate.
     locked, retry_after = is_locked(request.user)
     if locked:
@@ -95,9 +98,9 @@ def face_check_view(request):
                                  record_date=timezone.localdate()))[0]
         action = decide_next_action(record)
         if action == 'check_in':
-            record_check_in(request.user)
+            record_check_in(request.user, now=request_time)
         elif action == 'check_out':
-            record_check_out(request.user)
+            record_check_out(request.user, now=request_time)
         # 'done' → no-op
 
     clear_failures(request.user)
