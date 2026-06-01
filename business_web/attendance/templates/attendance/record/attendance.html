@@ -252,6 +252,10 @@
                                     <span class="table-badge badge-late">Đi trễ</span>
                                 {% elif r.status == 'no_checkout' %}
                                     <span class="table-badge" style="background:#fff7ed;color:#9a3412;">Thiếu chấm ra</span>
+                                {% elif r.status == 'early_leave' %}
+                                    <span class="table-badge" style="background:#fffbeb;color:#b45309;">Về sớm</span>
+                                {% elif r.status == 'absent' %}
+                                    <span class="table-badge" style="background:#fee2e2;color:#991b1b;">Vắng</span>
                                 {% elif r.status == 'pending_adjustment' %}
                                     <span class="table-badge" style="background:#eef2ff;color:#3730a3;">Chờ HR duyệt</span>
                                 {% else %}—{% endif %}
