@@ -31,15 +31,6 @@ def decide_next_action(record: AttendanceRecord) -> str:
     return 'done'
 
 
-def _classify_check_in_status(now_time) -> str:
-    work_start = settings.WORK_START_TIME
-    grace = timedelta(minutes=settings.WORK_LATE_GRACE_MIN)
-    # Compare with seconds resolution via combining with a stub date.
-    today = date.today()
-    limit = (datetime.combine(today, work_start) + grace).time()
-    return 'on_time' if now_time <= limit else 'late'
-
-
 def classify_status(check_in_time, check_out_time, shift_start, shift_end):
     """Phân loại bản ghi: late nếu vào trễ, early_leave nếu ra sớm, else on_time."""
     grace = timedelta(minutes=settings.WORK_LATE_GRACE_MIN)
