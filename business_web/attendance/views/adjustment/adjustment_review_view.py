@@ -17,7 +17,7 @@ def adjustment_review_view(request):
         messages.error(request, 'Bạn không có quyền duyệt điều chỉnh chấm công.')
         return redirect('attendance')
     return render(request, 'attendance/adjustment/adjustment_review.html', {
-        'active_page': 'attendance',
+        'active_page': 'attendance_adjustment_review',
         'pending': get_pending_adjustments(),
         'reviewed': get_reviewed_adjustments(),
     })

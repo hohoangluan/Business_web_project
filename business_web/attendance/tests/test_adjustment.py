@@ -266,3 +266,16 @@ class TestAdjustmentSubmitRoles(TestCase):
     def test_manager_can_submit(self):
         rec, resp = self._submit_for_role('manager', 'mgr_adj')
         self.assertTrue(AttendanceAdjustmentRequest.objects.filter(record=rec).exists())
+
+
+class TestAdjustmentReviewNav(TestCase):
+    def test_hr_sees_review_link(self):
+        from accounts.models import Role, UserProfile
+        hr = User.objects.create_user('hr_nav', password='1')
+        role, _ = Role.objects.get_or_create(name='hr')
+        UserProfile.objects.create(user=hr, role=role, employee_id='HRNAV')
+        self.client.force_login(hr)
+        resp = self.client.get(reverse('attendance_adjustment_review'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, reverse('attendance_adjustment_review'))
+        self.assertContains(resp, 'Duyệt điều chỉnh công')
