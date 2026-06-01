@@ -144,3 +144,33 @@ class TestAdjustmentModelFields(TestCase):
         )
         self.assertEqual(adj.claimed_check_in_time, time(8, 30))
         self.assertIsNone(adj.claimed_check_out_time)
+
+
+class TestAdjustmentForm(TestCase):
+    def _file(self):
+        return SimpleUploadedFile('e.jpg', b'x', content_type='image/jpeg')
+
+    def test_requires_at_least_one_time(self):
+        from attendance.forms.adjustment.attendance_adjustment_form import AttendanceAdjustmentForm
+        form = AttendanceAdjustmentForm(
+            data={'reason': 'forgot', 'reason_detail': ''},
+            files={'evidence': self._file()},
+        )
+        self.assertFalse(form.is_valid())
+
+    def test_requires_evidence(self):
+        from attendance.forms.adjustment.attendance_adjustment_form import AttendanceAdjustmentForm
+        form = AttendanceAdjustmentForm(
+            data={'reason': 'forgot', 'claimed_check_out_time': '17:30'},
+            files={},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('evidence', form.errors)
+
+    def test_valid_with_one_time_and_evidence(self):
+        from attendance.forms.adjustment.attendance_adjustment_form import AttendanceAdjustmentForm
+        form = AttendanceAdjustmentForm(
+            data={'reason': 'forgot', 'claimed_check_out_time': '17:30'},
+            files={'evidence': self._file()},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
