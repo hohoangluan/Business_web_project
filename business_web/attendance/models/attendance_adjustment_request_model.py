@@ -42,7 +42,7 @@ class AttendanceAdjustmentRequest(models.Model):
     evidence = models.FileField(
         upload_to='attendance/adjustments/%Y/%m/',
         null=True, blank=True,
-        help_text='Ảnh / PDF chứng từ tùy chọn.',
+        help_text='Ảnh / PDF chứng từ.',
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='pending',

@@ -72,3 +72,32 @@ class TestShiftClassify(TestCase):
         start, end = get_shift_times(u)
         self.assertEqual(start, settings.WORK_START_TIME)
         self.assertEqual(end, settings.WORK_END_TIME)
+
+
+class TestHistoryAdjustmentColumn(TestCase):
+    def setUp(self):
+        from datetime import time
+        self.user = User.objects.create_user('nvhist', password='1')
+        first_of_month = timezone.localdate().replace(day=1)
+        self.rec = AttendanceRecord.objects.create(
+            user=self.user, record_date=first_of_month,
+            check_in_time=time(8, 0), status='no_checkout',
+        )
+
+    def test_row_without_request_has_no_adjustment(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('attendance'))
+        rows = resp.context['history_rows']
+        self.assertIsNone(getattr(rows[0], 'adjustment', None))
+
+    def test_row_with_request_carries_adjustment(self):
+        from datetime import time
+        from attendance.models import AttendanceAdjustmentRequest
+        AttendanceAdjustmentRequest.objects.create(
+            record=self.rec, submitted_by=self.user, reason='forgot',
+            claimed_check_out_time=time(17, 30), status='pending',
+        )
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('attendance'))
+        rows = resp.context['history_rows']
+        self.assertIsNotNone(getattr(rows[0], 'adjustment', None))

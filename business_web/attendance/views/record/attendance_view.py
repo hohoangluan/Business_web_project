@@ -11,11 +11,18 @@ from attendance.services.record.attendance_logging_service import get_open_previ
 def _history_rows(user, limit=10):
     today = timezone.localdate()
     first_of_month = today.replace(day=1)
-    return list(
+    rows = list(
         AttendanceRecord.objects
         .filter(user=user, record_date__gte=first_of_month)
         .order_by('-record_date')[:limit]
     )
+    adj_map = {
+        a.record_id: a
+        for a in AttendanceAdjustmentRequest.objects.filter(record__in=rows)
+    }
+    for r in rows:
+        r.adjustment = adj_map.get(r.id)
+    return rows
 
 
 @login_required
@@ -36,5 +43,6 @@ def attendance_view(request):
         'open_previous_record': open_prev,
         'banner_eligible_for_adjustment': eligible,
         'history_rows': _history_rows(request.user),
+        'today_first_of_month': timezone.localdate().replace(day=1),
         'today_short': timezone.localdate().strftime('%d/%m'),
     })
