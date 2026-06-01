@@ -133,15 +133,21 @@
 
             <!-- Lock and Warning banner for Author -->
             {% if is_author %}
-                {% if report.is_viewed %}
+                {% if report.status == 'needs_update' %}
+                <div class="alert-banner" style="background:#fefce8; border:1px solid #fef08a; color:#854d0e;">
+                    <i class="fa-solid fa-pen-to-square" style="font-size:1.1rem;"></i>
+                    <span><strong>Quản lý yêu cầu cập nhật:</strong> {{ report.manager_note }}</span>
+                </div>
+                {% endif %}
+                {% if not report.can_edit_or_delete %}
                 <div class="alert-banner" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c;">
                     <i class="fa-solid fa-lock" style="font-size:1.1rem;"></i>
-                    <span><strong>Báo cáo đã khóa:</strong> Quản lý đã đọc báo cáo này. Quyền Sửa/Xóa của bạn đã tự động đóng lại nhằm bảo toàn lịch sử dữ liệu.</span>
+                    <span><strong>Báo cáo đã khóa:</strong> Quản lý đã tiếp nhận báo cáo này. Quyền Sửa/Xóa của bạn đã tự động đóng lại nhằm bảo toàn lịch sử dữ liệu.</span>
                 </div>
                 {% else %}
                 <div class="alert-banner" style="background:#eff6ff; border:1px solid #dbeafe; color:#1e40af;">
                     <i class="fa-solid fa-circle-info" style="font-size:1.1rem;"></i>
-                    <span><strong>Mẹo:</strong> Báo cáo hiện đang chờ xem. Bạn có thể quay lại danh sách để tự do Chỉnh sửa hoặc Xóa bỏ.</span>
+                    <span><strong>Mẹo:</strong> Bạn có thể quay lại danh sách để tự do Chỉnh sửa hoặc Xóa bỏ báo cáo này.</span>
                 </div>
                 {% endif %}
             {% endif %}

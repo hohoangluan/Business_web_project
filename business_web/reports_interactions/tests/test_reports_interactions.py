@@ -190,3 +190,77 @@ class TestReportStatus(TestCase):
     def test_acknowledged_locks(self):
         r = self._make(status='acknowledged')
         self.assertFalse(r.can_edit_or_delete)
+
+
+class TestReportStatusWorkflow(TestCase):
+    """Kiểm thử luồng nghiệp vụ status ở mức view (request_update/acknowledge/edit reset)."""
+
+    def setUp(self):
+        self.client = Client()
+
+        self.mgr_role = Role.objects.create(name=Role.MANAGER)
+        self.emp_role = Role.objects.create(name=Role.EMPLOYEE)
+
+        self.manager = User.objects.create_user(username='wf_manager', password='123')
+        UserProfile.objects.create(user=self.manager, role=self.mgr_role, employee_id='WFMGR001')
+
+        self.employee = User.objects.create_user(username='wf_employee', password='123')
+        UserProfile.objects.create(user=self.employee, role=self.emp_role, employee_id='WFEMP001')
+
+        self.other = User.objects.create_user(username='wf_other', password='123')
+        UserProfile.objects.create(user=self.other, role=self.emp_role, employee_id='WFOTH001')
+
+        self.report = Report.objects.create(
+            author=self.employee,
+            recipient=self.manager,
+            title='Báo cáo workflow',
+            content='Nội dung ban đầu',
+        )
+        self.url_detail = reverse('report_detail', args=[self.report.id])
+
+    def test_recipient_request_update_sets_needs_update(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(self.url_detail, data={
+            'action': 'request_update',
+            'manager_note': 'Vui lòng bổ sung số liệu quý 2.',
+        })
+        self.assertRedirects(response, self.url_detail)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.status, Report.NEEDS_UPDATE)
+        self.assertEqual(self.report.manager_note, 'Vui lòng bổ sung số liệu quý 2.')
+
+    def test_recipient_acknowledge_sets_acknowledged(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(self.url_detail, data={
+            'action': 'acknowledge',
+        })
+        self.assertRedirects(response, self.url_detail)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.status, Report.ACKNOWLEDGED)
+
+    def test_author_edit_needs_update_resets_to_submitted(self):
+        self.report.status = Report.NEEDS_UPDATE
+        self.report.manager_note = 'Cần sửa'
+        self.report.save()
+
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse('reports'), data={
+            'action': 'edit',
+            'report_id': self.report.id,
+            'title': 'Báo cáo workflow (đã sửa)',
+            'content': 'Nội dung đã cập nhật',
+            'recipient': self.manager.id,
+        })
+        self.assertRedirects(response, reverse('reports'))
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.title, 'Báo cáo workflow (đã sửa)')
+        self.assertEqual(self.report.status, Report.SUBMITTED)
+
+    def test_non_recipient_request_update_denied(self):
+        self.client.force_login(self.other)
+        self.client.post(self.url_detail, data={
+            'action': 'request_update',
+            'manager_note': 'Tôi không có quyền',
+        })
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.status, Report.SUBMITTED)

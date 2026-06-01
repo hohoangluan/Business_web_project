@@ -13,7 +13,7 @@ from reports_interactions.forms import ReportForm, TicketForm
 def report_view(request):
     """
     Trang quản lý báo cáo cá nhân của người dùng.
-    Hỗ trợ xem danh sách, tạo mới tự do, sửa và xóa báo cáo chưa được xem.
+    Hỗ trợ xem danh sách, tạo mới tự do, sửa và xóa báo cáo chưa được quản lý tiếp nhận (acknowledged).
     """
     ensure_profile(request.user)
     
@@ -80,6 +80,8 @@ def report_detail_view(request, pk):
     """
     Trang chi tiết báo cáo.
     Tự động đánh dấu đã xem (is_viewed = True) nếu người nhận (quản lý) truy cập.
+    Quản lý có thể yêu cầu cập nhật (needs_update) hoặc tiếp nhận (acknowledged);
+    báo cáo chỉ bị khóa sửa/xóa khi đã ở trạng thái acknowledged.
     """
     ensure_profile(request.user)
     report = get_object_or_404(Report, pk=pk)

@@ -6,7 +6,7 @@ class Report(models.Model):
     """
     Báo cáo cá nhân của nhân viên gửi lên cấp quản lý theo sơ đồ phân cấp.
     Hỗ trợ tải lên file tài liệu đính kèm.
-    Một khi báo cáo đã được người nhận xem (is_viewed = True), người gửi không thể sửa hay xóa.
+    Một khi báo cáo đã được quản lý tiếp nhận (status = ACKNOWLEDGED), người gửi không thể sửa hay xóa.
     """
 
     SUBMITTED = 'submitted'
