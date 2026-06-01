@@ -59,6 +59,7 @@ def recompute_record_status(record):
 - Đã có request (OneToOne) → message "Đã gửi yêu cầu cho ngày này" + redirect (thay JsonResponse 409).
 - Submit thành công: set `record.status='pending_adjustment'`, message, redirect.
 - GET: render form.
+- **Phân quyền:** KHÔNG giới hạn role — mọi nhân sự có chấm công (employee, leader, manager) đều gửi yêu cầu cho record CỦA CHÍNH MÌNH tới HR. View chỉ kiểm tra ownership (`user=request.user`), không gate role. Trang Chấm công dùng chung nên nút hiển thị cho tất cả các role này.
 
 ### A4. approve_adjustment — áp cả 2 giờ
 `attendance/services/record/adjustment_review_service.py`:
@@ -82,12 +83,14 @@ Thay `record.status='no_checkout'` bằng `record.status = recompute_record_stat
 - Tổng quát hóa câu chữ (bỏ giả định "quên chấm ra").
 - Hiển thị giờ vào/ra hiện tại của record để đối chiếu.
 - 2 input: giờ vào (mới), giờ ra (mới) — đều optional, ghi rõ "để trống nếu không đổi".
-- Giữ reason, reason_detail, evidence.
+- Giữ reason, reason_detail.
+- **Minh chứng (evidence): BẮT BUỘC** — label ghi rõ "(bắt buộc)", thuộc tính `required`.
 
 ### B2. Form class `AttendanceAdjustmentForm`
 `attendance/forms/adjustment/attendance_adjustment_form.py`:
 - Thêm `claimed_check_in_time` vào fields; cả 2 time field optional widget TimeInput.
 - `clean()`: nếu cả `claimed_check_in_time` và `claimed_check_out_time` đều trống → ValidationError "Phải khai báo ít nhất giờ vào hoặc giờ ra."
+- **Evidence bắt buộc:** model field giữ `null=True, blank=True` (linh hoạt dữ liệu cũ), nhưng FORM ép bắt buộc — trong `clean_evidence`, nếu không có file → `ValidationError('Phải đính kèm minh chứng (ảnh hoặc PDF).')`. Giữ nguyên validate size ≤5MB + MIME đã có.
 
 ### B3. Bảng lịch sử (attendance.html)
 - View `attendance_view`: gắn `row.adjustment` cho mỗi history row (dict record_id→AdjustmentRequest).
@@ -121,12 +124,18 @@ Theo design system (card, badge, thẻ thống kê) như attendance.html:
 ## D. Tests
 
 `attendance/tests/test_adjustment.py`:
-- submit cho ngày `late` (current month) → tạo request, record→`pending_adjustment`.
+- submit cho ngày `late` (current month, CÓ evidence) → tạo request, record→`pending_adjustment`.
+- submit cho leader/manager (record của chính họ, current month) → tạo request OK (xác nhận không gate role).
 - submit ngoài tháng hiện tại → redirect, không tạo request.
 - submit với cả 2 giờ trống → form invalid.
+- **submit KHÔNG có evidence → form invalid** (evidence bắt buộc).
 - approve áp cả giờ vào + giờ ra → record cập nhật cả 2, status recompute.
 - reject yêu cầu ngày `late` → record khôi phục `late` (KHÔNG `no_checkout`).
 - reject yêu cầu ngày `no_checkout` → khôi phục `no_checkout`.
+
+**Test cũ cần cập nhật (bị ảnh hưởng bởi thay đổi):**
+- `test_att_adj_01_submit_valid` / `test_att_adj_04_upload_evidence`: hiện post KHÔNG có evidence (01) → phải thêm evidence vào payload (evidence giờ bắt buộc).
+- `test_att_adj_invalid_status` (post record status `late` mong 400): hành vi đổi — record `late` trong tháng hiện tại giờ HỢP LỆ. Sửa test: đổi thành kỳ vọng tạo request thành công, HOẶC đổi sang case ngoài-tháng để vẫn kiểm reject. Giữ ý nghĩa kiểm "record không đủ điều kiện" qua case ngoài tháng.
 
 `attendance/tests/test_attendance_view.py`:
 - history row chưa có request → context có cờ cho nút; row đã có request → mang adjustment.
