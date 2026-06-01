@@ -113,6 +113,14 @@ Blocks có thể override:
                     <i class="fa-solid fa-user-check"></i>
                     <span>Xác nhận đánh giá</span>
                 </a>
+                <a href="{% url 'attendance_adjustment_review' %}" class="nav-item {% if active_page == 'attendance_adjustment_review' %}active{% endif %}">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Duyệt điều chỉnh công</span>
+                </a>
+                <a href="{% url 'face_change_review' %}" class="nav-item {% if active_page == 'face_change_review' %}active{% endif %}">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <span>Duyệt cập nhật khuôn mặt</span>
+                </a>
                 {% endif %}
                 <a href="{% url 'reports' %}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
                     <i class="fa-solid fa-file-signature"></i>

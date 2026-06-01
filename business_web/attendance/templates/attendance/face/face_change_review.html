@@ -1,0 +1,130 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Duyệt cập nhật khuôn mặt{% endblock %}
+
+{% block content %}
+<style>
+    .fc-badge { padding:0.3rem 0.8rem; border-radius:var(--radius-full); font-size:0.8rem; font-weight:600; }
+    .fc-approved { background:#ecfdf5; color:#059669; }
+    .fc-rejected { background:#fee2e2; color:#991b1b; }
+    .fc-flag { background:#fef3c7; color:#92400e; padding:0.2rem 0.55rem; border-radius:var(--radius-full); font-size:0.72rem; font-weight:600; }
+    .fc-thumb { width:54px; height:54px; object-fit:cover; border-radius:10px; border:1px solid var(--border,#e2e8f0); }
+    .fc-actions form { display:inline-flex; gap:0.4rem; align-items:center; margin-right:0.5rem; }
+    .fc-actions input[type=text] { padding:0.3rem 0.5rem; border:1px solid var(--border,#e2e8f0); border-radius:var(--radius-md); font-size:0.85rem; }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main);">Duyệt cập nhật khuôn mặt</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Ảnh chỉ có hiệu lực nhận diện sau khi HR duyệt — chống đổi mặt gian lận để điểm danh hộ.</p>
+    </div>
+
+    {% if messages %}
+        {% for m in messages %}
+        <div class="alert" style="margin-bottom:1rem;">{{ m }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="stats-grid" style="grid-template-columns: repeat(2, minmax(0,260px)); gap:1.5rem; margin-bottom:2rem;">
+        <div class="card" style="padding:1.25rem; display:flex; align-items:center; gap:1rem;">
+            <div class="stat-icon" style="background:#eef2ff; color:#4f46e5; width:45px; height:45px; font-size:1.2rem; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-regular fa-hourglass-half"></i>
+            </div>
+            <div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Đang chờ duyệt</div>
+                <div style="font-size:1.35rem; font-weight:700;">{{ pending|length }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:2rem;">
+        <div class="card-header"><h3>Đang chờ duyệt</h3></div>
+        <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left:1.5rem;">ẢNH MỚI</th>
+                            <th>NHÂN VIÊN</th>
+                            <th>NGƯỜI GỬI</th>
+                            <th>THỜI ĐIỂM</th>
+                            <th>IP</th>
+                            <th>XỬ LÝ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending %}
+                        <tr>
+                            <td style="padding-left:1.5rem;">
+                                <img class="fc-thumb" src="data:{{ req.content_type }};base64,{{ req.image_base64 }}" alt="face">
+                            </td>
+                            <td>{{ req.user.profile.full_name|default:req.user.username }}</td>
+                            <td>
+                                {{ req.submitted_by.profile.full_name|default:req.submitted_by.username }}
+                                {% if req.is_cross_user %}<br><span class="fc-flag">⚠ Đổi hộ người khác</span>{% endif %}
+                            </td>
+                            <td>{{ req.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ req.ip_address|default:"—" }}</td>
+                            <td class="fc-actions">
+                                <form method="post" action="{% url 'face_change_approve' req.id %}">
+                                    {% csrf_token %}
+                                    <input type="text" name="hr_note" placeholder="Ghi chú">
+                                    <button class="btn btn-primary" style="padding:0.3rem 0.7rem;font-size:0.85rem;" type="submit">Duyệt</button>
+                                </form>
+                                <form method="post" action="{% url 'face_change_reject' req.id %}">
+                                    {% csrf_token %}
+                                    <input type="text" name="hr_note" placeholder="Lý do từ chối">
+                                    <button class="btn btn-outline" style="padding:0.3rem 0.7rem;font-size:0.85rem;" type="submit">Từ chối</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Không có yêu cầu nào đang chờ duyệt.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>Đã xử lý</h3></div>
+        <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left:1.5rem;">NHÂN VIÊN</th>
+                            <th>NGƯỜI GỬI</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>NGƯỜI DUYỆT</th>
+                            <th>GHI CHÚ HR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in reviewed %}
+                        <tr>
+                            <td style="padding-left:1.5rem;">{{ req.user.profile.full_name|default:req.user.username }}</td>
+                            <td>
+                                {{ req.submitted_by.profile.full_name|default:req.submitted_by.username }}
+                                {% if req.is_cross_user %} <span class="fc-flag">⚠</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if req.status == 'approved' %}
+                                    <span class="fc-badge fc-approved">Đã duyệt</span>
+                                {% else %}
+                                    <span class="fc-badge fc-rejected">Từ chối</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ req.reviewed_by.profile.full_name|default:req.reviewed_by.username|default:"—" }}</td>
+                            <td>{{ req.hr_note|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">Chưa có yêu cầu nào được xử lý.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -31,40 +31,65 @@ def decide_next_action(record: AttendanceRecord) -> str:
     return 'done'
 
 
-def _classify_check_in_status(now_time) -> str:
-    work_start = settings.WORK_START_TIME
+def classify_status(check_in_time, check_out_time, shift_start, shift_end):
+    """Phân loại bản ghi: late nếu vào trễ, early_leave nếu ra sớm, else on_time."""
     grace = timedelta(minutes=settings.WORK_LATE_GRACE_MIN)
-    # Compare with seconds resolution via combining with a stub date.
     today = date.today()
-    limit = (datetime.combine(today, work_start) + grace).time()
-    return 'on_time' if now_time <= limit else 'late'
+    in_limit = (datetime.combine(today, shift_start) + grace).time()
+    status = 'late' if check_in_time and check_in_time > in_limit else 'on_time'
+    if check_out_time and check_out_time < shift_end:
+        status = 'early_leave'
+    return status
 
 
-def record_check_in(user) -> AttendanceRecord:
+def effective_shift_end(user, on_date, shift_end):
+    """Giờ tan làm kỳ vọng: dời tới giờ kết thúc OT nếu có OT đã duyệt trong ngày.
+
+    Nhân viên có tăng ca approved → ra trước giờ OT mới tính early_leave.
+    """
+    from overtime.services import get_approved_overtime_end
+    ot_end = get_approved_overtime_end(user, on_date)
+    return max(shift_end, ot_end) if ot_end else shift_end
+
+
+def recompute_record_status(record):
+    """Suy lại status của record từ giờ vào/ra hiện có (dùng ca HĐ)."""
+    from contracts.services import get_shift_times
+    if record.check_in_time is None and record.check_out_time is None:
+        return 'absent'
+    if record.check_out_time is None:
+        return 'no_checkout'
+    shift_start, shift_end = get_shift_times(record.user)
+    shift_end = effective_shift_end(record.user, record.record_date, shift_end)
+    return classify_status(record.check_in_time, record.check_out_time, shift_start, shift_end)
+
+
+def record_check_in(user, now=None) -> AttendanceRecord:
+    from contracts.services import get_shift_times
     today = timezone.localdate()
-    now_time = timezone.localtime().time()
-    rec, _ = AttendanceRecord.objects.get_or_create(
-        user=user, record_date=today,
-    )
+    now_time = (now or timezone.localtime()).time()
+    rec, _ = AttendanceRecord.objects.get_or_create(user=user, record_date=today)
     if rec.check_in_time is None:
+        shift_start, shift_end = get_shift_times(user)
         rec.check_in_time = now_time
-        rec.status = _classify_check_in_status(now_time)
+        rec.status = classify_status(now_time, rec.check_out_time, shift_start, shift_end)
         rec.save(update_fields=['check_in_time', 'status'])
-        logger.info('check_in user=%s time=%s status=%s',
-                    user.id, now_time, rec.status)
+        logger.info('check_in user=%s time=%s status=%s', user.id, now_time, rec.status)
     return rec
 
 
-def record_check_out(user) -> AttendanceRecord:
+def record_check_out(user, now=None) -> AttendanceRecord:
+    from contracts.services import get_shift_times
     today = timezone.localdate()
-    now_time = timezone.localtime().time()
-    rec, _ = AttendanceRecord.objects.get_or_create(
-        user=user, record_date=today,
-    )
+    now_time = (now or timezone.localtime()).time()
+    rec, _ = AttendanceRecord.objects.get_or_create(user=user, record_date=today)
     if rec.check_out_time is None:
+        shift_start, shift_end = get_shift_times(user)
+        shift_end = effective_shift_end(user, today, shift_end)
         rec.check_out_time = now_time
-        rec.save(update_fields=['check_out_time'])
-        logger.info('check_out user=%s time=%s', user.id, now_time)
+        rec.status = classify_status(rec.check_in_time, now_time, shift_start, shift_end)
+        rec.save(update_fields=['check_out_time', 'status'])
+        logger.info('check_out user=%s time=%s status=%s', user.id, now_time, rec.status)
     return rec
 
 

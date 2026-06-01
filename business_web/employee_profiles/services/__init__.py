@@ -66,6 +66,8 @@ def save_contract_info_from_data(user, data):
     contract_info.contract_annual_leave_days = data.get('contract_annual_leave_days')
     contract_info.contract_standard_shift = data.get('contract_standard_shift', '')
     contract_info.contract_attachment_reference = data.get('contract_attachment_reference', '')
+    contract_info.shift_start_time = data.get('shift_start_time') or None
+    contract_info.shift_end_time = data.get('shift_end_time') or None
     contract_info.save()
     return contract_info
 

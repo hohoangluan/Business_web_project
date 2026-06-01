@@ -24,7 +24,7 @@ def parse_ddmmyyyy_date(raw_value):
 
 def has_complete_contract_info(contract_info):
     """Kiểm tra đã có đủ thông tin hợp đồng tối thiểu để hiển thị chưa."""
-    return all([
+    return any([
         contract_info.contract_number,
         contract_info.contract_type,
         contract_info.contract_signed_date,
@@ -82,3 +82,19 @@ def build_contract_page_context(contract_info):
         'show_expiry_warning': show_expiry_warning,
         'days_until_expiry': days_until_expiry,
     }
+
+
+def get_active_contract(user):
+    """Trả hợp đồng đang hiệu lực (is_active=True) mới nhất, hoặc None."""
+    return user.contracts.filter(is_active=True).order_by('-id').first()
+
+
+def get_shift_times(user):
+    """Trả (shift_start, shift_end) từ HĐ active, fallback settings."""
+    from django.conf import settings
+    contract = get_active_contract(user)
+    start = (contract.shift_start_time if contract and contract.shift_start_time
+             else settings.WORK_START_TIME)
+    end = (contract.shift_end_time if contract and contract.shift_end_time
+           else settings.WORK_END_TIME)
+    return start, end

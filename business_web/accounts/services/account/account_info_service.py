@@ -29,13 +29,12 @@ def ensure_work_info(user):
 
 
 def ensure_contract_info(user):
-    """
-    Đảm bảo user có ContractInfo.
-    Import tại đây để tránh circular import.
-    """
+    """Trả HĐ active của user, tạo mới nếu chưa có HĐ nào active."""
     from contracts.models import ContractInfo
-    contract_info, _ = ContractInfo.objects.get_or_create(user=user)
-    return contract_info
+    active = user.contracts.filter(is_active=True).order_by('-id').first()
+    if active:
+        return active
+    return ContractInfo.objects.create(user=user, is_active=True)
 
 
 def ensure_personal_info(user):

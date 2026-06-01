@@ -4,7 +4,9 @@ from django.contrib.auth.models import User
 
 class EmployeeFace(models.Model):
     """
-    Lưu trữ ảnh khuôn mặt (base64) của nhân viên phục vụ chấm công.
+    Ảnh khuôn mặt (base64) của nhân viên — chỉ dùng để PREVIEW trên UI.
+    Vector khuôn mặt và việc so khớp do service nhận diện từ xa xử lý
+    (xem attendance/services/face/face_api_client.py).
     Mỗi nhân viên (User) có đúng 1 bản ghi EmployeeFace.
     Truy cập: request.user.employee_face
     """
@@ -16,15 +18,11 @@ class EmployeeFace(models.Model):
         help_text="Nhân viên sở hữu ảnh khuôn mặt này.",
     )
     face_base64 = models.TextField(
-        help_text="Chuỗi base64 của ảnh khuôn mặt nhân viên.",
+        help_text="Chuỗi base64 của ảnh khuôn mặt (preview).",
     )
     slot_id = models.PositiveSmallIntegerField(
         default=1,
-        help_text="FastAPI slot ID (1-5). Pinned to 1 for now; field exists so multi-slot is non-migration.",
-    )
-    embedding = models.JSONField(
-        null=True, blank=True,
-        help_text="Vector khuôn mặt (512 chiều) từ InsightFace.",
+        help_text="Slot trên service từ xa (1-5). Hiện pin về 1.",
     )
     content_type = models.CharField(
         max_length=50,

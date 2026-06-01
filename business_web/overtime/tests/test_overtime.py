@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from overtime.models import OvertimeRequest
 from accounts.models import Role, UserProfile
@@ -138,3 +139,25 @@ class TestOvertime(TestCase):
         req.refresh_from_db()
         self.assertEqual(req.status, OvertimeRequest.REJECTED)
         self.assertEqual(req.rejected_reason, 'Không cần thiết')
+
+
+class TestOvertimeAttachment(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='nvot', password='123')
+        self.client.force_login(self.user)
+        self.today = timezone.localdate()
+
+    def test_create_overtime_with_attachment(self):
+        pdf = SimpleUploadedFile('ot.pdf', b'%PDF-1.4 fake', content_type='application/pdf')
+        self.client.post(reverse('overtime'), data={
+            'overtime_date': self.today.isoformat(),
+            'start_time': '18:00',
+            'end_time': '20:00',
+            'hours': '2.0',
+            'reason': 'Chạy deadline',
+            'attachment': pdf,
+        })
+        from overtime.models import OvertimeRequest
+        req = OvertimeRequest.objects.get(user=self.user)
+        self.assertTrue(req.attachment.name.startswith('overtime/attachments/'))

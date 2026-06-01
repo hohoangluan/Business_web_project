@@ -32,7 +32,7 @@ def overtime_view(request):
     ensure_profile(request.user)
 
     if request.method == 'POST':
-        form = OvertimeRequestForm(request.POST)
+        form = OvertimeRequestForm(request.POST, request.FILES)
         if form.is_valid():
             create_overtime_request(request.user, form)
             messages.success(request, 'Đã gửi đơn đăng ký tăng ca thành công!')

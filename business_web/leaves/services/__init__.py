@@ -99,8 +99,10 @@ def get_user_leave_stats(user):
 
     total_allowed = None
     try:
-        if hasattr(user, 'contract_info') and user.contract_info.contract_annual_leave_days is not None:
-            total_allowed = Decimal(str(user.contract_info.contract_annual_leave_days))
+        from contracts.services import get_active_contract
+        active_contract = get_active_contract(user)
+        if active_contract and active_contract.contract_annual_leave_days is not None:
+            total_allowed = Decimal(str(active_contract.contract_annual_leave_days))
     except Exception:
         pass
 

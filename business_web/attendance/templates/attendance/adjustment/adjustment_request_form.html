@@ -2,44 +2,184 @@
 {% block title %}Yêu cầu điều chỉnh chấm công{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:640px; margin:2rem auto; padding:2rem;">
-    <h2 style="margin-bottom:1rem;">Yêu cầu điều chỉnh ngày {{ record.record_date|date:"d/m/Y" }}</h2>
-    <p style="color:var(--text-muted); margin-bottom:1.5rem;">
-        Hệ thống đã tự động đóng phiên này do thiếu giờ chấm ra. Hãy điền thông tin để HR duyệt.
-    </p>
+<style>
+    .adj-wrap { max-width: 660px; margin: 1.5rem auto; }
 
-    {% if messages %}
-        {% for m in messages %}
-            <div class="alert">{{ m }}</div>
-        {% endfor %}
-    {% endif %}
+    /* Hero header */
+    .adj-hero {
+        position: relative;
+        background: linear-gradient(135deg, #7c3aed, #6366f1 45%, #ec4899);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        padding: 2rem 2.25rem 2.5rem;
+        color: #fff;
+        overflow: hidden;
+    }
+    .adj-hero::after {
+        content: ""; position: absolute; right: -40px; top: -40px;
+        width: 180px; height: 180px; border-radius: 50%;
+        background: rgba(255,255,255,0.12);
+    }
+    .adj-hero .hero-icon {
+        width: 52px; height: 52px; border-radius: 14px;
+        background: rgba(255,255,255,0.18); backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin-bottom: 1rem;
+    }
+    .adj-hero h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.35rem; color:#fff; }
+    .adj-hero p { opacity: 0.9; font-size: 0.92rem; margin: 0; max-width: 90%; }
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>Lý do</label>
-            {{ form.reason }}
-            {{ form.reason.errors }}
+    /* Body */
+    .adj-body {
+        background: #fff;
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        padding: 1.75rem 2.25rem 2.25rem;
+        box-shadow: 0 12px 30px rgba(99,102,241,0.12);
+        margin-top: -1.25rem;
+        position: relative;
+    }
+
+    /* Current-time chips */
+    .adj-now { display: flex; gap: 0.75rem; margin: -2.75rem 0 1.75rem; position: relative; z-index: 2; }
+    .adj-chip {
+        flex: 1; background: #fff; border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1rem;
+        box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+    }
+    .adj-chip .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); display:flex; align-items:center; gap:0.4rem; }
+    .adj-chip .val { font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-top: 0.15rem; }
+    .adj-chip.in .lbl i { color: #10b981; }
+    .adj-chip.out .lbl i { color: #ef4444; }
+
+    /* Fields */
+    .adj-field { margin-bottom: 1.25rem; }
+    .adj-field > label { display: block; font-weight: 600; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.45rem; }
+    .adj-input {
+        width: 100%; padding: 0.7rem 0.85rem; font-size: 0.95rem;
+        border: 1.5px solid var(--border); border-radius: var(--radius);
+        background: #fff; transition: var(--transition); font-family: inherit;
+    }
+    .adj-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    textarea.adj-input { resize: vertical; }
+    .adj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .adj-hint { font-size: 0.78rem; color: var(--text-muted); font-weight: 400; }
+
+    /* Dropzone */
+    .adj-drop {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 0.4rem; text-align: center;
+        border: 2px dashed #c7d2fe; border-radius: var(--radius-lg);
+        padding: 1.5rem 1rem; background: #f5f3ff; cursor: pointer;
+        transition: var(--transition); color: var(--text-muted);
+    }
+    .adj-drop:hover { border-color: var(--primary); background: #ede9fe; }
+    .adj-drop i { font-size: 1.6rem; color: var(--primary); }
+    .adj-drop .main { font-weight: 600; color: var(--text-main); font-size: 0.92rem; }
+    .adj-drop .sub { font-size: 0.78rem; }
+    .adj-drop.has-file { border-style: solid; border-color: #34d399; background: #ecfdf5; }
+    .adj-drop.has-file i { color: #059669; }
+    .adj-file { display: none; }
+
+    /* Required pill */
+    .req-pill { background: #fee2e2; color: #b91c1c; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: var(--radius-full); margin-left: 0.4rem; vertical-align: middle; }
+
+    /* Actions */
+    .adj-actions { display: flex; gap: 0.85rem; margin-top: 1.75rem; }
+    .adj-actions .btn { flex: 1; justify-content: center; padding: 0.8rem; font-size: 0.95rem; }
+    .adj-submit { background: var(--gradient-btn); color: #fff; border: none; font-weight: 600; box-shadow: 0 8px 20px rgba(236,72,153,0.25); }
+    .adj-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(236,72,153,0.32); }
+
+    .adj-errors { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:var(--radius); padding:0.7rem 1rem; margin-bottom:1rem; font-size:0.88rem; }
+    .field-err { color:#dc2626; font-size:0.8rem; margin-top:0.3rem; }
+</style>
+
+<div class="adj-wrap animate-fade">
+    <div class="adj-hero">
+        <div class="hero-icon"><i class="fa-regular fa-clock"></i></div>
+        <h2>Yêu cầu điều chỉnh chấm công</h2>
+        <p>Ngày {{ record.record_date|date:"d/m/Y" }} — khai báo giờ thực tế và đính kèm minh chứng. Yêu cầu sẽ gửi HR duyệt.</p>
+    </div>
+
+    <div class="adj-body">
+        <div class="adj-now">
+            <div class="adj-chip in">
+                <div class="lbl"><i class="fa-solid fa-arrow-right-to-bracket"></i> Giờ vào hiện tại</div>
+                <div class="val">{% if record.check_in_time %}{{ record.check_in_time|time:"H:i" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="adj-chip out">
+                <div class="lbl"><i class="fa-solid fa-arrow-right-from-bracket"></i> Giờ ra hiện tại</div>
+                <div class="val">{% if record.check_out_time %}{{ record.check_out_time|time:"H:i" }}{% else %}—{% endif %}</div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Mô tả chi tiết (tùy chọn)</label>
-            {{ form.reason_detail }}
-            {{ form.reason_detail.errors }}
-        </div>
-        <div class="form-group">
-            <label>Giờ chấm ra thực tế</label>
-            {{ form.claimed_check_out_time }}
-            {{ form.claimed_check_out_time.errors }}
-        </div>
-        <div class="form-group">
-            <label>Chứng từ (ảnh hoặc PDF, tối đa 5 MB) — tùy chọn</label>
-            {{ form.evidence }}
-            {{ form.evidence.errors }}
-        </div>
-        <div style="margin-top:1.5rem; display:flex; gap:1rem;">
-            <button class="btn btn-primary" type="submit">Gửi yêu cầu</button>
-            <a class="btn btn-outline" href="{% url 'attendance' %}">Hủy</a>
-        </div>
-    </form>
+
+        {% if messages %}
+            {% for m in messages %}<div class="adj-errors">{{ m }}</div>{% endfor %}
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" id="adj-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="adj-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="adj-field">
+                <label>Lý do</label>
+                {{ form.reason }}
+                {% if form.reason.errors %}<div class="field-err">{{ form.reason.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <div class="adj-field">
+                <label>Mô tả chi tiết <span class="adj-hint">(tùy chọn)</span></label>
+                {{ form.reason_detail }}
+                {% if form.reason_detail.errors %}<div class="field-err">{{ form.reason_detail.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <div class="adj-grid">
+                <div class="adj-field">
+                    <label>Giờ vào mới <span class="adj-hint">(nếu đổi)</span></label>
+                    {{ form.claimed_check_in_time }}
+                    {% if form.claimed_check_in_time.errors %}<div class="field-err">{{ form.claimed_check_in_time.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="adj-field">
+                    <label>Giờ ra mới <span class="adj-hint">(nếu đổi)</span></label>
+                    {{ form.claimed_check_out_time }}
+                    {% if form.claimed_check_out_time.errors %}<div class="field-err">{{ form.claimed_check_out_time.errors|striptags }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="adj-field">
+                <label>Minh chứng <span class="req-pill">BẮT BUỘC</span></label>
+                <label class="adj-drop" id="adj-drop" for="{{ form.evidence.id_for_label }}">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span class="main" id="adj-drop-main">Chọn ảnh hoặc PDF</span>
+                    <span class="sub">JPG / PNG / PDF · tối đa 5 MB</span>
+                </label>
+                {{ form.evidence }}
+                {% if form.evidence.errors %}<div class="field-err">{{ form.evidence.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <div class="adj-actions">
+                <a class="btn btn-outline" href="{% url 'attendance' %}">Hủy</a>
+                <button class="btn adj-submit" type="submit"><i class="fa-solid fa-paper-plane"></i> Gửi yêu cầu</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+(function () {
+    var input = document.getElementById('{{ form.evidence.id_for_label }}');
+    var drop = document.getElementById('adj-drop');
+    var main = document.getElementById('adj-drop-main');
+    if (!input || !drop) return;
+    input.addEventListener('change', function () {
+        if (input.files && input.files.length) {
+            main.textContent = input.files[0].name;
+            drop.classList.add('has-file');
+            drop.querySelector('i').className = 'fa-solid fa-circle-check';
+        } else {
+            main.textContent = 'Chọn ảnh hoặc PDF';
+            drop.classList.remove('has-file');
+            drop.querySelector('i').className = 'fa-solid fa-cloud-arrow-up';
+        }
+    });
+})();
+</script>
 {% endblock %}

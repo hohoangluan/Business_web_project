@@ -56,5 +56,7 @@ def settings_view(request):
             "active_page": "settings",
             "is_admin": user_has_role(request.user, Role.ADMIN),
             "is_hr": user_has_role(request.user, Role.HR),
+            "has_face": hasattr(request.user, 'employee_face'),
+            "latest_face_request": request.user.face_change_requests.order_by('-created_at').first(),
         },
     )

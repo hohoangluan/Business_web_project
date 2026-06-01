@@ -10,20 +10,21 @@ class TestAttendanceView(TestCase):
         self.client = Client()
         self.user = User.objects.create_user(username='nv001', password='123')
         
-        # Create some attendance records
-        today = timezone.now().date()
+        # Tạo 2 bản ghi trong THÁNG HIỆN TẠI (neo theo đầu tháng để không phụ
+        # thuộc ngày chạy test — view chỉ hiển thị record từ đầu tháng trở đi).
+        first_of_month = timezone.localdate().replace(day=1)
         AttendanceRecord.objects.create(
             user=self.user,
-            record_date=today,
+            record_date=first_of_month,
             check_in_time=timezone.now().replace(hour=8, minute=0, second=0, microsecond=0),
             check_out_time=timezone.now().replace(hour=17, minute=0, second=0, microsecond=0),
             status='present'
         )
-        
+
         AttendanceRecord.objects.create(
             user=self.user,
-            record_date=today - timedelta(days=1),
-            check_in_time=timezone.now().replace(hour=8, minute=30, second=0, microsecond=0) - timedelta(days=1),
+            record_date=first_of_month + timedelta(days=1),
+            check_in_time=timezone.now().replace(hour=8, minute=30, second=0, microsecond=0),
             status='late'
         )
         
@@ -51,3 +52,52 @@ class TestAttendanceView(TestCase):
         """Check require login"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
+
+
+class TestShiftClassify(TestCase):
+    def test_classify_status(self):
+        from datetime import time
+        from attendance.services.record.attendance_logging_service import classify_status
+        ss, se = time(8, 30), time(17, 30)
+        self.assertEqual(classify_status(time(8, 30), time(17, 30), ss, se), 'on_time')
+        self.assertEqual(classify_status(time(9, 0), time(17, 30), ss, se), 'late')
+        self.assertEqual(classify_status(time(8, 30), time(16, 0), ss, se), 'early_leave')
+        self.assertEqual(classify_status(time(8, 30), None, ss, se), 'on_time')
+
+    def test_get_shift_times_fallback(self):
+        from django.contrib.auth.models import User
+        from contracts.services import get_shift_times
+        from django.conf import settings
+        u = User.objects.create_user('noshift', password='1')
+        start, end = get_shift_times(u)
+        self.assertEqual(start, settings.WORK_START_TIME)
+        self.assertEqual(end, settings.WORK_END_TIME)
+
+
+class TestHistoryAdjustmentColumn(TestCase):
+    def setUp(self):
+        from datetime import time
+        self.user = User.objects.create_user('nvhist', password='1')
+        first_of_month = timezone.localdate().replace(day=1)
+        self.rec = AttendanceRecord.objects.create(
+            user=self.user, record_date=first_of_month,
+            check_in_time=time(8, 0), status='no_checkout',
+        )
+
+    def test_row_without_request_has_no_adjustment(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('attendance'))
+        rows = resp.context['history_rows']
+        self.assertIsNone(getattr(rows[0], 'adjustment', None))
+
+    def test_row_with_request_carries_adjustment(self):
+        from datetime import time
+        from attendance.models import AttendanceAdjustmentRequest
+        AttendanceAdjustmentRequest.objects.create(
+            record=self.rec, submitted_by=self.user, reason='forgot',
+            claimed_check_out_time=time(17, 30), status='pending',
+        )
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('attendance'))
+        rows = resp.context['history_rows']
+        self.assertIsNotNone(getattr(rows[0], 'adjustment', None))

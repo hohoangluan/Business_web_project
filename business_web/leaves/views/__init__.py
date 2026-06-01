@@ -31,7 +31,7 @@ def leave_view(request):
     ensure_profile(request.user)
 
     if request.method == 'POST':
-        form = LeaveRequestForm(request.POST)
+        form = LeaveRequestForm(request.POST, request.FILES)
         if form.is_valid():
             create_leave_request(request.user, form)
             messages.success(request, 'Đã gửi đơn đăng ký nghỉ phép thành công!')
