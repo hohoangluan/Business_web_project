@@ -89,6 +89,21 @@ def cancel_overtime_request(user, request_id):
     return True, 'Đã hủy đơn tăng ca thành công.'
 
 
+def get_approved_overtime_end(user, on_date):
+    """Trả giờ kết thúc OT đã duyệt muộn nhất của user trong ngày, hoặc None.
+
+    Dùng để tính giờ tan làm kỳ vọng khi nhân viên có tăng ca: nếu có OT
+    approved trong ngày, giờ ra "đúng giờ" được dời tới end_time của OT.
+    """
+    obj = (OvertimeRequest.objects
+           .filter(user=user,
+                   overtime_date=on_date,
+                   status=OvertimeRequest.APPROVED)
+           .order_by('-end_time')
+           .first())
+    return obj.end_time if obj else None
+
+
 def get_user_overtime_requests(user):
     """Trả về toàn bộ đơn tăng ca của user, mới nhất lên đầu."""
     return OvertimeRequest.objects.filter(user=user).select_related(

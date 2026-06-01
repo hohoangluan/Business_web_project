@@ -150,11 +150,50 @@
                 </div>
                 
                 <div class="st-form-group" style="margin-top: 1.5rem; padding: 1.5rem; background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed var(--border-light);">
-                    <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Khuôn mặt nhận diện</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Cập nhật khuôn mặt để sử dụng cho tính năng chấm công. Tính năng này sẽ đăng ký hoặc ghi đè khuôn mặt hiện tại của bạn.</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Khuôn mặt nhận diện</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Cập nhật khuôn mặt để sử dụng cho tính năng chấm công.</div>
+                        </div>
+                        <div>
+                            {% if has_face and not latest_face_request or has_face and latest_face_request.status == 'approved' %}
+                                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; background: #ecfdf5; color: #059669; font-size: 0.8rem; font-weight: 600;">
+                                    <i class="fa-solid fa-circle-check"></i> Đang hoạt động
+                                </span>
+                            {% elif latest_face_request.status == 'pending' %}
+                                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; background: #fffbeb; color: #d97706; font-size: 0.8rem; font-weight: 600;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Chờ HR duyệt
+                                </span>
+                            {% elif latest_face_request.status == 'rejected' %}
+                                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; background: #fef2f2; color: #dc2626; font-size: 0.8rem; font-weight: 600;">
+                                    <i class="fa-solid fa-circle-xmark"></i> Bị từ chối
+                                </span>
+                            {% else %}
+                                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; background: #f1f5f9; color: #64748b; font-size: 0.8rem; font-weight: 600;">
+                                    <i class="fa-solid fa-circle-info"></i> Chưa đăng ký
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if latest_face_request.status == 'rejected' and latest_face_request.hr_note %}
+                    <div style="background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; border-left: 3px solid #dc2626;">
+                        <strong>Lý do từ chối:</strong> {{ latest_face_request.hr_note }}
+                    </div>
+                    {% endif %}
+
+                    {% if latest_face_request.status == 'pending' %}
+                    <div style="font-size: 0.85rem; color: #d97706; margin-bottom: 1rem;">
+                        <i class="fa-solid fa-circle-info"></i> Yêu cầu cập nhật khuôn mặt của bạn đang được HR xem xét. Bạn không thể cập nhật thêm cho đến khi yêu cầu này được xử lý.
+                    </div>
+                    <button type="button" class="btn btn-outline" disabled style="background:#f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #cbd5e1;">
+                        <i class="fa-solid fa-camera"></i> Đăng ký / Cập nhật khuôn mặt
+                    </button>
+                    {% else %}
                     <button type="button" class="btn btn-outline" id="open-register-camera-btn" style="background:#fff;">
                         <i class="fa-solid fa-camera"></i> Đăng ký / Cập nhật khuôn mặt
                     </button>
+                    {% endif %}
                 </div>
                 
                 <button class="st-btn-save" onclick="alert('Đã lưu cấu hình cá nhân!')">Lưu thay đổi</button>

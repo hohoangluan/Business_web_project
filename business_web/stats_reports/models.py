@@ -10,8 +10,9 @@ Nó thu thập và tổng hợp dữ liệu từ các app khác:
   - performance (đánh giá)
   - rewards_discipline (khen thưởng/xử phạt)
 
-Hiện tại dùng mock data trong services/ cho đến khi các app khác
-có backend thật.
+Dữ liệu lấy TRỰC TIẾP từ DB thật của các app trên qua các builder trong
+services/ (build_statistics_records, build_evaluation_records,
+build_rewards_penalties_records). Không còn mock data.
 ==============================================================================
 """
 

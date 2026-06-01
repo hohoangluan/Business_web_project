@@ -1,50 +1,51 @@
-"""Persist employee face image AND mirror to FastAPI registry.
+"""Register employee face on the remote service; keep a local preview row.
 
-Remote-first: if FastAPI rejects, no local row is created. The local
-EmployeeFace row stores base64 for preview and the pinned slot_id so
-re-enrollment always overwrites the same Mongo document.
+Remote-first: if the remote /register rejects the image, no local row is
+written. The local EmployeeFace row only stores base64 (for UI preview) and
+the pinned slot_id. The face vector itself lives on the remote service.
 """
-from django.contrib.auth.models import User
-
 from attendance.models import EmployeeFace
 from attendance.services.face import face_api_client
 from attendance.services.face.image_service import image_to_base64
 
 
-def save_employee_face(user, image_file) -> EmployeeFace:
-    # 1. Read raw bytes once (without disturbing later base64 conversion).
-    image_file.seek(0)
-    raw_bytes = image_file.read()
-    image_file.seek(0)
-
-    # 2. Base64 for local preview.
-    base64_str = image_to_base64(image_file)
-    content_type = getattr(image_file, 'content_type', 'image/png')
-
-    # 3. Resolve slot_id (existing or default 1).
+def resolve_slot_id(user) -> int:
+    """Slot hiện có của user, hoặc 1 nếu chưa enroll."""
     existing = EmployeeFace.objects.filter(user=user).first()
-    slot_id = existing.slot_id if existing else 1
+    return existing.slot_id if existing else 1
 
-    # 4. Local extraction
-    result = face_api_client.register_face_remote(
+
+def apply_face_enrollment(user, raw_bytes, base64_str, content_type) -> EmployeeFace:
+    """Đẩy ảnh lên service từ xa rồi upsert row preview local.
+
+    Đây là điểm DUY NHẤT khiến một khuôn mặt trở thành enrollment có hiệu lực.
+    Raises FaceApiError nếu remote từ chối (no-face / lỗi).
+    """
+    slot_id = resolve_slot_id(user)
+    face_api_client.register_face_remote(
         employee_id=str(user.id),
         image_bytes=raw_bytes,
-        filename=getattr(image_file, 'name', 'face.jpg'),
         slot_id=slot_id,
     )
-    embedding = result.get('embedding')
-
-    # 5. Local upsert.
     face, _ = EmployeeFace.objects.update_or_create(
         user=user,
         defaults={
             'face_base64': base64_str,
             'content_type': content_type,
             'slot_id': slot_id,
-            'embedding': embedding,
         },
     )
     return face
+
+
+def save_employee_face(user, image_file) -> EmployeeFace:
+    """Enroll trực tiếp (đường tin cậy — VD HR/Admin). Có hiệu lực ngay."""
+    image_file.seek(0)
+    raw_bytes = image_file.read()
+    image_file.seek(0)
+    base64_str = image_to_base64(image_file)
+    content_type = getattr(image_file, 'content_type', 'image/png')
+    return apply_face_enrollment(user, raw_bytes, base64_str, content_type)
 
 
 def get_employee_face(user) -> dict | None:

@@ -154,6 +154,13 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # =============================================================================
 from datetime import time as _time
 
+# Remote face-recognition API (register + recognize). All AI/matching runs there.
+FACE_API_BASE_URL = config(
+    'FACE_API_BASE_URL',
+    default='https://kluan-facial-recognition-for-attendance-tracking.hf.space',
+).rstrip('/')
+FACE_API_TIMEOUT_SEC = config('FACE_API_TIMEOUT_SEC', default=30, cast=int)
+
 FACE_LOCKOUT_MAX_FAILS = config('FACE_LOCKOUT_MAX_FAILS', default=3, cast=int)
 FACE_LOCKOUT_DURATION_SEC = config('FACE_LOCKOUT_DURATION_SEC', default=300, cast=int)
 WORK_START_TIME = _time(8, 30)
