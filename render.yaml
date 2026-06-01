@@ -1,0 +1,43 @@
+# Render Blueprint — tạo web service + postgres tự động.
+# Dùng: Render Dashboard → New → Blueprint → chọn repo này.
+# Các secret (SECRET_KEY tự sinh; Cloudinary/Email phải nhập tay) đánh dấu sync:false.
+services:
+  - type: web
+    name: business-web
+    runtime: python
+    plan: free
+    rootDir: business_web
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn business_web.wsgi:application"
+    healthCheckPath: /
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: business-web.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://business-web.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: business-web-db
+          property: connectionString
+      - key: USE_CLOUDINARY
+        value: "True"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: FACE_API_BASE_URL
+        value: https://kluan-facial-recognition-for-attendance-tracking.hf.space
+
+databases:
+  - name: business-web-db
+    plan: free

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+import dj_database_url
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,12 +23,39 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-oi6-@*vsp#h4u2z)lz1)(v^xdm)%40soejx0uw3=byorpw=uj_'
+SECRET_KEY = config(
+    'SECRET_KEY',
+    default='django-insecure-oi6-@*vsp#h4u2z)lz1)(v^xdm)%40soejx0uw3=byorpw=uj_',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+# Comma-separated list từ env. Mặc định cho dev local.
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1',
+).split(',')
+
+CSRF_TRUSTED_ORIGINS = [
+    o for o in config('CSRF_TRUSTED_ORIGINS', default='').split(',') if o
+]
+
+# Render tự inject hostname thật → auto-allow, khỏi lo đặt sai tên.
+_RENDER_HOST = config('RENDER_EXTERNAL_HOSTNAME', default='')
+if _RENDER_HOST:
+    ALLOWED_HOSTS.append(_RENDER_HOST)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_RENDER_HOST}')
+
+# Bảo mật prod (chỉ bật khi DEBUG=False). Render kết thúc SSL ở proxy.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 năm
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 # Application definition
@@ -38,6 +66,8 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',    # phải đứng trước staticfiles
+    'cloudinary',
     'django.contrib.staticfiles',
     # ----- Project apps -----
     'accounts',              # Auth, dashboard, admin user management
@@ -54,6 +84,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,11 +116,12 @@ WSGI_APPLICATION = 'business_web.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# Dùng DATABASE_URL (Postgres trên Render) nếu có, fallback SQLite local.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+    )
 }
 
 
@@ -131,9 +163,41 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (avatar, uploads - cho tương lai)
+# Media files (avatar, uploads, minh chứng chấm công)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# =============================================================================
+# STORAGE
+#   - static: WhiteNoise (nén + hash, serve trực tiếp từ web service)
+#   - media : Cloudinary khi USE_CLOUDINARY=True (file sống sót qua redeploy),
+#             ngược lại lưu local disk (dev).
+#   Dùng RawMediaCloudinaryStorage vì field evidence nhận cả ẢNH lẫn PDF.
+# =============================================================================
+USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
+
+STORAGES = {
+    'default': {
+        'BACKEND': (
+            'cloudinary_storage.storage.RawMediaCloudinaryStorage'
+            if USE_CLOUDINARY
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
+    },
+    'staticfiles': {
+        # Default storage; WhiteNoise middleware lo serve + cache headers.
+        # Không dùng Compressed/Manifest storage để tránh lỗi post-process
+        # (admin sorting-icons.svg manifest-strict + bug đường dẫn unicode).
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
+if USE_CLOUDINARY:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+    }
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
