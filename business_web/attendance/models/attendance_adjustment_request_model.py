@@ -31,8 +31,13 @@ class AttendanceAdjustmentRequest(models.Model):
     )
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     reason_detail = models.TextField(blank=True, default='')
+    claimed_check_in_time = models.TimeField(
+        null=True, blank=True,
+        help_text='Giờ vào thực tế nhân viên khai báo (nếu cần sửa).',
+    )
     claimed_check_out_time = models.TimeField(
-        help_text='Giờ ra thực tế nhân viên khai báo.',
+        null=True, blank=True,
+        help_text='Giờ ra thực tế nhân viên khai báo (nếu cần sửa).',
     )
     evidence = models.FileField(
         upload_to='attendance/adjustments/%Y/%m/',

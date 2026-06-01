@@ -127,3 +127,20 @@ class TestAdjustmentReview(TestCase):
         self.client.force_login(self.emp)
         resp = self.client.get(reverse('attendance_adjustment_review'))
         self.assertEqual(resp.status_code, 302)
+
+
+class TestAdjustmentModelFields(TestCase):
+    def test_create_with_check_in_time(self):
+        from datetime import time
+        u = User.objects.create_user('nvmodel', password='1')
+        rec = AttendanceRecord.objects.create(
+            user=u, record_date=timezone.localdate(),
+            check_in_time=time(8, 0), status='late',
+        )
+        adj = AttendanceAdjustmentRequest.objects.create(
+            record=rec, submitted_by=u, reason='forgot',
+            claimed_check_in_time=time(8, 30),
+            claimed_check_out_time=None,
+        )
+        self.assertEqual(adj.claimed_check_in_time, time(8, 30))
+        self.assertIsNone(adj.claimed_check_out_time)
