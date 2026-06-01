@@ -76,6 +76,11 @@ class Evaluation(models.Model):
         default='',
         help_text="Xếp loại nhân viên."
     )
+    score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text='Điểm đánh giá thang 100 (tự suy ra xếp loại).',
+    )
     evaluation_date = models.DateField(
         help_text="Ngày đánh giá.",
     )
@@ -110,6 +115,18 @@ class Evaluation(models.Model):
     )
     
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.score is not None:
+            if self.score >= 90:
+                self.rating = 'A'
+            elif self.score >= 75:
+                self.rating = 'B'
+            elif self.score >= 60:
+                self.rating = 'C'
+            else:
+                self.rating = 'D'
+        super().save(*args, **kwargs)
 
     def __str__(self):
         category_name = self.category.name if self.category else "Chưa phân loại"

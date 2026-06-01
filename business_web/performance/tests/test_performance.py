@@ -46,7 +46,7 @@ class TestPerformance(TestCase):
         response = self.client.post(url, data={
             'employee_username': self.employee.username,
             'category': self.category.id,
-            'rating': 'A',
+            'score': 95,
             'evaluation_date': self.today.strftime('%Y-%m-%d'),
             'evaluation_content': 'Làm việc tốt',
             'action': 'submit'
@@ -80,3 +80,19 @@ class TestPerformance(TestCase):
         eval.refresh_from_db()
         self.assertEqual(eval.status, 'acknowledged')
         self.assertEqual(eval.hr_note, 'Đã ghi nhận')
+
+
+class TestEvaluationScore(TestCase):
+    def test_rating_auto_from_score(self):
+        from django.contrib.auth.models import User
+        from performance.models import Evaluation
+        from django.utils import timezone
+        emp = User.objects.create_user('emp_sc', password='1')
+        rev = User.objects.create_user('rev_sc', password='1')
+        cases = [(95, 'A'), (80, 'B'), (65, 'C'), (40, 'D'), (90, 'A'), (75, 'B'), (60, 'C')]
+        for score, expected in cases:
+            ev = Evaluation.objects.create(
+                employee=emp, reviewer=rev, status='submitted',
+                score=score, evaluation_date=timezone.localdate(), content='x',
+            )
+            self.assertEqual(ev.rating, expected, f'score {score}')

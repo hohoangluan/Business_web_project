@@ -39,6 +39,7 @@ def build_evaluation_records(users):
             'evaluation_content': ev.content,
             'evidence_reference': ev.evidence_reference,
             'status': ev.status,
+            'score': ev.score,
             'rating': ev.rating,
             'category_name': ev.category.name if ev.category else 'Chưa phân loại',
         })
@@ -69,6 +70,7 @@ def build_reviewer_evaluation_records(users, reviewer):
             'evidence_reference': ev.evidence_reference,
             'status': ev.status,
             'status_display': ev.get_status_display(),
+            'score': ev.score,
             'rating': ev.rating,
             'rating_display': ev.get_rating_display() if ev.rating else 'Chưa xếp loại',
             'category_name': ev.category.name if ev.category else 'Chưa phân loại',

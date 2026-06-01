@@ -44,12 +44,18 @@ def create_evaluation(reviewer, employee_user, form_data, uploaded_file=None):
         path = default_storage.save(f'evaluations/{uploaded_file.name}', uploaded_file)
         evidence_reference = uploaded_file.name
 
+    raw_score = form_data.get('score')
+    try:
+        score_value = int(raw_score) if raw_score not in (None, '') else None
+    except (TypeError, ValueError):
+        score_value = None
+
     evaluation = Evaluation.objects.create(
         employee=employee_user,
         reviewer=reviewer,
         category=category,
         status='submitted',
-        rating=form_data.get('rating', ''),
+        score=score_value,
         evaluation_date=form_data.get('evaluation_date'),
         content=form_data.get('evaluation_content', ''),
         evidence_reference=evidence_reference,
@@ -73,6 +79,7 @@ def to_evaluation_dict(evaluation):
         'evidence_reference': evaluation.evidence_reference,
         'status': evaluation.status,
         'status_display': evaluation.get_status_display(),
+        'score': evaluation.score,
         'rating': evaluation.rating,
         'rating_display': evaluation.get_rating_display() if evaluation.rating else 'Chưa xếp loại',
         'hr_note': evaluation.hr_note,
@@ -290,7 +297,7 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
     """Form đánh giá UI — validate và lưu vào database thật."""
     form_state = {
         'can_submit': can_submit_evaluation_demo(current_user),
-        'form_data': {'evaluation_content': '', 'evaluation_date': '', 'category': '', 'rating': ''},
+        'form_data': {'evaluation_content': '', 'evaluation_date': '', 'category': '', 'score': ''},
         'errors': {},
         'preview': None,
         'success_message': '',
@@ -316,7 +323,7 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
         'evaluation_content': post_data.get('evaluation_content', '').strip(),
         'evaluation_date': post_data.get('evaluation_date', '').strip(),
         'category': post_data.get('category', '').strip(),
-        'rating': post_data.get('rating', '').strip(),
+        'score': post_data.get('score', '').strip(),
     }
     if uploaded_file:
         form_state['selected_file_name'] = uploaded_file.name
@@ -326,7 +333,7 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
     eval_date = parse_date_input(date_raw)
     posted_username = post_data.get('employee_username', '').strip()
     category_id = form_state['form_data']['category']
-    rating = form_state['form_data']['rating']
+    score = form_state['form_data']['score']
 
     if posted_username != selected_employee_user.username:
         form_state['errors']['employee_username'] = 'Nhân viên không khớp.'
@@ -336,8 +343,15 @@ def build_evaluation_form_state(current_user, selected_employee_user, post_data=
         form_state['errors']['evaluation_date'] = 'Ngày đánh giá không hợp lệ.'
     if not category_id:
         form_state['errors']['category'] = 'Vui lòng chọn loại đánh giá.'
-    if not rating:
-        form_state['errors']['rating'] = 'Vui lòng xếp loại nhân viên.'
+    if not score:
+        form_state['errors']['score'] = 'Vui lòng nhập điểm đánh giá.'
+    else:
+        try:
+            score_int = int(score)
+            if not (0 <= score_int <= 100):
+                form_state['errors']['score'] = 'Điểm phải từ 0 đến 100.'
+        except ValueError:
+            form_state['errors']['score'] = 'Điểm phải là số.'
 
     if form_state['errors']:
         return form_state

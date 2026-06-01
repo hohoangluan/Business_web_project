@@ -470,16 +470,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Xếp loại nhân viên</label>
-                    <select name="rating">
-                        <option value="">-- Xếp loại (A/B/C/D) --</option>
-                        <option value="A" {% if form_state.form_data.rating == "A" %}selected{% endif %}>A - Xuất sắc</option>
-                        <option value="B" {% if form_state.form_data.rating == "B" %}selected{% endif %}>B - Tốt</option>
-                        <option value="C" {% if form_state.form_data.rating == "C" %}selected{% endif %}>C - Trung bình</option>
-                        <option value="D" {% if form_state.form_data.rating == "D" %}selected{% endif %}>D - Cần cải thiện</option>
-                    </select>
-                    {% if form_state.errors.rating %}
-                    <div class="field-error">{{ form_state.errors.rating }}</div>
+                    <label>Điểm đánh giá (0-100)</label>
+                    <input type="number" name="score" min="0" max="100" class="form-control" placeholder="Điểm 0-100" value="{{ form_state.form_data.score }}">
+                    {% if form_state.errors.score %}
+                    <div class="field-error">{{ form_state.errors.score }}</div>
                     {% endif %}
                 </div>
 
