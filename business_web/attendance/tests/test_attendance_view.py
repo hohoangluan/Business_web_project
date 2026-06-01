@@ -10,20 +10,21 @@ class TestAttendanceView(TestCase):
         self.client = Client()
         self.user = User.objects.create_user(username='nv001', password='123')
         
-        # Create some attendance records
-        today = timezone.now().date()
+        # Tạo 2 bản ghi trong THÁNG HIỆN TẠI (neo theo đầu tháng để không phụ
+        # thuộc ngày chạy test — view chỉ hiển thị record từ đầu tháng trở đi).
+        first_of_month = timezone.localdate().replace(day=1)
         AttendanceRecord.objects.create(
             user=self.user,
-            record_date=today,
+            record_date=first_of_month,
             check_in_time=timezone.now().replace(hour=8, minute=0, second=0, microsecond=0),
             check_out_time=timezone.now().replace(hour=17, minute=0, second=0, microsecond=0),
             status='present'
         )
-        
+
         AttendanceRecord.objects.create(
             user=self.user,
-            record_date=today - timedelta(days=1),
-            check_in_time=timezone.now().replace(hour=8, minute=30, second=0, microsecond=0) - timedelta(days=1),
+            record_date=first_of_month + timedelta(days=1),
+            check_in_time=timezone.now().replace(hour=8, minute=30, second=0, microsecond=0),
             status='late'
         )
         
