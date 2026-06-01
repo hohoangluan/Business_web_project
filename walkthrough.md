@@ -86,7 +86,7 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `role` | ForeignKey → Role (SET_NULL) | Vai trò hệ thống (RBAC) |
 | `permissions` | ManyToManyField → CustomPermission | Quyền riêng lẻ |
 | `full_name` | CharField | Họ tên đầy đủ |
-| `employee_id` | CharField (unique) | MSNV — format: `[YY][MaPhongBan][STT4]` |
+| `employee_id` | CharField (unique) | MSNV — **HR nhập tay** khi tạo hồ sơ (không auto-sinh) |
 
 > Helper: `has_custom_permission(codename)`, `get_role_name()`.
 
@@ -208,12 +208,11 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `user` | OneToOneField → User | Nhân viên sở hữu |
 | `face_base64` | TextField | Ảnh khuôn mặt mã hóa Base64 — **chỉ để preview** trên UI |
 | `slot_id` | PositiveSmallIntegerField (default=1) | Slot trên service từ xa (pin về 1, hỗ trợ multi-slot 1–5) |
-| `embedding` | JSONField (nullable) | **Luôn `None`** — vector khuôn mặt nay lưu ở service từ xa (MongoDB + FAISS), không lưu local |
 | `content_type` | CharField | MIME type ảnh: `image/png`, `image/jpeg` |
 | `created_at` / `updated_at` | DateTimeField | Tạo / cập nhật cuối |
 
 > [!NOTE]
-> Row `EmployeeFace` local chỉ giữ ảnh preview + `slot_id`. Toàn bộ embedding/so khớp do service từ xa xử lý. Cột `embedding` còn lại vì lý do tương thích nhưng không còn ghi dữ liệu (có thể dọn bằng migration `RemoveField` sau).
+> Row `EmployeeFace` local chỉ giữ ảnh preview + `slot_id`. Toàn bộ embedding/so khớp do service từ xa xử lý. Cột `embedding` cũ **đã được xóa** ở migration `0008_remove_employeeface_embedding`.
 
 #### `FaceChangeRequest`
 > **Nghiệp vụ phê duyệt:** Chống gian lận chấm công hộ. Nếu nhân viên tự cập nhật khuôn mặt (khi đã có), hệ thống tạo `FaceChangeRequest` ở trạng thái `pending` và chờ HR duyệt. Nếu là **đăng ký lần đầu** hoặc do HR/Admin thao tác, yêu cầu sẽ được tự động `approved` và áp dụng ngay.
@@ -237,7 +236,7 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `record_date` | DateField | Ngày chấm công |
 | `check_in_time` | TimeField (nullable) | Giờ vào làm |
 | `check_out_time` | TimeField (nullable) | Giờ tan làm |
-| `status` | CharField | `on_time`, `late`, `early_leave`, `absent` |
+| `status` | CharField | `on_time`, `late`, `early_leave`, `no_checkout`, `absent` |
 
 #### `AttendanceAdjustmentRequest`
 > **1 AttendanceRecord ↔ 1 AdjustmentRequest** (OneToOne, `related_name='adjustment_request'`)
@@ -385,7 +384,7 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `title` / `content` | CharField / TextField | Tiêu đề / nội dung |
 | `evidence_file` | FileField (`tickets/%Y/%m/`) | File minh chứng |
 | `status` | CharField (choices) | `new` → `processing` → `resolved` → `closed` / `rejected` |
-| `assigned_to` | ForeignKey → User (SET_NULL) | Người xử lý (định tuyến tự động) |
+| `assigned_to` | ForeignKey → User (SET_NULL) | Người xử lý — **tự nhận (claim)** khi tiếp nhận, không auto-route |
 | `rejection_reason` | TextField | Lý do từ chối |
 | `created_at` / `updated_at` | DateTimeField | — |
 
@@ -393,7 +392,7 @@ business_web/               ← Project root (settings, urls, wsgi)
 
 ### 2.10 App: `stats_reports` — Thống Kê Tổng Hợp
 
-> App này **không có model riêng**. Đọc và tổng hợp dữ liệu từ các app: `attendance`, `leaves`, `overtime`, `performance`, `rewards_discipline`. Hiện dùng mock data trong `services/` cho đến khi backend các app hoàn thiện.
+> App này **không có model riêng**. Đọc và tổng hợp dữ liệu **TRỰC TIẾP từ DB thật** của các app: `attendance`, `leaves`, `overtime`, `performance`, `rewards_discipline` (qua các builder trong `services/statistics_data.py` — **không còn mock data**).
 
 ---
 
@@ -534,21 +533,20 @@ sequenceDiagram
 
     HR->>Web: Điền form hồ sơ + upload ảnh khuôn mặt
     Web->>View: POST /employees/create/
-    View->>View: Validate dữ liệu (tuổi>=18, SĐT, CCCD, ảnh 3x4)
+    View->>View: Validate (MSNV không rỗng & chưa tồn tại, department bắt buộc)
 
     alt Validation failed
         View-->>Web: ❌ Hiển thị lỗi form
     else Validation passed
-        View->>Service: generate_employee_id(department)
-        Service-->>View: MSNV = [YY][MaPhongBan][STT4]
-        View->>Service: generate_username(ten, ho, phongban)
-        Service-->>View: Username (viết thường không dấu)
-        View->>DB: Tạo User(username, password ngẫu nhiên)
-        View->>DB: Tạo UserProfile(user, employee_id, role=Employee)
-        View->>DB: Tạo PersonalInfo / EmployeeWorkInfo / ContractInfo
+        View->>View: username = MSNV.lower().replace(" ", "")
+        View->>DB: Kiểm tra username chưa tồn tại
+        View->>View: password = "{MSNV}@2026" (mặc định, không ngẫu nhiên)
+        View->>DB: Tạo User(username, password)
+        View->>DB: Tạo UserProfile(user, employee_id=MSNV, role)
+        View->>DB: Tạo PersonalInfo / EmployeeWorkInfo
         View->>Service: Đăng ký khuôn mặt → POST /register (remote)
         View->>DB: Tạo EmployeeFace(user, face_base64 preview, slot_id)
-        View->>Email: Gửi email tài khoản (username, password)
+        View->>Email: Gửi email tài khoản (username, password mặc định)
         View-->>Web: ✅ "Tạo hồ sơ thành công"
     end
 ```
@@ -676,7 +674,7 @@ sequenceDiagram
                 System->>DB: status = rejected
             else L2 Duyệt
                 System->>DB: status = approved, ghi approved_by
-                System->>DB: Trừ quỹ phép của NV
+                Note over DB: Quỹ phép còn lại = derived (Σ ngày đơn approved/năm),<br/>không có bước trừ riêng
             end
         end
     end
@@ -727,17 +725,14 @@ sequenceDiagram
     Cron->>DB: Lấy ContractInfo có contract_end_date != null
     DB-->>Cron: Danh sách hợp đồng
 
-    loop Mỗi hợp đồng
-        Cron->>Cron: Số ngày còn lại = end_date - today
-        alt Còn 30 ngày
-            Cron->>Notif: Thông báo HR + Manager
-        else Còn 15 ngày
-            Cron->>Notif: Thông báo thêm cho Employee
-        else Còn 7 ngày
-            Cron->>Notif: Thông báo KHẨN cho tất cả
-        else Đã hết hạn
+    loop Mỗi hợp đồng (is_active=True, có ngày hết hạn)
+        Cron->>Cron: days_left = end_date - today
+        alt 0 < days_left <= 7 (gần / khẩn)
+            Cron->>Notif: Cảnh báo KHẨN — NV + Manager + Leader + tất cả HR
+        else 0 < days_left <= 30 (xa)
+            Cron->>Notif: Cảnh báo — NV + Manager + Leader + tất cả HR
+        else days_left < 0 (đã hết hạn)
             Cron->>DB: is_active = False (Hết hiệu lực)
-            Cron->>Notif: Thông báo KHẨN cho HR
         end
     end
 ```
@@ -833,35 +828,30 @@ sequenceDiagram
 
 ---
 
-### 5.11 Helpdesk Ticket — Định Tuyến Tự Động
+### 5.11 Helpdesk Ticket — Tiếp Nhận & Xử Lý
 
 ```mermaid
 sequenceDiagram
     actor Employee as Nhân viên
     participant System as Hệ thống
-    participant Router as Auto-Router
-    participant Assignee as Người xử lý
+    actor Assignee as Người xử lý (HR/Admin có quyền)
     participant DB as Database
 
-    Employee->>System: Tạo ticket (loại, nhóm, tiêu đề, nội dung, file)
-    System->>Router: Xác định bộ phận xử lý theo loại
+    Employee->>System: Tạo ticket (loại, mức ưu tiên, tiêu đề, nội dung, file)
+    System->>DB: Ticket(status=new, assigned_to=null)
 
-    alt IT / Kỹ thuật
-        Router->>DB: assigned_to = Admin
-    else Lương / Phép / Hành chính
-        Router->>DB: assigned_to = HR
-    else Kết quả đánh giá
-        Router->>DB: assigned_to = Manager
-    end
+    Note over Assignee: Không auto-route. Người có quyền (can_manage_requests)<br/>tự nhận ticket trên trang Xử lý.
+    Assignee->>System: Bấm "Tiếp nhận"
+    System->>DB: assigned_to = self, status=processing
 
-    System->>DB: Ticket(status=new, assigned_to=...)
-    System->>Assignee: Thông báo ticket mới
-
-    alt Sai bộ phận
-        Assignee->>System: Forward sang bộ phận đúng (giữ status=new)
-    else Tiếp nhận
-        Assignee->>System: status = processing → resolved
-        Employee->>System: Xác nhận → status = closed
+    alt Giải quyết
+        Assignee->>System: Đánh dấu giải quyết
+        System->>DB: status=resolved
+        Employee->>System: Xác nhận
+        System->>DB: status=closed
+    else Từ chối
+        Assignee->>System: Nhập lý do
+        System->>DB: status=rejected, rejection_reason
     end
 ```
 
@@ -887,11 +877,11 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
     [*] --> new : NV tạo ticket
-    new --> processing : Người xử lý tiếp nhận
-    new --> new : Forward sang bộ phận khác
+    new --> processing : Người xử lý tự nhận (claim)
     processing --> resolved : Đã xử lý xong
     resolved --> closed : NV xác nhận
-    new --> rejected : Từ chối ngay
+    new --> rejected : Từ chối
+    processing --> rejected : Từ chối
     closed --> [*]
     rejected --> [*]
 ```
@@ -901,13 +891,11 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
     [*] --> active : HR tạo HĐ mới
-    active --> warning_30d : Còn 30 ngày
-    warning_30d --> warning_15d : Còn 15 ngày
-    warning_15d --> warning_7d : Còn 7 ngày
-    warning_7d --> expired : Hết hạn chưa gia hạn
-    warning_30d --> renewed : HR gia hạn
-    warning_15d --> renewed : HR gia hạn
-    warning_7d --> renewed : HR gia hạn
+    active --> warning_far : days_left <= 30 (xa)
+    warning_far --> warning_near : days_left <= 7 (khẩn)
+    warning_near --> expired : Hết hạn chưa gia hạn
+    warning_far --> renewed : HR gia hạn
+    warning_near --> renewed : HR gia hạn
     expired --> [*]
     renewed --> active : HĐ mới hiệu lực
 ```
@@ -941,16 +929,16 @@ stateDiagram-v2
 |----|---------|------------------------|
 | `QĐ_TK1` | Sai MK 3 lần → khóa `is_active=False` | Yêu cầu nghiệp vụ (chưa thấy đếm failed_login) |
 | `QĐ_TK2` | HR mở khóa Employee/Leader/Manager; Admin mở khóa mọi tài khoản | Có view khóa/mở (`account_status_view`) |
-| `QĐ_Tao_MSNV` | `[YY][MaPhongBan][STT4]` — VD: `26IT0001` | Có service sinh MSNV |
-| `QĐ_Tao_Username` | `[ten][ho][maphongban]` viết thường không dấu | Có service sinh username |
+| `QĐ_Tao_MSNV` | HR **nhập MSNV tay** khi tạo hồ sơ | ✅ Nhập thủ công (không auto-sinh) |
+| `QĐ_Tao_Username` | username = MSNV viết thường bỏ trắng; pass mặc định `{MSNV}@2026` | ✅ Triển khai |
 | `QĐ_PheDuyet_L1` | `leader_user` HOẶC `manager_user` của NV → duyệt L1 | ✅ Triển khai |
 | `QĐ_PheDuyet_L2` | Sau L1 → HR xác nhận | ✅ (OT: HR tự tạo → bỏ qua L2) |
 | `QĐ_CapNhat_DuLieu` | Nghỉ phép/OT/thưởng-phạt chỉ hiệu lực sau L2 | ✅ |
-| `QĐ_CanhBao` | 30 ngày (HR+Manager) → 15 (+NV) → 7 (tất cả, KHẨN) | Batch job |
+| `QĐ_CanhBao` | 2 mốc: 30 ngày (xa) & 7 ngày (khẩn); người nhận: NV + Manager + Leader + tất cả HR | ✅ Batch job (`THRESHOLD_FAR=30`, `THRESHOLD_NEAR=7`) |
 | `QĐ_DieuChinh` | HR chỉ sửa giờ công kỳ hiện tại (chưa chốt lương) | ✅ AdjustmentRequest |
 | `QĐ_LuuTruDanhGia` | Sau `submitted` → không sửa đánh giá | ✅ |
 | `QĐ_XacNhanBaoCao` | Sau `acknowledged` → khóa sửa/xóa báo cáo | ✅ `can_edit_or_delete` |
-| `QĐ_DieuHuong` | Ticket định tuyến tự động theo loại | ✅ Auto-router |
+| `QĐ_DieuHuong` | Ticket `new` → người có quyền tự nhận (claim), không auto-route | ✅ Claim thủ công |
 | `QĐ_NghiViec` | NV `resigned` → `is_active=False` | Yêu cầu nghiệp vụ |
 | `QĐ_Session` | Không hoạt động 30 phút → tự đăng xuất | Yêu cầu nghiệp vụ (chưa cấu hình `SESSION_COOKIE_AGE`) |
 
