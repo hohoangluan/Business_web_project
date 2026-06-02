@@ -8,7 +8,12 @@ from django.views.decorators.http import require_POST
 
 from accounts.forms import AssignPermissionsForm, AssignRoleForm
 from accounts.models import Role
-from accounts.services import can_manage_work_info, ensure_profile, is_admin_user
+from accounts.services import (
+    can_manage_work_info,
+    create_notification,
+    ensure_profile,
+    is_admin_user,
+)
 
 
 @login_required
@@ -88,6 +93,12 @@ def assign_role_view(request, user_id):
         if form.is_valid():
             profile.role = form.cleaned_data["role"]
             profile.save()
+            if profile.role:
+                create_notification(
+                    target_user,
+                    "Vai trò của bạn đã thay đổi",
+                    f"Quản trị viên đã cập nhật vai trò của bạn thành '{profile.role.get_name_display()}'.",
+                )
             messages.success(
                 request,
                 (

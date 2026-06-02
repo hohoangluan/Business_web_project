@@ -28,11 +28,12 @@ def can_manage_work_info(user):
 
 
 def can_access_statistics(user):
-    """Return whether the user can access statistics pages."""
+    """Return whether the user can access statistics pages.
 
-    return has_admin_business_access(user) or user_has_role(
-        user, Role.HR, Role.MANAGER, Role.LEADER
-    )
+    Admin không được xem thống kê công ty — chỉ HR/Manager/Leader.
+    """
+
+    return user_has_role(user, Role.HR, Role.MANAGER, Role.LEADER)
 
 
 def can_access_evaluations(user):

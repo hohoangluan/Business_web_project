@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
+from accounts.decorators import deny_admin
 from accounts.services import ensure_profile, can_manage_requests
 from overtime.forms import OvertimeRequestForm
 from overtime.services import (
@@ -24,6 +25,7 @@ from overtime.services import (
 # ---------------------------------------------------------------------------
 
 @login_required
+@deny_admin
 def overtime_view(request):
     """
     GET  → Hiển thị trang tăng ca cá nhân (stats + bảng + biểu đồ).

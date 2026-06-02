@@ -1,0 +1,60 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# TRANG XEM TẤT CẢ THÔNG BÁO #}
+{% load static %}
+
+{% block title %}Thông báo - HRMS{% endblock %}
+
+{% block content %}
+<style>
+    .notif-page { max-width: 760px; }
+    .notif-row {
+        display: flex; gap: 1rem; align-items: flex-start;
+        padding: 1rem 1.25rem;
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        margin-bottom: 0.75rem;
+        transition: box-shadow 0.2s;
+    }
+    .notif-row:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+    .notif-row.unread { border-left: 3px solid var(--primary); background: #f8fafc; }
+    .notif-ic {
+        width: 38px; height: 38px; flex-shrink: 0;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        background: #eef2ff; color: var(--primary);
+    }
+    .notif-body { flex: 1; }
+    .notif-title { font-weight: 600; color: var(--text-main); margin-bottom: 0.2rem; }
+    .notif-msg { font-size: 0.9rem; color: var(--text-secondary); }
+    .notif-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; }
+    .notif-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .notif-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+</style>
+
+<div class="animate-fade notif-page">
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Thông báo</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Các thông báo hệ thống liên quan đến tài khoản của bạn.</p>
+    </div>
+
+    {% for notif in notifications %}
+    <div class="notif-row {% if not notif.is_read %}unread{% endif %}">
+        <div class="notif-ic"><i class="fa-solid fa-bell"></i></div>
+        <div class="notif-body">
+            <div class="notif-title">{{ notif.title }}</div>
+            <div class="notif-msg">{{ notif.message }}</div>
+            <div class="notif-time"><i class="fa-regular fa-clock"></i> {{ notif.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        {% if notif.link %}
+        <a href="{{ notif.link }}" class="btn btn-sm btn-outline" style="align-self:center;">Xem</a>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="notif-empty">
+        <i class="fa-regular fa-bell-slash"></i>
+        <h3>Chưa có thông báo</h3>
+        <p>Các thông báo hệ thống sẽ hiển thị tại đây.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

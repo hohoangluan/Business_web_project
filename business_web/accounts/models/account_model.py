@@ -47,6 +47,19 @@ class UserProfile(models.Model):
         role_name = self.role.get_name_display() if self.role else "No Role"
         return f"{self.user.username} ({role_name})"
 
+    @property
+    def is_admin(self):
+        """Whether this profile is a system administrator.
+
+        Dùng cho gating giao diện (template). Role == admin, hoặc superuser CHƯA gán
+        role (dev/admin mặc định). Superuser đang mô phỏng role khác → theo role đó,
+        để bảng "Mô phỏng vai trò" đổi được giao diện giữa các role.
+        """
+
+        if self.role and self.role.name == Role.ADMIN:
+            return True
+        return bool(self.user_id and self.user.is_superuser and not self.role)
+
     def has_custom_permission(self, codename):
         """Return whether this profile has the given custom permission."""
 

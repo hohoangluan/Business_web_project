@@ -9,8 +9,17 @@ Luồng:
 from django.utils import timezone
 
 from accounts.models import Role
-from accounts.services import is_admin_user, is_hr_user, user_has_role
+from accounts.services import (
+    create_notification,
+    is_admin_user,
+    is_hr_user,
+    user_has_role,
+)
 from rewards_discipline.models import RewardPenalty
+
+
+def _record_label(obj):
+    return 'Khen thưởng' if obj.record_type == RewardPenalty.REWARD else 'Xử phạt'
 
 
 def initial_status_for(proposer):
@@ -53,6 +62,11 @@ def approve_reward_penalty(approver, record_id):
         obj.status = RewardPenalty.APPROVED
         obj.approved_by = approver
         obj.save(update_fields=['status', 'approved_by'])
+        create_notification(
+            obj.employee,
+            f'{_record_label(obj)} đã được duyệt',
+            f'Phiếu "{obj.reason_title}" đã được phê duyệt.',
+        )
         return True, 'Đã phê duyệt cuối cùng (HR).'
 
     return False, 'Phiếu đã được xử lý.'
@@ -74,6 +88,11 @@ def reject_reward_penalty(approver, record_id):
 
     obj.status = RewardPenalty.REJECTED
     obj.save(update_fields=['status'])
+    create_notification(
+        obj.employee,
+        f'{_record_label(obj)} bị từ chối',
+        f'Phiếu "{obj.reason_title}" đã bị từ chối.',
+    )
     return True, 'Đã từ chối phiếu.'
 
 

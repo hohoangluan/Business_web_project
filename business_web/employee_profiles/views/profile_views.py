@@ -14,7 +14,7 @@ from employee_profiles.models import EmployeeDocument
 from accounts.services import (
     ensure_profile, ensure_work_info, ensure_contract_info,
     ensure_personal_info, ensure_emergency_contact, ensure_education_info,
-    is_admin_user, is_hr_user, can_manage_work_info,
+    is_admin_user, is_hr_user, can_manage_work_info, create_notification,
 )
 from employee_profiles.forms import EmployeeProfileForm
 from employee_profiles.services import (
@@ -46,6 +46,10 @@ def profile_view(request):
     - POST: cập nhật thông tin cá nhân cơ bản
     Template: employee_profiles/profile.html
     """
+    if is_admin_user(request.user):
+        messages.error(request, 'Tài khoản Admin không sử dụng hồ sơ cá nhân.')
+        return redirect('dashboard')
+
     profile = ensure_profile(request.user)
     ensure_work_info(request.user)
     ensure_contract_info(request.user)
@@ -125,6 +129,10 @@ def hr_view_profile_view(request, user_id):
     liên hệ khẩn cấp, học vấn, tài liệu đính kèm.
     Template: employee_profiles/hr_view_profile.html
     """
+    if is_admin_user(request.user):
+        messages.error(request, 'Tài khoản Admin không có quyền xem chi tiết hồ sơ nhân sự.')
+        return redirect('user_list')
+
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     work_info = ensure_work_info(target_user)
@@ -334,6 +342,10 @@ def edit_work_info_view(request, user_id):
     HR/Admin chỉnh toàn bộ hồ sơ nhân viên (bao gồm vai trò).
     Template: employee_profiles/edit_work_info.html
     """
+    if is_admin_user(request.user):
+        messages.error(request, 'Tài khoản Admin không có quyền chỉnh sửa hồ sơ nhân sự.')
+        return redirect('user_list')
+
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     work_info = ensure_work_info(target_user)
@@ -447,6 +459,10 @@ def hr_assign_role_view(request, user_id):
     - Admin: gán tất cả vai trò.
     Template: employee_profiles/hr_assign_role.html
     """
+    if is_admin_user(request.user):
+        messages.error(request, 'Tài khoản Admin gán vai trò qua mục Quản lý tài khoản hệ thống.')
+        return redirect('user_list')
+
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     editor_is_admin = is_admin_user(request.user)
@@ -468,6 +484,11 @@ def hr_assign_role_view(request, user_id):
                     return redirect('hr_assign_role', user_id=target_user.pk)
                 profile.role = new_role
                 profile.save()
+                create_notification(
+                    target_user,
+                    'Vai trò của bạn đã thay đổi',
+                    f'Vai trò của bạn đã được cập nhật thành "{new_role.get_name_display()}".',
+                )
                 messages.success(
                     request,
                     f'Đã cập nhật vai trò "{new_role.get_name_display()}" cho "{profile.full_name or target_user.username}".'

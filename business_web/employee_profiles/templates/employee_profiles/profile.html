@@ -334,110 +334,169 @@
 <div id="profileEditMode" style="display:none;">
     <form method="post" action="{% url 'profile' %}">
         {% csrf_token %}
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fa-solid fa-pen" style="color:var(--primary);"></i>&nbsp; Chỉnh sửa thông tin cá nhân</h3>
-            </div>
-            <div class="card-body">
-                <div class="form-row">
-                    <!-- Thông tin cá nhân cơ bản -->
-                    <div class="form-group">
-                        <label class="form-label">Họ và tên</label>
-                        <input type="text" name="full_name" class="form-control" value="{{ request.user.profile.full_name }}" placeholder="Nhập họ và tên">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ request.user.email }}" placeholder="Nhập email">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" name="phone_number" class="form-control" value="{{ request.user.profile.phone_number }}" placeholder="Nhập số điện thoại">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ngày sinh (DD/MM/YYYY)</label>
-                        <input type="text" name="date_of_birth" class="form-control" value="{{ request.user.profile.date_of_birth }}" placeholder="VD: 15/06/1990">
-                    </div>
+        
+        <!-- --- Edit Section 1: Thông tin cá nhân --- -->
+        <div class="profile-section edit-section active" id="edit-section-personal">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-user" style="color:var(--primary);"></i>&nbsp; Chỉnh sửa thông tin cá nhân</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <!-- Thông tin cá nhân cơ bản -->
+                        <div class="form-group">
+                            <label class="form-label">Họ và tên</label>
+                            <input type="text" name="full_name" class="form-control" value="{{ request.user.profile.full_name }}" placeholder="Nhập họ và tên">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ request.user.email }}" placeholder="Nhập email">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="text" name="phone_number" class="form-control" value="{{ request.user.profile.phone_number }}" placeholder="Nhập số điện thoại">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ngày sinh (DD/MM/YYYY)</label>
+                            <input type="text" name="date_of_birth" class="form-control" value="{{ request.user.profile.date_of_birth }}" placeholder="VD: 15/06/1990">
+                        </div>
 
-                    <!-- Thông tin cá nhân mở rộng -->
-                    <div class="form-group">
-                        <label class="form-label">Giới tính</label>
-                        <input type="text" name="gender" class="form-control" value="{{ request.user.personal_info.gender }}" placeholder="Nam/Nữ">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Tình trạng hôn nhân</label>
-                        <input type="text" name="marital_status" class="form-control" value="{{ request.user.personal_info.marital_status }}" placeholder="Độc thân/Đã kết hôn">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Quốc tịch</label>
-                        <input type="text" name="nationality" class="form-control" value="{{ request.user.personal_info.nationality }}" placeholder="Việt Nam">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Số CCCD/CMND</label>
-                        <input type="text" name="id_card_number" class="form-control" value="{{ request.user.personal_info.id_card_number }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Nơi cấp</label>
-                        <input type="text" name="id_card_issue_place" class="form-control" value="{{ request.user.personal_info.id_card_issue_place }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ngày cấp</label>
-                        <input type="text" name="id_card_issue_date" class="form-control" value="{{ request.user.personal_info.id_card_issue_date }}">
-                    </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Địa chỉ thường trú</label>
-                        <textarea name="permanent_address" class="form-control" rows="2">{{ request.user.personal_info.permanent_address }}</textarea>
-                    </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Địa chỉ tạm trú</label>
-                        <textarea name="temporary_address" class="form-control" rows="2">{{ request.user.personal_info.temporary_address }}</textarea>
-                    </div>
-
-                    <!-- Người liên hệ khẩn cấp -->
-                    <div class="form-group">
-                        <label class="form-label">Họ tên người liên hệ</label>
-                        <input type="text" name="contact_name" class="form-control" value="{{ request.user.emergency_contact.contact_name }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">SĐT liên hệ</label>
-                        <input type="text" name="contact_phone" class="form-control" value="{{ request.user.emergency_contact.contact_phone }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Quan hệ</label>
-                        <input type="text" name="relation" class="form-control" value="{{ request.user.emergency_contact.relation }}">
-                    </div>
-                    <div class="form-group full-width">
-                        <label class="form-label">Địa chỉ người liên hệ</label>
-                        <textarea name="contact_address" class="form-control" rows="2">{{ request.user.emergency_contact.contact_address }}</textarea>
-                    </div>
-
-                    <!-- Học vấn & Năng lực -->
-                    <div class="form-group">
-                        <label class="form-label">Trình độ học vấn</label>
-                        <input type="text" name="education_level" class="form-control" value="{{ request.user.education_and_skills.education_level }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Bằng cấp</label>
-                        <input type="text" name="degree" class="form-control" value="{{ request.user.education_and_skills.degree }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Chuyên ngành</label>
-                        <input type="text" name="major" class="form-control" value="{{ request.user.education_and_skills.major }}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Chứng chỉ</label>
-                        <textarea name="certificates" class="form-control" rows="2">{{ request.user.education_and_skills.certificates }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ngoại ngữ</label>
-                        <textarea name="foreign_languages" class="form-control" rows="2">{{ request.user.education_and_skills.foreign_languages }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Kỹ năng chuyên môn</label>
-                        <textarea name="professional_skills" class="form-control" rows="2">{{ request.user.education_and_skills.professional_skills }}</textarea>
+                        <!-- Thông tin cá nhân mở rộng -->
+                        <div class="form-group">
+                            <label class="form-label">Giới tính</label>
+                            <input type="text" name="gender" class="form-control" value="{{ request.user.personal_info.gender }}" placeholder="Nam/Nữ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tình trạng hôn nhân</label>
+                            <input type="text" name="marital_status" class="form-control" value="{{ request.user.personal_info.marital_status }}" placeholder="Độc thân/Đã kết hôn">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Quốc tịch</label>
+                            <input type="text" name="nationality" class="form-control" value="{{ request.user.personal_info.nationality }}" placeholder="Việt Nam">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Số CCCD/CMND</label>
+                            <input type="text" name="id_card_number" class="form-control" value="{{ request.user.personal_info.id_card_number }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nơi cấp</label>
+                            <input type="text" name="id_card_issue_place" class="form-control" value="{{ request.user.personal_info.id_card_issue_place }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ngày cấp</label>
+                            <input type="text" name="id_card_issue_date" class="form-control" value="{{ request.user.personal_info.id_card_issue_date }}">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Địa chỉ thường trú</label>
+                            <textarea name="permanent_address" class="form-control" rows="2">{{ request.user.personal_info.permanent_address }}</textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Địa chỉ tạm trú</label>
+                            <textarea name="temporary_address" class="form-control" rows="2">{{ request.user.personal_info.temporary_address }}</textarea>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="card-footer">
+        </div>
+
+        <!-- --- Edit Section 2: Thông tin công việc (Chỉ đọc) --- -->
+        <div class="profile-section edit-section" id="edit-section-work">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-briefcase" style="color:var(--primary);"></i>&nbsp; Thông tin công việc</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                        Bạn không có quyền chỉnh sửa phần này. Vui lòng liên hệ HR nếu có sai sót.
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item"><div class="info-label">Phòng ban</div><div class="info-value">{{ request.user.profile.department|default:"Chưa cập nhật" }}</div></div>
+                        <div class="info-item"><div class="info-label">Chức vụ</div><div class="info-value">{{ request.user.profile.position|default:"Chưa cập nhật" }}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- Edit Section 3: Người liên hệ --- -->
+        <div class="profile-section edit-section" id="edit-section-contact">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-address-book" style="color:var(--primary);"></i>&nbsp; Người liên hệ khẩn cấp</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Họ tên người liên hệ</label>
+                            <input type="text" name="contact_name" class="form-control" value="{{ request.user.emergency_contact.contact_name }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">SĐT liên hệ</label>
+                            <input type="text" name="contact_phone" class="form-control" value="{{ request.user.emergency_contact.contact_phone }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Quan hệ</label>
+                            <input type="text" name="relation" class="form-control" value="{{ request.user.emergency_contact.relation }}">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Địa chỉ người liên hệ</label>
+                            <textarea name="contact_address" class="form-control" rows="2">{{ request.user.emergency_contact.contact_address }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- Edit Section 4: Học vấn & Năng lực --- -->
+        <div class="profile-section edit-section" id="edit-section-education">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-graduation-cap" style="color:var(--primary);"></i>&nbsp; Học vấn & Năng lực</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Trình độ học vấn</label>
+                            <input type="text" name="education_level" class="form-control" value="{{ request.user.education_and_skills.education_level }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bằng cấp</label>
+                            <input type="text" name="degree" class="form-control" value="{{ request.user.education_and_skills.degree }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Chuyên ngành</label>
+                            <input type="text" name="major" class="form-control" value="{{ request.user.education_and_skills.major }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Chứng chỉ</label>
+                            <textarea name="certificates" class="form-control" rows="2">{{ request.user.education_and_skills.certificates }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ngoại ngữ</label>
+                            <textarea name="foreign_languages" class="form-control" rows="2">{{ request.user.education_and_skills.foreign_languages }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Kỹ năng chuyên môn</label>
+                            <textarea name="professional_skills" class="form-control" rows="2">{{ request.user.education_and_skills.professional_skills }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- --- Edit Section 5: Files --- -->
+        <div class="profile-section edit-section" id="edit-section-files">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-folder-open" style="color:var(--primary);"></i>&nbsp; Tệp minh chứng</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">Vui lòng tải tệp lên trong chế độ xem (View Mode).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem; background: transparent; box-shadow: none;">
+            <div class="card-footer" style="border: none; padding: 0; justify-content: flex-end; display: flex; gap: 0.5rem;">
                 <button type="button" class="btn btn-secondary" id="btnCancelEdit">
                     <i class="fa-solid fa-xmark"></i> Hủy
                 </button>

@@ -27,6 +27,8 @@ from .views import (
     delete_user_view,
     toggle_user_active_view,
     reset_user_password_view,
+    notifications_view,
+    mark_notifications_read_view,
 )
 
 urlpatterns = [
@@ -44,6 +46,10 @@ urlpatterns = [
     # ---------- Settings & DEV ----------
     path('settings/', settings_view, name='settings'),
     path('switch-role/', switch_role_view, name='switch_role'),
+
+    # ---------- Notifications ----------
+    path('notifications/', notifications_view, name='notifications'),
+    path('notifications/mark-read/', mark_notifications_read_view, name='mark_notifications_read'),
 
     # ---------- Admin: User Management ----------
     path('users/', user_list_view, name='user_list'),

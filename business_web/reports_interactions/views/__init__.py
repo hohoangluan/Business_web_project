@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from accounts.decorators import deny_admin
 from accounts.services import ensure_profile, can_manage_requests
 from reports_interactions.models import Report
 from reports_interactions.models.ticket_model import Ticket
@@ -10,6 +11,7 @@ from reports_interactions.forms import ReportForm, TicketForm
 
 
 @login_required
+@deny_admin
 def report_view(request):
     """
     Trang quản lý báo cáo cá nhân của người dùng.

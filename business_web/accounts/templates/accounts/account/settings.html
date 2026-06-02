@@ -119,16 +119,6 @@
                     <div class="st-panel-desc">Tùy biến bộ công cụ HRMS theo ý muốn của riêng bạn.</div>
                 </div>
                 
-                <div style="display:flex; justify-content:space-between; align-items:center; max-width: 500px; padding: 1rem 0; border-bottom: 1px solid #f1f5f9;">
-                    <div>
-                        <div style="font-weight: 600; color: var(--text-main);">Chế độ Tối (Dark Mode)</div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">Sử dụng giao diện ban đêm bảo vệ mắt</div>
-                    </div>
-                    <label class="st-toggle">
-                        <input type="checkbox">
-                        <span class="st-slider"></span>
-                    </label>
-                </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; max-width: 500px; padding: 1rem 0; border-bottom: 1px solid #f1f5f9;">
                     <div>
@@ -141,14 +131,8 @@
                     </label>
                 </div>
                 
-                <div class="st-form-group" style="margin-top: 1.5rem;">
-                    <label class="st-label">Ngôn ngữ hiển thị</label>
-                    <select class="st-input" style="width: 200px;">
-                        <option>Tiếng Việt (Mặc định)</option>
-                        <option>English (US)</option>
-                    </select>
-                </div>
-                
+
+                {% if not is_admin %}
                 <div class="st-form-group" style="margin-top: 1.5rem; padding: 1.5rem; background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed var(--border-light);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                         <div>
@@ -195,7 +179,8 @@
                     </button>
                     {% endif %}
                 </div>
-                
+                {% endif %}
+
                 <button class="st-btn-save" onclick="alert('Đã lưu cấu hình cá nhân!')">Lưu thay đổi</button>
             </div>
 

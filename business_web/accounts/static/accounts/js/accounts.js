@@ -87,6 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Hiện section tương ứng
       var section = document.getElementById('section-' + target);
       if (section) section.classList.add('active');
+      
+      // Hiện section tương ứng trong chế độ Edit
+      var editSection = document.getElementById('edit-section-' + target);
+      if (editSection) editSection.classList.add('active');
     });
   });
 

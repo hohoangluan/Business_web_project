@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
 
+from accounts.decorators import deny_admin
 from accounts.services import ensure_profile
 from attendance.models import AttendanceRecord, AttendanceAdjustmentRequest
 from attendance.services.record.attendance_logging_service import get_open_previous_record
@@ -26,6 +27,7 @@ def _history_rows(user, limit=10):
 
 
 @login_required
+@deny_admin
 def attendance_view(request):
     """Trang chấm công. Real data."""
     ensure_profile(request.user)

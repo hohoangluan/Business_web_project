@@ -1,6 +1,7 @@
 """Views cho hợp đồng lao động."""
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from accounts.decorators import deny_admin
 from accounts.services import ensure_profile, ensure_contract_info
 from contracts.services import build_contract_page_context
 
@@ -13,6 +14,7 @@ from contracts.views.expiring_view import (
 
 
 @login_required
+@deny_admin
 def contract_view(request):
     """
     Trang hợp đồng cá nhân.
