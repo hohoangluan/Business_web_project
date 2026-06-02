@@ -10,8 +10,15 @@ from accounts.services import (
     user_has_role,
 )
 from accounts.models import Role
+from accounts.services import is_admin_user, user_has_role
 from rewards_discipline.models import RewardPenalty
 from rewards_discipline.forms import RewardPenaltyForm
+from rewards_discipline.services import (
+    approve_reward_penalty,
+    get_pending_for_approver,
+    initial_status_for,
+    reject_reward_penalty,
+)
 
 
 @login_required
@@ -73,7 +80,7 @@ def rewards_penalties_view(request):
             if form.is_valid():
                 instance = form.save(commit=False)
                 instance.proposer = request.user
-                instance.status = 'pending'
+                instance.status = initial_status_for(request.user)
                 instance.save()
                 messages.success(request, 'Tạo đề xuất Khen thưởng / Xử phạt thành công! Phiếu đã được gửi tới phòng Nhân sự chờ duyệt.')
                 return redirect('rewards_penalties')
@@ -99,43 +106,38 @@ def rewards_penalties_view(request):
 
 @login_required
 def rewards_penalties_approval_view(request):
-    """Trang phê duyệt thưởng/phạt dành riêng cho HR / Admin."""
+    """Trang phê duyệt thưởng/phạt — duyệt 2 cấp.
+
+    Manager xử lý cấp 1 (phiếu Leader lập, status=pending);
+    HR/Admin xử lý cấp 2 (status=leader_approved).
+    """
     ensure_profile(request.user)
 
-    # 1. Bảo mật: Chỉ cho phép HR hoặc Admin truy cập xét duyệt
-    is_hr = is_hr_user(request.user)
-
-    if not is_hr:
-        messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt! Chỉ bộ phận Nhân sự (HR) mới được duyệt Thưởng / Phạt.')
+    # 1. Bảo mật: Manager (L1) hoặc HR/Admin (L2) mới được duyệt.
+    is_approver = (
+        user_has_role(request.user, Role.MANAGER)
+        or is_hr_user(request.user)
+        or is_admin_user(request.user)
+    )
+    if not is_approver:
+        messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt Thưởng / Phạt.')
         return redirect('rewards_penalties')
 
-    # 2. Xử lý POST duyệt / từ chối đề xuất
+    # 2. Xử lý POST duyệt / từ chối — định tuyến theo cấp trong service.
     if request.method == 'POST':
         action = request.POST.get('action')
         record_id = request.POST.get('record_id')
-        record = get_object_or_404(RewardPenalty, id=record_id)
-
         if action == 'approve':
-            record.status = 'approved'
-            record.save()
-            try:
-                fullname = record.employee.profile.full_name or record.employee.username
-            except Exception:
-                fullname = record.employee.username
-            messages.success(request, f'Đã phê duyệt thành công phiếu của nhân viên {fullname}.')
+            success, msg = approve_reward_penalty(request.user, record_id)
         elif action == 'reject':
-            record.status = 'rejected'
-            record.save()
-            try:
-                fullname = record.employee.profile.full_name or record.employee.username
-            except Exception:
-                fullname = record.employee.username
-            messages.warning(request, f'Đã từ chối phiếu đề xuất của nhân viên {fullname}.')
-
+            success, msg = reject_reward_penalty(request.user, record_id)
+        else:
+            success, msg = False, 'Hành động không hợp lệ.'
+        (messages.success if success else messages.error)(request, msg)
         return redirect('rewards_penalties_approval')
 
-    # 3. Lấy tất cả các phiếu đang chờ duyệt
-    pending_records = RewardPenalty.objects.filter(status='pending').select_related('employee', 'proposer').order_by('-created_at')
+    # 3. Hàng đợi theo vai trò người duyệt.
+    pending_records = get_pending_for_approver(request.user)
 
     for r in pending_records:
         prefix = "+" if r.record_type == 'reward' else "-"

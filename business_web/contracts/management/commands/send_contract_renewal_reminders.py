@@ -20,6 +20,7 @@ from django.core.management.base import BaseCommand
 from contracts.services.renewal_service import (
     THRESHOLD_FAR,
     THRESHOLD_NEAR,
+    expire_overdue_contracts,
     get_expiring_contracts,
     get_recipients_for_contract,
 )
@@ -65,6 +66,14 @@ class Command(BaseCommand):
         mode = "DRY-RUN (khong gui email)" if dry_run else "GUI THAT"
         self.stdout.write(f"  Che do: {mode}")
         self.stdout.write(sep)
+
+        # Hết hiệu lực HĐ quá hạn (không chạy khi dry-run để tránh mutate).
+        if not dry_run:
+            expired_count = expire_overdue_contracts()
+            if expired_count:
+                self.stdout.write(self.style.WARNING(
+                    f"  Da dat is_active=False cho {expired_count} hop dong qua han."
+                ))
 
         expiring = get_expiring_contracts(days_threshold=days)
 

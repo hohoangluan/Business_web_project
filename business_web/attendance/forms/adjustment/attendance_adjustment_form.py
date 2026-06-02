@@ -2,12 +2,7 @@
 from django import forms
 
 from attendance.models import AttendanceAdjustmentRequest
-
-MAX_EVIDENCE_BYTES = 5 * 1024 * 1024
-ALLOWED_EVIDENCE_MIME = {
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf',
-}
+from common.file_validation import EVIDENCE_MIME, validate_upload
 
 
 class AttendanceAdjustmentForm(forms.ModelForm):
@@ -26,19 +21,14 @@ class AttendanceAdjustmentForm(forms.ModelForm):
         }
 
     def clean_evidence(self):
-        f = self.cleaned_data.get('evidence')
-        if not f:
-            raise forms.ValidationError(
-                'Phải đính kèm minh chứng (ảnh hoặc PDF).'
-            )
-        if f.size > MAX_EVIDENCE_BYTES:
-            raise forms.ValidationError('Chứng từ tối đa 5 MB.')
-        content_type = getattr(f, 'content_type', '') or ''
-        if content_type not in ALLOWED_EVIDENCE_MIME:
-            raise forms.ValidationError(
-                'Sai định dạng. Chấp nhận: ảnh (JPG/PNG/GIF/WEBP) hoặc PDF.'
-            )
-        return f
+        # Minh chứng BẮT BUỘC; chấp nhận ảnh (JPG/PNG/GIF/WEBP) hoặc PDF, ≤5 MB.
+        return validate_upload(
+            self.cleaned_data.get('evidence'),
+            required=True,
+            allowed_mime=EVIDENCE_MIME,
+            required_message='Phải đính kèm minh chứng (ảnh hoặc PDF).',
+            mime_message='Sai định dạng. Chấp nhận: ảnh (JPG/PNG/GIF/WEBP) hoặc PDF.',
+        )
 
     def clean(self):
         cleaned = super().clean()

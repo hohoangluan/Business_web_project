@@ -3,11 +3,13 @@ Views cho hồ sơ cá nhân và quản lý hồ sơ nhân sự (HR/Admin).
 """
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 
 from accounts.models import UserProfile, Role
+from common.file_validation import validate_upload
 from employee_profiles.models import EmployeeDocument
 from accounts.services import (
     ensure_profile, ensure_work_info, ensure_contract_info,
@@ -94,6 +96,12 @@ def upload_document_view(request):
         title = request.POST.get('title', 'Tài liệu mới').strip()
         doc_type = request.POST.get('document_type', '').strip()
         file = request.FILES.get('file')
+
+        try:
+            validate_upload(file)  # 5 MB + PDF/JPG/PNG
+        except ValidationError as exc:
+            messages.error(request, ' '.join(exc.messages))
+            return redirect('profile')
 
         EmployeeDocument.objects.create(
             user=request.user,
@@ -228,6 +236,12 @@ def hr_create_profile_view(request):
                 errors.append('Số ngày nghỉ phép/năm phải là số nguyên.')
         if not contract_standard_shift:
             errors.append('Ca làm tiêu chuẩn không được để trống.')
+
+        # Ràng buộc thứ tự ngày HĐ (BĐ ≥ ký, hết hạn ≥ BĐ).
+        from contracts.services import validate_contract_date_order
+        errors.extend(validate_contract_date_order(
+            contract_signed_date, contract_start_date, contract_end_date,
+        ))
 
         if errors:
             for e in errors:

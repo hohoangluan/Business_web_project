@@ -33,8 +33,18 @@ def leave_view(request):
     if request.method == 'POST':
         form = LeaveRequestForm(request.POST, request.FILES)
         if form.is_valid():
-            create_leave_request(request.user, form)
-            messages.success(request, 'Đã gửi đơn đăng ký nghỉ phép thành công!')
+            obj = create_leave_request(request.user, form)
+            # Không chặn vượt quỹ phép — chỉ cảnh báo, đơn vẫn được gửi để chờ duyệt.
+            stats = get_user_leave_stats(request.user)
+            remaining = stats.get('remaining_days')
+            if remaining is not None and obj.days > remaining:
+                messages.warning(
+                    request,
+                    f'Bạn đã hết/không đủ ngày phép (còn {remaining} ngày, '
+                    f'đơn này {obj.days} ngày). Đơn vẫn được gửi để chờ duyệt.',
+                )
+            else:
+                messages.success(request, 'Đã gửi đơn đăng ký nghỉ phép thành công!')
             return redirect('leave')
         else:
             messages.error(request, 'Vui lòng kiểm tra lại thông tin đơn nghỉ phép.')

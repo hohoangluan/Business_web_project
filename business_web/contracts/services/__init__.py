@@ -7,6 +7,7 @@ from contracts.services.renewal_service import (
     THRESHOLD_FAR,
     THRESHOLD_NEAR,
     parse_ddmmyyyy,
+    expire_overdue_contracts,
     get_days_until_expiry,
     get_expiring_contracts,
     get_recipients_for_contract,
@@ -20,6 +21,24 @@ from contracts.services.email_service import send_renewal_reminder_email
 def parse_ddmmyyyy_date(raw_value):
     """Alias cũ — dùng parse_ddmmyyyy() thay thế."""
     return parse_ddmmyyyy(raw_value)
+
+
+def validate_contract_date_order(signed, start, end):
+    """Kiểm tra thứ tự ngày hợp đồng (chuỗi DD/MM/YYYY).
+
+    Quy tắc: ngày bắt đầu ≥ ngày ký; ngày hết hạn ≥ ngày bắt đầu (nếu có).
+    Trả về list thông báo lỗi (rỗng = hợp lệ). Bỏ qua ngày trống/sai định dạng
+    (validation định dạng do nơi gọi xử lý riêng).
+    """
+    errors = []
+    d_signed = parse_ddmmyyyy(signed)
+    d_start = parse_ddmmyyyy(start)
+    d_end = parse_ddmmyyyy(end)
+    if d_signed and d_start and d_start < d_signed:
+        errors.append('Ngày bắt đầu hợp đồng phải từ ngày ký trở đi.')
+    if d_start and d_end and d_end < d_start:
+        errors.append('Ngày hết hạn hợp đồng phải từ ngày bắt đầu trở đi.')
+    return errors
 
 
 def has_complete_contract_info(contract_info):

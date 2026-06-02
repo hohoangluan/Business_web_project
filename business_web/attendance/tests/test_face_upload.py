@@ -20,8 +20,18 @@ class TestFaceUpload(TestCase):
         self.get_url = reverse('get_image_base64')
 
     @patch('attendance.services.face.face_api_client.register_face_remote')
-    def test_att_face_01_self_upload_is_pending(self, mock_register):
-        """ATT-FACE-01: NV tự upload → tạo yêu cầu chờ HR duyệt, CHƯA enroll."""
+    def test_att_face_01_self_update_is_pending(self, mock_register):
+        """ATT-FACE-01: NV ĐÃ có mặt, tự upload CẬP NHẬT → chờ HR duyệt, CHƯA đổi enrollment.
+
+        (Đăng ký lần đầu được tự duyệt — xem test_att_face_02. Pending chỉ áp
+        dụng khi thay đổi khuôn mặt đã có, để chống gian lận chấm công hộ.)
+        """
+        # Enrollment hiện tại (thường do HR đăng ký lúc onboarding).
+        EmployeeFace.objects.create(
+            user=self.user,
+            face_base64="data:image/gif;base64,OLDFACE",
+            content_type="image/gif",
+        )
         self.client.force_login(self.user)
         image = SimpleUploadedFile("test_face.gif", DUMMY_GIF, content_type="image/gif")
 
@@ -31,13 +41,33 @@ class TestFaceUpload(TestCase):
         self.assertTrue(data['success'])
         self.assertTrue(data['pending'])
 
-        # Chưa đẩy lên remote, chưa có enrollment có hiệu lực.
+        # Chưa đẩy lên remote; enrollment cũ giữ nguyên.
         mock_register.assert_not_called()
-        self.assertFalse(EmployeeFace.objects.filter(user=self.user).exists())
+        face = EmployeeFace.objects.get(user=self.user)
+        self.assertEqual(face.face_base64, "data:image/gif;base64,OLDFACE")
         req = FaceChangeRequest.objects.get(user=self.user)
         self.assertEqual(req.status, FaceChangeRequest.PENDING)
         self.assertEqual(req.submitted_by, self.user)
         self.assertFalse(req.is_cross_user)
+
+    @patch('attendance.services.face.face_api_client.register_face_remote')
+    def test_att_face_02_first_enrollment_applies(self, mock_register):
+        """ATT-FACE-02: NV CHƯA có mặt, tự upload LẦN ĐẦU → tự duyệt + enroll ngay."""
+        mock_register.return_value = {"status": "success"}
+        self.client.force_login(self.user)
+        image = SimpleUploadedFile("first.gif", DUMMY_GIF, content_type="image/gif")
+
+        response = self.client.post(self.url, {'image': image})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['pending'])
+
+        mock_register.assert_called_once()
+        self.assertTrue(EmployeeFace.objects.filter(user=self.user).exists())
+        req = FaceChangeRequest.objects.get(user=self.user)
+        self.assertEqual(req.status, FaceChangeRequest.APPROVED)
+        self.assertEqual(req.submitted_by, self.user)
 
     def test_att_face_03_no_data(self):
         """ATT-FACE-03: Upload không có dữ liệu -> lỗi"""
@@ -89,6 +119,13 @@ class TestFaceChangeWorkflow(TestCase):
         UserProfile.objects.create(user=self.hr, role=self.hr_role, employee_id='HR001')
         self.emp = User.objects.create_user(username='emp', password='123')
         UserProfile.objects.create(user=self.emp, role=self.emp_role, employee_id='EMP001')
+        # emp đã có enrollment (HR đăng ký lúc onboarding) → self-upload là CẬP NHẬT
+        # nên phải qua bước HR duyệt (đăng ký lần đầu mới được tự duyệt).
+        EmployeeFace.objects.create(
+            user=self.emp,
+            face_base64="data:image/gif;base64,OLDFACE",
+            content_type="image/gif",
+        )
         self.upload_url = reverse('upload_image_base64')
 
     def _upload(self, user):
@@ -120,7 +157,9 @@ class TestFaceChangeWorkflow(TestCase):
         resp = self.client.post(reverse('face_change_approve', args=[req.id]), {'hr_note': 'ok'})
         self.assertEqual(resp.status_code, 302)
         mock_register.assert_called_once()
-        self.assertTrue(EmployeeFace.objects.filter(user=self.emp).exists())
+        # Enrollment được cập nhật sang ảnh mới (khác ảnh cũ).
+        face = EmployeeFace.objects.get(user=self.emp)
+        self.assertNotEqual(face.face_base64, "data:image/gif;base64,OLDFACE")
         req.refresh_from_db()
         self.assertEqual(req.status, FaceChangeRequest.APPROVED)
         self.assertEqual(req.reviewed_by, self.hr)
@@ -134,7 +173,9 @@ class TestFaceChangeWorkflow(TestCase):
         resp = self.client.post(reverse('face_change_reject', args=[req.id]), {'hr_note': 'no'})
         self.assertEqual(resp.status_code, 302)
         mock_register.assert_not_called()
-        self.assertFalse(EmployeeFace.objects.filter(user=self.emp).exists())
+        # Enrollment cũ giữ nguyên, không tạo mặt mới.
+        face = EmployeeFace.objects.get(user=self.emp)
+        self.assertEqual(face.face_base64, "data:image/gif;base64,OLDFACE")
         req.refresh_from_db()
         self.assertEqual(req.status, FaceChangeRequest.REJECTED)
 

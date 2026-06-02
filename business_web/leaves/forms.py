@@ -5,6 +5,7 @@ from datetime import timedelta
 from django import forms
 from django.utils import timezone
 
+from common.file_validation import validate_upload
 from leaves.models import LeaveRequest
 
 
@@ -50,19 +51,9 @@ class LeaveRequestForm(forms.ModelForm):
             'attachment': 'Tệp minh chứng (nếu có)',
         }
 
-    MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
-    ALLOWED_ATTACHMENT_MIME = {'application/pdf', 'image/jpeg', 'image/png'}
-
     def clean_attachment(self):
-        f = self.cleaned_data.get('attachment')
-        if not f:
-            return f
-        if f.size > self.MAX_ATTACHMENT_BYTES:
-            raise forms.ValidationError('Tệp tối đa 5 MB.')
-        content_type = getattr(f, 'content_type', '') or ''
-        if content_type not in self.ALLOWED_ATTACHMENT_MIME:
-            raise forms.ValidationError('Chấp nhận PDF / JPG / PNG.')
-        return f
+        # Minh chứng tùy chọn → validator dùng chung (5 MB + PDF/JPG/PNG).
+        return validate_upload(self.cleaned_data.get('attachment'))
 
     def clean_start_date(self):
         """Ngày bắt đầu không được quá 7 ngày trong quá khứ."""

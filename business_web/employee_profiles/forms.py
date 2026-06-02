@@ -222,9 +222,25 @@ class EmployeeProfileForm(forms.Form):
         import re
         date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
         date_fields = ['contract_signed_date', 'contract_start_date', 'contract_end_date']
+        bad_format = False
         for field_name in date_fields:
             value = cleaned_data.get(field_name)
             if value and not date_pattern.match(value.strip()):
                 self.add_error(field_name, 'Định dạng ngày phải là DD/MM/YYYY.')
-                
+                bad_format = True
+
+        # Ràng buộc thứ tự ngày HĐ (chỉ khi định dạng đúng).
+        if not bad_format:
+            from contracts.services import validate_contract_date_order
+            order_errors = validate_contract_date_order(
+                cleaned_data.get('contract_signed_date'),
+                cleaned_data.get('contract_start_date'),
+                cleaned_data.get('contract_end_date'),
+            )
+            if order_errors and 'phải từ ngày ký' in order_errors[0]:
+                self.add_error('contract_start_date', order_errors[0])
+            for err in order_errors:
+                if 'từ ngày bắt đầu' in err:
+                    self.add_error('contract_end_date', err)
+
         return cleaned_data

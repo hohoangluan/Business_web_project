@@ -49,6 +49,19 @@ if _RENDER_HOST:
 
 # Bảo mật prod (chỉ bật khi DEBUG=False). Render kết thúc SSL ở proxy.
 if not DEBUG:
+    # Chặn deploy với SECRET_KEY yếu. Tiêu chí giống Django security.W009:
+    # prefix 'django-insecure-', dài < 50, hoặc < 5 ký tự khác nhau.
+    # Prod PHẢI đặt SECRET_KEY mạnh qua biến môi trường.
+    if (
+        SECRET_KEY.startswith('django-insecure-')
+        or len(SECRET_KEY) < 50
+        or len(set(SECRET_KEY)) < 5
+    ):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            'SECRET_KEY không an toàn cho production (mặc định/quá ngắn/ít ngẫu nhiên). '
+            'Đặt biến môi trường SECRET_KEY bằng một chuỗi ngẫu nhiên đủ dài (≥50 ký tự).'
+        )
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -146,6 +159,22 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
+
+# =============================================================================
+# SESSION (QĐ_Session) — tự đăng xuất sau 30 phút KHÔNG hoạt động.
+#   SESSION_SAVE_EVERY_REQUEST=True làm mới hạn cookie mỗi request → đếm theo
+#   thời gian *không hoạt động* thay vì thời gian từ lúc đăng nhập.
+# =============================================================================
+SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=1800, cast=int)  # 30 phút
+SESSION_SAVE_EVERY_REQUEST = True
+
+# =============================================================================
+# LOGIN LOCKOUT (QĐ_TK1) — sai mật khẩu N lần liên tiếp → khóa tài khoản
+#   (is_active=False). Mở khóa do HR/Admin (QĐ_TK2). Đếm trong cache, không
+#   thêm model. Cửa sổ đếm reset sau LOGIN_LOCKOUT_WINDOW_SEC nếu ngừng thử.
+# =============================================================================
+LOGIN_LOCKOUT_MAX_FAILS = config('LOGIN_LOCKOUT_MAX_FAILS', default=3, cast=int)
+LOGIN_LOCKOUT_WINDOW_SEC = config('LOGIN_LOCKOUT_WINDOW_SEC', default=900, cast=int)
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

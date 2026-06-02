@@ -42,6 +42,25 @@ def get_days_until_expiry(contract_info):
     return delta
 
 
+def expire_overdue_contracts():
+    """Đặt is_active=False cho HĐ đang hiệu lực đã quá hạn (days_left < 0).
+
+    Trả về số hợp đồng vừa hết hiệu lực (QĐ_CanhBao §5.7).
+    """
+    from contracts.models import ContractInfo
+
+    today = timezone.localdate()
+    count = 0
+    qs = ContractInfo.objects.filter(is_active=True).exclude(contract_end_date='')
+    for contract in qs:
+        end_date = parse_ddmmyyyy(contract.contract_end_date)
+        if end_date and end_date < today:
+            contract.is_active = False
+            contract.save(update_fields=['is_active'])
+            count += 1
+    return count
+
+
 def get_expiring_contracts(days_threshold=THRESHOLD_FAR):
     """
     Truy vấn danh sách ContractInfo sắp hết hạn trong `days_threshold` ngày.
