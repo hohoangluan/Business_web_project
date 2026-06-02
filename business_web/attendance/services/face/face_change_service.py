@@ -4,16 +4,15 @@ Self-service đổi mặt → tạo FaceChangeRequest `pending`, KHÔNG đổi e
 đang dùng để nhận diện. HR duyệt mới đẩy lên service từ xa và cập nhật
 EmployeeFace. Đường tin cậy (HR/Admin upload) thì áp dụng ngay.
 """
-import base64
 import hashlib
 
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 
 from accounts.services.permission.role_service import is_admin_user, is_hr_user
 from attendance.models import FaceChangeRequest
 from attendance.services.face import face_api_client, face_service
-from attendance.services.face.image_service import image_to_base64
 
 
 def _is_trusted(actor) -> bool:
@@ -22,30 +21,20 @@ def _is_trusted(actor) -> bool:
 
 
 def submit_face_change(owner, submitted_by, image_file, ip_address=None):
-    """Nộp cập nhật khuôn mặt.
-
-    Trả về (outcome, obj):
-      - ('applied', EmployeeFace)        khi áp dụng ngay (đường tin cậy)
-      - ('pending', FaceChangeRequest)   khi chờ HR duyệt
-    Raises FaceApiError nếu đường tin cậy bị remote từ chối.
-    """
+    """Nộp cập nhật khuôn mặt. Trả (outcome, obj)."""
     image_file.seek(0)
     raw_bytes = image_file.read()
     image_file.seek(0)
-    base64_str = image_to_base64(image_file)
-    content_type = getattr(image_file, 'content_type', 'image/jpeg')
     sha = hashlib.sha256(raw_bytes).hexdigest()
 
-    # Đường tin cậy: HR/Admin HOẶC Lần đầu đăng ký → enroll ngay, vẫn ghi log audit.
     has_face = hasattr(owner, 'employee_face')
+    # Đường tin cậy (HR/Admin) HOẶC lần đầu → enroll ngay, KHÔNG lưu ảnh.
     if _is_trusted(submitted_by) or not has_face:
-        face = face_service.apply_face_enrollment(
-            owner, raw_bytes, base64_str, content_type,
-        )
-        note = 'Tự động duyệt (người thực hiện là HR/Admin).' if _is_trusted(submitted_by) else 'Tự động duyệt (Lần đầu đăng ký).'
+        face = face_service.apply_face_enrollment(owner, raw_bytes)
+        note = ('Tự động duyệt (người thực hiện là HR/Admin).'
+                if _is_trusted(submitted_by) else 'Tự động duyệt (Lần đầu đăng ký).')
         FaceChangeRequest.objects.create(
             user=owner, submitted_by=submitted_by,
-            image_base64=base64_str, content_type=content_type,
             image_sha256=sha, ip_address=ip_address,
             status=FaceChangeRequest.APPROVED,
             reviewed_by=submitted_by, reviewed_at=timezone.now(),
@@ -53,14 +42,14 @@ def submit_face_change(owner, submitted_by, image_file, ip_address=None):
         )
         return 'applied', face
 
-    # Self-service: chờ HR duyệt. Một yêu cầu pending tại một thời điểm.
+    # Self-service: chờ HR duyệt — lưu ảnh để HR xem (Cloudinary).
     with transaction.atomic():
         FaceChangeRequest.objects.filter(
             user=owner, status=FaceChangeRequest.PENDING,
         ).delete()
         req = FaceChangeRequest.objects.create(
             user=owner, submitted_by=submitted_by,
-            image_base64=base64_str, content_type=content_type,
+            image=ContentFile(raw_bytes, name=f'{owner.id}_{sha[:10]}.jpg'),
             image_sha256=sha, ip_address=ip_address,
             status=FaceChangeRequest.PENDING,
         )
@@ -88,12 +77,12 @@ def approve_face_change(hr_user, req_id, hr_note=''):
         return False, 'Không tìm thấy yêu cầu.'
     if req.status != FaceChangeRequest.PENDING:
         return False, 'Yêu cầu đã được xử lý.'
+    if not req.image:
+        return False, 'Thiếu ảnh để duyệt.'
 
-    raw_bytes = base64.b64decode(req.image_base64)
+    raw_bytes = req.image.read()
     try:
-        face_service.apply_face_enrollment(
-            req.user, raw_bytes, req.image_base64, req.content_type,
-        )
+        face_service.apply_face_enrollment(req.user, raw_bytes)
     except face_api_client.FaceApiError as exc:
         return False, f'Service nhận diện từ chối ảnh: {exc.message or exc.code}'
 
@@ -101,7 +90,9 @@ def approve_face_change(hr_user, req_id, hr_note=''):
     req.reviewed_by = hr_user
     req.reviewed_at = timezone.now()
     req.hr_note = (hr_note or '').strip()
-    req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'hr_note'])
+    # Đã enroll remote → ảnh local hết tác dụng → purge (giảm PII/dung lượng).
+    req.image.delete(save=False)
+    req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'hr_note', 'image'])
     return True, 'Đã duyệt và cập nhật khuôn mặt.'
 
 
@@ -112,6 +103,7 @@ def reject_face_change(hr_user, req_id, hr_note=''):
         return False, 'Không tìm thấy yêu cầu.'
     if req.status != FaceChangeRequest.PENDING:
         return False, 'Yêu cầu đã được xử lý.'
+    # GIỮ req.image làm minh chứng chống gian lận.
     req.status = FaceChangeRequest.REJECTED
     req.reviewed_by = hr_user
     req.reviewed_at = timezone.now()

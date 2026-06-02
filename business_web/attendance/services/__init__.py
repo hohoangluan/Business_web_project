@@ -8,7 +8,6 @@ from attendance.services.face import (
     face_lockout_service,
     face_service,
     face_verification_service,
-    image_service,
 )
 from attendance.services.record import attendance_logging_service
 
@@ -17,6 +16,5 @@ __all__ = [
     "face_lockout_service",
     "face_service",
     "face_verification_service",
-    "image_service",
     "attendance_logging_service",
 ]
