@@ -27,10 +27,11 @@ class FaceChangeRequest(models.Model):
         User, on_delete=models.PROTECT, related_name='+',
         help_text='Người thực hiện cập nhật (để phát hiện đổi mặt hộ người khác).',
     )
-    image_base64 = models.TextField(
-        help_text='Ảnh khuôn mặt chờ duyệt (base64).',
+    image = models.ImageField(
+        upload_to='face_changes/%Y/%m/', null=True, blank=True,
+        help_text='Ảnh khuôn mặt chờ duyệt (Cloudinary ở prod). '
+                  'Approve → xóa; reject → giữ làm minh chứng.',
     )
-    content_type = models.CharField(max_length=50, default='image/jpeg')
     image_sha256 = models.CharField(
         max_length=64, blank=True, default='',
         help_text='SHA-256 của ảnh — phục vụ audit / phát hiện đảo ảnh.',
