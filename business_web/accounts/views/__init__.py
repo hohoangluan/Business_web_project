@@ -18,6 +18,10 @@ from accounts.views.account.account_update_view import (
     switch_role_view,
     user_list_view,
 )
+from accounts.views.account.notification_view import (
+    mark_notifications_read_view,
+    notifications_view,
+)
 from accounts.views.auth.forgot_password_view import forgot_password_view
 from accounts.views.auth.login_view import AccountsLoginView
 from accounts.views.auth.logout_view import logout_view
@@ -35,6 +39,8 @@ __all__ = [
     "delete_user_view",
     "forgot_password_view",
     "logout_view",
+    "mark_notifications_read_view",
+    "notifications_view",
     "register_view",
     "reset_password_after_otp_view",
     "reset_user_password_view",

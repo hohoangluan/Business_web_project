@@ -28,12 +28,10 @@ class TestRewardsDiscipline(TestCase):
         self.today = timezone.localdate()
 
     def test_rewards_penalties_view_employee(self):
+        """Employee không có quyền truy cập Khen thưởng & Xử phạt → chuyển hướng Dashboard."""
         self.client.force_login(self.employee)
         response = self.client.get(self.url_rewards)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'rewards_discipline/rewards_penalties.html')
-        # Employee cannot propose
-        self.assertFalse(response.context['can_propose'])
+        self.assertRedirects(response, reverse('dashboard'))
 
     def test_manager_propose_reward(self):
         """Manager lập phiếu → bỏ L1, vào thẳng chờ HR (leader_approved)."""
@@ -55,8 +53,9 @@ class TestRewardsDiscipline(TestCase):
 
     def test_approval_access(self):
         """Manager (L1) và HR (L2) vào được trang duyệt; employee thì không."""
+        # Employee bị chặn khỏi trang duyệt (chuyển hướng, không vào được).
         self.client.force_login(self.employee)
-        self.assertRedirects(self.client.get(self.url_approval), self.url_rewards)
+        self.assertEqual(self.client.get(self.url_approval).status_code, 302)
         self.client.force_login(self.manager)
         self.assertEqual(self.client.get(self.url_approval).status_code, 200)
         self.client.force_login(self.hr)

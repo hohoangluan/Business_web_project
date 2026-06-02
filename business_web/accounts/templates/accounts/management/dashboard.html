@@ -93,7 +93,8 @@
             <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem; color: var(--text-secondary);"><i class="fa-solid fa-layer-group"></i> Không gian làm việc của bạn</h3>
             
             <div class="feature-grid">
-                <!-- Chức năng Chung -->
+                <!-- Chức năng Chung (Admin không có hồ sơ cá nhân) -->
+                {% if not is_system_admin %}
                 <a href="{% url 'profile' %}" class="feature-card">
                     <div class="fc-icon bg-indigo"><i class="fa-solid fa-id-badge"></i></div>
                     <div>
@@ -101,6 +102,7 @@
                         <div class="fc-desc">Quản lý lý lịch & liên hệ</div>
                     </div>
                 </a>
+                {% endif %}
 
                 <!-- Phân nhanh cho Admin -->
                 {% if is_system_admin %}
@@ -196,29 +198,25 @@
         <div class="notif-panel">
             <div class="np-header">
                 <div class="np-title"><i class="fa-solid fa-bell" style="color: #f59e0b;"></i> Thông báo mới</div>
-                <span class="badge badge-primary" style="font-size:0.7rem;">3 Mới</span>
-            </div>
-            
-            <div class="np-list">
-                <div class="np-item">
-                    <div class="np-time"><i class="fa-regular fa-clock"></i> 2 giờ trước</div>
-                    <div class="np-msg">Hệ thống đã cập nhật bộ lọc statistics theo phòng ban, leader và thời gian.</div>
-                </div>
-                
-                {% if not is_system_admin %}
-                <div class="np-item" style="border-left-color: #10b981;">
-                    <div class="np-time"><i class="fa-regular fa-clock"></i> Hôm qua</div>
-                    <div class="np-msg">Bạn có thể xem thống kê mới theo phạm vi quản lý và xuất báo cáo CSV ngay trên hệ thống.</div>
-                </div>
+                {% if unread_count > 0 %}
+                <span class="badge badge-primary" style="font-size:0.7rem;">{{ unread_count }} Mới</span>
                 {% endif %}
-
-                <div class="np-item" style="border-left-color: #64748b;">
-                    <div class="np-time"><i class="fa-regular fa-clock"></i> 22/04/2026</div>
-                    <div class="np-msg">Thông báo triển khai bộ phận Dịch vụ HRMS Portal. Chào mừng tất cả thành viên gia nhập cổng thông tin số.</div>
-                </div>
             </div>
-            
-            <button class="btn btn-outline" style="width: 100%; margin-top: 1.5rem; justify-content: center;">Xem tất cả thông báo</button>
+
+            <div class="np-list">
+                {% for notif in unread_notifications %}
+                <div class="np-item">
+                    <div class="np-time"><i class="fa-regular fa-clock"></i> {{ notif.created_at|date:"d/m/Y H:i" }}</div>
+                    <div class="np-msg"><strong>{{ notif.title }}</strong><br>{{ notif.message }}</div>
+                </div>
+                {% empty %}
+                <div class="np-item" style="border-left-color: #64748b;">
+                    <div class="np-msg" style="color: var(--text-muted);">Không có thông báo mới.</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <a href="{% url 'notifications' %}" class="btn btn-outline" style="width: 100%; margin-top: 1.5rem; justify-content: center;">Xem tất cả thông báo</a>
         </div>
     </div>
 </div>

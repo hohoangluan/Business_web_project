@@ -125,26 +125,18 @@
         </button>
     </div>
 
-    {# Forgotten-checkout banner #}
-    {% if open_previous_record %}
+    {# Forgotten-checkout banner — chỉ hiện khi cần gửi điều chỉnh, ẩn thông báo "đang chờ HR duyệt" #}
+    {% if open_previous_record and banner_eligible_for_adjustment %}
     <div class="forgotten-banner" role="alert" style="background:#fff7ed;border:1px solid #fdba74;border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;color:#9a3412;">
         <i class="fa-solid fa-triangle-exclamation" style="font-size:1.25rem;"></i>
         <div style="flex:1;">
-            {% if banner_eligible_for_adjustment %}
-                Hệ thống đã tự động đóng phiên làm việc ngày
-                <strong>{{ open_previous_record.record_date|date:"d/m/Y" }}</strong>
-                của bạn do thiếu giờ chấm ra. Hãy tiếp tục chấm công cho hôm nay.
-            {% else %}
-                Yêu cầu điều chỉnh ngày
-                <strong>{{ open_previous_record.record_date|date:"d/m/Y" }}</strong>
-                đang chờ HR duyệt.
-            {% endif %}
+            Hệ thống đã tự động đóng phiên làm việc ngày
+            <strong>{{ open_previous_record.record_date|date:"d/m/Y" }}</strong>
+            của bạn do thiếu giờ chấm ra. Hãy tiếp tục chấm công cho hôm nay.
         </div>
-        {% if banner_eligible_for_adjustment %}
-            <a class="btn btn-primary" href="{% url 'attendance_adjustment' open_previous_record.id %}">
-                Gửi yêu cầu điều chỉnh tới HR
-            </a>
-        {% endif %}
+        <a class="btn btn-primary" href="{% url 'attendance_adjustment' open_previous_record.id %}">
+            Gửi yêu cầu điều chỉnh tới HR
+        </a>
     </div>
     {% endif %}
 

@@ -7,6 +7,7 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 
 from accounts.models import Role
+from accounts.services import create_notification
 from overtime.models import OvertimeRequest
 
 
@@ -254,6 +255,11 @@ def approve_overtime_request(approver, request_id):
                 'status', 'leader_approved_by', 'leader_approved_at',
                 'approved_by',
             ])
+            create_notification(
+                obj.user,
+                'Đơn tăng ca đã được duyệt',
+                'Đơn đăng ký tăng ca của bạn đã được phê duyệt.',
+            )
             return True, 'Đã duyệt đơn tăng ca thành công (nhân viên HR — hoàn tất).'
 
         # Các role khác → chờ HR duyệt cuối
@@ -271,6 +277,11 @@ def approve_overtime_request(approver, request_id):
         obj.status = OvertimeRequest.APPROVED
         obj.approved_by = approver
         obj.save(update_fields=['status', 'approved_by'])
+        create_notification(
+            obj.user,
+            'Đơn tăng ca đã được duyệt',
+            'Đơn đăng ký tăng ca của bạn đã được phê duyệt.',
+        )
         return True, 'Đã phê duyệt cuối cùng. Đơn tăng ca đã được duyệt hoàn tất!'
 
     return False, 'Đơn đã được xử lý hoặc không ở trạng thái chờ duyệt.'
@@ -312,6 +323,11 @@ def reject_overtime_request(approver, request_id, reason=''):
     obj.approved_by = approver
     obj.rejected_reason = reason
     obj.save(update_fields=['status', 'approved_by', 'rejected_reason'])
+    create_notification(
+        obj.user,
+        'Đơn tăng ca bị từ chối',
+        f'Đơn đăng ký tăng ca của bạn đã bị từ chối.{" Lý do: " + reason if reason else ""}',
+    )
     return True, 'Đã từ chối đơn tăng ca.'
 
 

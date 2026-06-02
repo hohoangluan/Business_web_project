@@ -50,17 +50,21 @@ class TestHRAssignRoleView(TestCase):
         self.normal_profile.refresh_from_db()
         self.assertIsNone(self.normal_profile.role)
 
-    def test_ep_role_03_admin_assign_admin(self):
-        """EP-ROLE-03: Admin gán role Admin -> thành công"""
+    def test_ep_role_03_admin_blocked_from_hr_flow(self):
+        """EP-ROLE-03: Admin không dùng flow gán vai trò của HR -> chuyển về user_list.
+
+        Admin gán vai trò qua mục Quản lý tài khoản hệ thống (assign_role_view),
+        không qua hr_assign_role_view dành cho HR/hồ sơ nhân sự.
+        """
         self.client.force_login(self.admin_user)
-        
+
         response = self.client.post(self.assign_url, data={
             'role': self.admin_role.pk
         })
-        
-        self.assertRedirects(response, reverse('hr_view_profile', args=[self.normal_user.pk]))
+
+        self.assertRedirects(response, reverse('user_list'))
         self.normal_profile.refresh_from_db()
-        self.assertEqual(self.normal_profile.role, self.admin_role)
+        self.assertIsNone(self.normal_profile.role)
 
     def test_ep_role_04_remove_role(self):
         """EP-ROLE-04: Bỏ gán role (set empty) -> role = None"""

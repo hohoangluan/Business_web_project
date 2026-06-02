@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
+from accounts.decorators import deny_admin
 from accounts.services import ensure_profile, can_manage_requests
 from leaves.forms import LeaveRequestForm
 from leaves.services import (
@@ -23,6 +24,7 @@ from leaves.services import (
 # ---------------------------------------------------------------------------
 
 @login_required
+@deny_admin
 def leave_view(request):
     """
     GET  → Hiển thị trang nghỉ phép cá nhân (stats + bảng).

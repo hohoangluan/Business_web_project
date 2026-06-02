@@ -6,6 +6,7 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 
 from accounts.models import Role
+from accounts.services import create_notification
 from leaves.models import LeaveRequest
 
 
@@ -197,6 +198,11 @@ def approve_leave_request(approver, request_id):
             obj.save(update_fields=[
                 'status', 'leader_approved_by', 'leader_approved_at', 'approved_by',
             ])
+            create_notification(
+                obj.user,
+                'Đơn nghỉ phép đã được duyệt',
+                'Đơn xin nghỉ phép của bạn đã được phê duyệt.',
+            )
             return True, 'Đã duyệt đơn nghỉ phép thành công (nhân viên HR — hoàn tất).'
 
         obj.status = LeaveRequest.LEADER_APPROVED
@@ -213,6 +219,11 @@ def approve_leave_request(approver, request_id):
         obj.status = LeaveRequest.APPROVED
         obj.approved_by = approver
         obj.save(update_fields=['status', 'approved_by'])
+        create_notification(
+            obj.user,
+            'Đơn nghỉ phép đã được duyệt',
+            'Đơn xin nghỉ phép của bạn đã được phê duyệt.',
+        )
         return True, 'Đã phê duyệt cuối cùng. Đơn nghỉ phép đã được duyệt hoàn tất!'
 
     return False, 'Đơn đã được xử lý hoặc không ở trạng thái chờ duyệt.'
@@ -241,6 +252,11 @@ def reject_leave_request(approver, request_id, reason=''):
     obj.approved_by = approver
     obj.rejected_reason = reason
     obj.save(update_fields=['status', 'approved_by', 'rejected_reason'])
+    create_notification(
+        obj.user,
+        'Đơn nghỉ phép bị từ chối',
+        f'Đơn xin nghỉ phép của bạn đã bị từ chối.{" Lý do: " + reason if reason else ""}',
+    )
     return True, 'Đã từ chối đơn nghỉ phép.'
 
 

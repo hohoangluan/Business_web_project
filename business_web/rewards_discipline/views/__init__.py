@@ -26,6 +26,10 @@ def rewards_penalties_view(request):
     """Trang khen thưởng & xử phạt cá nhân hoặc lọc theo nhân viên đối với HR."""
     ensure_profile(request.user)
 
+    if getattr(request.user.profile.role, 'name', None) == 'employee' or is_admin_user(request.user):
+        messages.error(request, 'Tài khoản của bạn không có quyền truy cập chức năng Khen thưởng & Xử phạt.')
+        return redirect('dashboard')
+
     # 1. Xác định vai trò HR / Admin (dùng service an toàn)
     is_hr = is_hr_user(request.user)
 

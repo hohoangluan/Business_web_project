@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# Django
+*.log
+local_settings.py
+*.env
+.env
+business_web/staticfiles/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Lưu ý: db.sqlite3 và một số .pyc hiện đã được track từ trước.
+# .gitignore này chỉ chặn file MỚI; muốn gỡ file cũ khỏi tracking cần
+# `git rm -r --cached <path>` (cân nhắc vì là project nhóm, có thể chứa seed data).

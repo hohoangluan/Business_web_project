@@ -61,16 +61,16 @@ Blocks có thể override:
                     <span>Dashboard</span>
                 </a>
 
+                <!-- ===== NGHIỆP VỤ (Chỉ dành cho khối Nhân sự / Nhân viên) ===== -->
+                {% if not request.user.profile.is_admin %}
+                <div class="nav-section-title">Cá nhân</div>
+                
                 <!-- Hồ sơ cá nhân -->
                 <a href="{% url 'profile' %}"
                    class="nav-item {% if active_page == 'profile' %}active{% endif %}">
                     <i class="fa-solid fa-user"></i>
                     <span>Hồ sơ cá nhân</span>
                 </a>
-
-                <!-- ===== NGHIỆP VỤ (Chỉ dành cho khối Nhân sự / Nhân viên) ===== -->
-                {% if not request.user.profile.is_admin %}
-                <div class="nav-section-title">Cá nhân</div>
                 
                 <a href="{% url 'contract' %}" class="nav-item {% if active_page == 'contract' %}active{% endif %}">
                     <i class="fa-solid fa-file-contract"></i>
@@ -126,14 +126,12 @@ Blocks có thể override:
                     <i class="fa-solid fa-file-signature"></i>
                     <span>Báo cáo</span>
                 </a>
-                <a href="{% url 'tickets' %}" class="nav-item {% if active_page == 'tickets' %}active{% endif %}">
-                    <i class="fa-solid fa-headset"></i>
-                    <span>Hỗ trợ & Khiếu nại</span>
-                </a>
+                {% if request.user.profile.role.name != 'employee' %}
                 <a href="{% url 'rewards_penalties' %}" class="nav-item {% if active_page == 'rewards' %}active{% endif %}">
                     <i class="fa-solid fa-award"></i>
                     <span>Khen thưởng & Xử phạt</span>
                 </a>
+                {% endif %}
                 {% endif %}  <!-- End of Khối nghiệp vụ -->
 
 
@@ -155,11 +153,13 @@ Blocks có thể override:
                     <span>Tạo tài khoản</span>
                 </a>
 
-                <a href="{% url 'statistics' %}" class="nav-item {% if active_page == 'statistics' %}active{% endif %}">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Thống kê</span>
-                </a>
                 {% endif %}
+
+                <!-- Hỗ trợ & Khiếu nại (Dành cho tất cả mọi người kể cả Admin) -->
+                <a href="{% url 'tickets' %}" class="nav-item {% if active_page == 'tickets' %}active{% endif %}">
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Hỗ trợ & Khiếu nại</span>
+                </a>
 
                 <!-- Cài đặt -->
                 <a href="{% url 'settings' %}" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
@@ -342,10 +342,68 @@ Blocks có thể override:
                     {% endif %}
 
                     <!-- Nút thông báo -->
-                    <button class="notification-btn">
-                        <i class="fa-solid fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </button>
+                    <div class="notification-wrapper" style="position: relative;">
+                        <button class="notification-btn" id="notificationBtn" style="background: none; border: none; cursor: pointer; position: relative;">
+                            <i class="fa-solid fa-bell" style="font-size: 1.2rem; color: var(--text-secondary);"></i>
+                            {% if unread_count > 0 %}
+                            <span class="notification-badge" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 0.6rem; font-weight: bold;">{{ unread_count }}</span>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Dropdown Thông báo -->
+                        <div class="notification-dropdown" id="notificationDropdown" style="display: none; position: absolute; top: 100%; right: 0; width: 300px; background: white; border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000;">
+                            <div class="dropdown-header" style="padding: 10px 15px; border-bottom: 1px solid var(--border-light); font-weight: bold; color: var(--text-main);">
+                                Thông báo
+                            </div>
+                            <div class="dropdown-body" style="max-height: 300px; overflow-y: auto;">
+                                {% for notif in unread_notifications %}
+                                <div class="notification-item" style="padding: 10px 15px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 5px; background: #f8fafc;">
+                                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">{{ notif.title }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ notif.message }}</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right;">{{ notif.created_at|date:"d/m/Y H:i" }}</div>
+                                </div>
+                                {% empty %}
+                                <div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Không có thông báo mới</div>
+                                {% endfor %}
+                            </div>
+                            <a href="{% url 'notifications' %}" class="dropdown-footer" style="display:block; padding: 10px 15px; border-top: 1px solid var(--border-light); text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--primary); text-decoration: none;">
+                                Xem tất cả thông báo
+                            </a>
+                        </div>
+                    </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const notifBtn = document.getElementById('notificationBtn');
+                            const notifDropdown = document.getElementById('notificationDropdown');
+                            const notifBadge = notifBtn ? notifBtn.querySelector('.notification-badge') : null;
+                            let notifMarkedRead = false;
+
+                            function markNotificationsRead() {
+                                if (notifMarkedRead || !notifBadge) return;
+                                notifMarkedRead = true;
+                                const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+                                fetch("{% url 'mark_notifications_read' %}", {
+                                    method: 'POST',
+                                    headers: { 'X-CSRFToken': csrf ? csrf.value : '' },
+                                }).then(function() {
+                                    if (notifBadge) notifBadge.style.display = 'none';
+                                }).catch(function() { notifMarkedRead = false; });
+                            }
+
+                            if (notifBtn && notifDropdown) {
+                                notifBtn.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    const opening = notifDropdown.style.display === 'none';
+                                    notifDropdown.style.display = opening ? 'block' : 'none';
+                                    if (opening) markNotificationsRead();
+                                });
+                                document.addEventListener('click', function() {
+                                    notifDropdown.style.display = 'none';
+                                });
+                            }
+                        });
+                    </script>
 
                     <!-- Menu user -->
                     <div class="user-menu">
@@ -368,10 +426,12 @@ Blocks có thể override:
 
                         <!-- Dropdown menu -->
                         <div class="user-dropdown">
+                            {% if not request.user.profile.is_admin %}
                             <a href="{% url 'profile' %}">
                                 <i class="fa-solid fa-user"></i> Hồ sơ cá nhân
                             </a>
-                            <a href="#">
+                            {% endif %}
+                            <a href="{% url 'settings' %}">
                                 <i class="fa-solid fa-gear"></i> Cài đặt
                             </a>
                             <div class="divider"></div>

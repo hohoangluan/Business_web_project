@@ -28,6 +28,7 @@ from accounts.services.auth import (
     send_otp_email,
     verify_otp,
 )
+from accounts.services.notification_service import create_notification
 from accounts.services.permission import (
     can_access_evaluations,
     can_access_statistics,
@@ -52,6 +53,7 @@ __all__ = [
     "can_submit_evaluation_demo",
     "create_automatic_account",
     "create_manual_account",
+    "create_notification",
     "create_otp_for_user",
     "ensure_account_profiles",
     "ensure_contract_info",
