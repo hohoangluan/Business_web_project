@@ -1,2 +1,0 @@
-# Render chạy bash → build.sh phải LF, không CRLF.
-*.sh text eol=lf
