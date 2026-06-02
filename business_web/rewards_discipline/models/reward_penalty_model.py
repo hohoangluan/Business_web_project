@@ -14,6 +14,18 @@ class RewardPenalty(models.Model):
         (PENALTY, 'Xử phạt'),
     ]
 
+    # ----- Trạng thái duyệt 2 cấp -----
+    PENDING = 'pending'                  # chờ Manager duyệt L1 (khi Leader lập)
+    LEADER_APPROVED = 'leader_approved'  # đã qua L1 / Manager-HR lập → chờ HR L2
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (PENDING, 'Chờ duyệt cấp 1'),
+        (LEADER_APPROVED, 'Chờ HR duyệt'),
+        (APPROVED, 'Đã duyệt'),
+        (REJECTED, 'Từ chối'),
+    ]
+
     employee = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -48,8 +60,19 @@ class RewardPenalty(models.Model):
     )
     status = models.CharField(
         max_length=20,
-        default='pending',
-        help_text="Trạng thái: pending, approved, rejected.",
+        default=PENDING,
+        help_text="Trạng thái duyệt: pending → leader_approved → approved / rejected.",
+    )
+    leader_approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reward_l1_approved',
+        help_text="Manager duyệt cấp 1 (nếu Leader lập phiếu).",
+    )
+    leader_approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reward_l2_approved',
+        help_text="HR duyệt cấp 2 (cuối).",
     )
     application_date = models.DateField(
         help_text="Ngày áp dụng.",

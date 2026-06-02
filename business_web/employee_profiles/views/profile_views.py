@@ -237,6 +237,12 @@ def hr_create_profile_view(request):
         if not contract_standard_shift:
             errors.append('Ca làm tiêu chuẩn không được để trống.')
 
+        # Ràng buộc thứ tự ngày HĐ (BĐ ≥ ký, hết hạn ≥ BĐ).
+        from contracts.services import validate_contract_date_order
+        errors.extend(validate_contract_date_order(
+            contract_signed_date, contract_start_date, contract_end_date,
+        ))
+
         if errors:
             for e in errors:
                 messages.error(request, e)

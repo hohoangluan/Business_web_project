@@ -18,7 +18,8 @@ def build_rewards_penalties_records(users):
     ).select_related('employee', 'proposer')
     
     STATUS_MAP = {
-        'pending': 'Chờ duyệt',
+        'pending': 'Chờ duyệt cấp 1',
+        'leader_approved': 'Chờ HR duyệt',
         'approved': 'Đã duyệt',
         'rejected': 'Từ chối',
     }

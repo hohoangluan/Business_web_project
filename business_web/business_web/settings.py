@@ -49,6 +49,19 @@ if _RENDER_HOST:
 
 # Bảo mật prod (chỉ bật khi DEBUG=False). Render kết thúc SSL ở proxy.
 if not DEBUG:
+    # Chặn deploy với SECRET_KEY yếu. Tiêu chí giống Django security.W009:
+    # prefix 'django-insecure-', dài < 50, hoặc < 5 ký tự khác nhau.
+    # Prod PHẢI đặt SECRET_KEY mạnh qua biến môi trường.
+    if (
+        SECRET_KEY.startswith('django-insecure-')
+        or len(SECRET_KEY) < 50
+        or len(set(SECRET_KEY)) < 5
+    ):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            'SECRET_KEY không an toàn cho production (mặc định/quá ngắn/ít ngẫu nhiên). '
+            'Đặt biến môi trường SECRET_KEY bằng một chuỗi ngẫu nhiên đủ dài (≥50 ký tự).'
+        )
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

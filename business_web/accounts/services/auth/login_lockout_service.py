@@ -3,12 +3,18 @@
 Sai mật khẩu liên tiếp ``LOGIN_LOCKOUT_MAX_FAILS`` lần → caller khóa tài khoản
 (is_active=False). Key dưới namespace ``login_lockout:``, gắn theo username.
 """
+import hashlib
+
 from django.conf import settings
 from django.core.cache import cache
 
 
 def _fails_key(username: str) -> str:
-    return f'login_lockout:fails:{(username or "").strip().lower()}'
+    # Hash để cache key luôn hợp lệ (username có thể chứa khoảng trắng/ký tự
+    # đặc biệt → vỡ chuẩn memcached).
+    norm = (username or '').strip().lower()
+    digest = hashlib.sha256(norm.encode('utf-8')).hexdigest()
+    return f'login_lockout:fails:{digest}'
 
 
 def register_failure(username: str) -> int:

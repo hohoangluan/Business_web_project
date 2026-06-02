@@ -194,6 +194,57 @@ class TestLeaveAttachment(TestCase):
         self.assertIn('attachment', form.errors)
 
 
+class TestLeaveQuotaWarning(TestCase):
+    """FUNC-LEA-004: vượt quỹ phép → KHÔNG chặn, chỉ cảnh báo; đơn vẫn được gửi."""
+
+    def setUp(self):
+        from contracts.models import ContractInfo
+        self.user = User.objects.create_user(username='nvquota', password='123')
+        UserProfile.objects.create(user=self.user, employee_id='Q001')
+        self.client.force_login(self.user)
+        self.today = timezone.localdate()
+        self._ContractInfo = ContractInfo
+
+    def _make_contract(self, annual_days):
+        self._ContractInfo.objects.create(
+            user=self.user, is_active=True,
+            contract_number='HD-Q', contract_type='Chính thức',
+            contract_signed_date='01/01/2026', contract_start_date='01/01/2026',
+            contract_annual_leave_days=annual_days,
+        )
+
+    def _post_leave(self, days):
+        start = self.today + timedelta(days=1)
+        end = start + timedelta(days=days - 1)
+        return self.client.post(reverse('leave'), data={
+            'leave_type': LeaveRequest.ANNUAL,
+            'start_date': start.isoformat(),
+            'end_date': end.isoformat(),
+            'reason': 'Test quota',
+        }, follow=True)
+
+    def test_over_quota_still_submits_with_warning(self):
+        self._make_contract(annual_days=1)        # quỹ 1 ngày
+        resp = self._post_leave(days=3)           # nộp 3 ngày → vượt
+        # Đơn VẪN được tạo (không chặn).
+        obj = LeaveRequest.objects.get(user=self.user)
+        self.assertEqual(obj.status, LeaveRequest.PENDING)
+        self.assertEqual(obj.days, Decimal('3.0'))
+        # Có thông báo cảnh báo (level WARNING).
+        msgs = list(resp.context['messages'])
+        self.assertTrue(any('không đủ ngày phép' in m.message for m in msgs))
+        self.assertTrue(any(m.level_tag == 'warning' for m in msgs))
+
+    def test_within_quota_success_no_warning(self):
+        self._make_contract(annual_days=12)       # quỹ 12 ngày
+        resp = self._post_leave(days=2)           # nộp 2 ngày → trong quỹ
+        obj = LeaveRequest.objects.get(user=self.user)
+        self.assertEqual(obj.days, Decimal('2.0'))
+        msgs = list(resp.context['messages'])
+        self.assertTrue(any('thành công' in m.message for m in msgs))
+        self.assertFalse(any(m.level_tag == 'warning' for m in msgs))
+
+
 class TestSharedUploadValidator(TestCase):
     """Validator dùng chung common.file_validation.validate_upload."""
 

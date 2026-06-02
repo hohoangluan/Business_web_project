@@ -1,247 +1,172 @@
 # 📊 Báo Cáo Kết Quả Kiểm Thử — HRMS
 
-> Đối chiếu với [test_plan.md](test_plan.md). Ngày chạy: **02/06/2026** · Lệnh: `python manage.py test` (Django TestCase, SQLite in-memory, Face API & SMTP mock).
+> Đối chiếu với [test_plan.md](test_plan.md). Ngày chạy: **02/06/2026** · Lệnh: `python manage.py test` (Django TestCase, SQLite in-memory, Face API & SMTP mock) + Locust (nhóm 4).
 >
-> **Kết quả tổng:** `Ran 136 tests — OK` → **136 PASS / 0 FAIL / 0 ERROR**.
+> **Kết quả tự động:** `Ran 176 tests — OK` → **176 PASS / 0 FAIL / 0 ERROR**.
+>
+> Đợt cuối: F3 (chặn thứ tự ngày HĐ), F4 (duyệt 2 cấp thưởng/phạt), F5 (siết SECRET_KEY), F6 (auto hết hiệu lực HĐ), + test PER-005/ST-005/SEC-002/CON-008.
 
 ## Quy ước trạng thái
 | Ký hiệu | Nghĩa |
 |---|---|
 | ✅ PASS | Test tự động chạy & đạt |
-| 🟡 PARTIAL | Có phủ một phần (logic đã có/đã cấu hình) nhưng chưa phủ hết biên/kịch bản trong plan |
-| ⚪ NR | Chưa thực thi — thủ công (UI/UX, Compatibility), Locust (Performance), hoặc case `[BỔ SUNG]` chưa code |
+| 🟡 PARTIAL | Phủ một phần (logic/cấu hình có) nhưng chưa phủ hết biên/kịch bản |
+| 🟠 FINDING | Test/đối chiếu **phát hiện gap** — hành vi chưa khớp spec (xem §6b) |
+| ⚪ NR | Chưa thực thi — thủ công (UI/UX), Locust nâng cao, hoặc chưa code |
 
 ---
 
 ## §A. Tổng Hợp Số Liệu
 
-| Nhóm | Tổng case (plan) | ✅ PASS | 🟡 PARTIAL | ⚪ NR | Ghi chú |
+| Nhóm | ✅ PASS | 🟡 PARTIAL | 🟠 FINDING | ⚪ NR | Ghi chú |
 |---|---|---|---|---|---|
-| §1 Functional | 91 | 78 | 1 | 12 | Auto qua Django TestCase |
-| §2 UI/UX | 12 | 0 | 0 | 12 | Thủ công — chưa thực thi |
-| §3 Compatibility (desktop) | 8 | 0 | 0 | 8 | Thủ công đa trình duyệt — chưa thực thi |
-| §4 Performance | 6 | 0 | 0 | 6 | Locust — chưa thực thi |
-| §5 Security | 15 | 2 | 3 | 10 | Phần [BỔ SUNG] chưa code |
-| **Tổng** | **132** | **80** | **4** | **48** | 136 test method auto đều PASS |
+| §1 Functional | ~121 | 0 | 0 | 0 | F3/F4/F6 đã xử lý — không còn treo |
+| §2 UI/UX | 0 | 0 | 0 | 12 | Thủ công — chưa thực thi |
+| §3 Compatibility (desktop) | 0 | 0 | 0 | 8 | Thủ công đa trình duyệt — chưa thực thi |
+| §4 Performance | 2 | 1 | 0 | 3 | Locust — đã chạy Load 50 / Stress 200 |
+| §5 Security | 15 | 0 | 0 | 0 | Toàn bộ SEC PASS |
 
-> Lưu ý: 1 case plan có thể map nhiều test method (vd EP-CREATE-01..05). 136 = số *test method* thực chạy; 132 = số *case* trong plan.
+> Headline: **176 test method tự động, tất cả PASS.** Không còn FINDING treo. Còn lại chỉ NR thủ công (UI/UX, Compatibility) + Locust nâng cao (PERF-004/005/006).
 
 ---
 
 ## §1. Functional — Kết quả theo app
 
-### 1.1 accounts
-| ID | Trạng thái | Test method (bằng chứng) |
+### 1.1 accounts — 21/21 ✅
+Toàn bộ ACC-001…021 PASS (login, lockout 3 sai, quên MK/OTP, role, admin mgmt).
+| ID nổi bật | Trạng thái | Bằng chứng |
 |---|---|---|
-| FUNC-ACC-001 | ✅ PASS | ACC-LOGIN-01 valid_credentials |
-| FUNC-ACC-002 | ✅ PASS | ACC-LOGIN-02 invalid_credentials |
-| FUNC-ACC-003 | ✅ PASS | ACC-LOGIN-03 inactive_account |
-| FUNC-ACC-004 | ✅ PASS | **ACC-LOGIN-05 lockout_after_3_fails** (mới) |
-| FUNC-ACC-005 | ✅ PASS | ACC-FORGOT-01,02 request_otp_valid |
-| FUNC-ACC-006 | ⚪ NR | `[BỔ SUNG]` email không tồn tại |
-| FUNC-ACC-007 | ✅ PASS | ACC-FORGOT-03 verify_otp_valid |
-| FUNC-ACC-008 | ✅ PASS | ACC-FORGOT-04 verify_otp_invalid |
-| FUNC-ACC-009 | ⚪ NR | `[BỔ SUNG]` boundary OTP 119/120/121s |
-| FUNC-ACC-010 | ✅ PASS | ACC-FORGOT-05 reset_password_success |
-| FUNC-ACC-011 | ✅ PASS | ACC-ROLE-01 assign_role |
-| FUNC-ACC-012 | ✅ PASS | ACC-ROLE-03 remove_role |
-| FUNC-ACC-013 | ✅ PASS | ACC-ROLE-04 assign_custom_permission |
-| FUNC-ACC-014 | ✅ PASS | ACC-ROLE-05 non_admin_access |
-| FUNC-ACC-015 | ✅ PASS | ACC-ADMIN-01 view_user_list_as_admin |
-| FUNC-ACC-016 | ✅ PASS | ACC-ADMIN-02 non_admin |
-| FUNC-ACC-017 | ✅ PASS | ACC-ADMIN-03 delete_other_user |
-| FUNC-ACC-018 | ✅ PASS | ACC-ADMIN-04 delete_self |
-| FUNC-ACC-019 | ✅ PASS | ACC-ADMIN-05,06 toggle_user_active |
-| FUNC-ACC-020 | ✅ PASS | ACC-ADMIN-07 toggle_self_active |
-| FUNC-ACC-021 | ✅ PASS | ACC-ADMIN-08 reset_user_password |
-| (bonus) | ✅ PASS | ACC-LOGIN-06 valid_login_resets_counter |
-| (bonus) | ✅ PASS | ACC-REG-01..09 (đăng ký) |
+| FUNC-ACC-004 | ✅ | test_login::lockout_after_3_fails |
+| FUNC-ACC-006 | ✅ | test_bo_sung::unknown_username_no_otp |
+| FUNC-ACC-009 | ✅ | test_bo_sung::OtpExpiryBoundary (119s valid / 121s hết hạn) |
 
-### 1.2 employee_profiles
-| ID | Trạng thái | Test method |
+### 1.2 employee_profiles — 17/17 ✅
+| ID nổi bật | Trạng thái | Bằng chứng |
 |---|---|---|
-| FUNC-EP-001 | ✅ PASS | EP-CREATE-01..05 valid_creation |
-| FUNC-EP-002 | ✅ PASS | EP-CREATE-06 duplicate_employee_id |
-| FUNC-EP-003 | ⚪ NR | `[BỔ SUNG]` MSNV trống |
-| FUNC-EP-004 | ⚪ NR | `[BỔ SUNG]` department trống |
-| FUNC-EP-005 | ✅ PASS | EP-CREATE-09 non_hr_access |
-| FUNC-EP-006 | ✅ PASS | EP-CREATE-10 invalid_contract_days |
-| FUNC-EP-007 | ✅ PASS | EP-PROF-01 view_profile |
-| FUNC-EP-008 | ✅ PASS | EP-PROF-02 update_basic_info |
-| FUNC-EP-009 | ✅ PASS | EP-PROF-06 duplicate_email |
-| FUNC-EP-010 | ✅ PASS | EP-EDIT-01,02 edit_all_tables |
-| FUNC-EP-011 | ✅ PASS | EP-EDIT-03 non_hr_access |
-| FUNC-EP-012 | ✅ PASS | EP-ROLE-01 hr_assign_role |
-| FUNC-EP-013 | ✅ PASS | EP-ROLE-02 hr_assign_admin_denied |
-| FUNC-EP-014 | ✅ PASS | EP-ROLE-03 admin_assign_admin |
-| FUNC-EP-015 | ✅ PASS | EP-DOC-01 upload_valid_document |
-| FUNC-EP-016 | ✅ PASS | EP-DOC-03 no_file |
-| FUNC-EP-017 | ✅ PASS | validator chung: test_rejects_oversize / test_rejects_bad_mime + view upload validate |
+| FUNC-EP-003 | ✅ | test_create_validation::employee_id_required |
+| FUNC-EP-004 | ✅ | test_create_validation::department_required |
+| FUNC-EP-017 | ✅ | validator chung (size/MIME) |
 
 ### 1.3 contracts
-| ID | Trạng thái | Test method |
+| ID | Trạng thái | Ghi chú |
 |---|---|---|
-| FUNC-CON-001 | ✅ PASS | contract_view |
-| FUNC-CON-002 | ✅ PASS | get_active_contract_returns_active |
-| FUNC-CON-003 | ✅ PASS | user_can_have_multiple_contracts |
-| FUNC-CON-004 | ⚪ NR | `[BỔ SUNG]` BĐ ≥ Ký |
-| FUNC-CON-005 | ⚪ NR | `[BỔ SUNG]` Hết hạn ≥ BĐ |
-| FUNC-CON-006 | ✅ PASS | hr_expiring_contracts_view |
-| FUNC-CON-007 | ✅ PASS | hr_send_reminder |
-| FUNC-CON-008 | ⚪ NR | `[BỔ SUNG]` batch boundary 30/7 (Render free no cron) |
+| FUNC-CON-001/002/003/006/007 | ✅ | test_contracts.py |
+| FUNC-CON-004 | ✅ | test_date_order (BĐ<ký → chặn) — F3 đã xử lý |
+| FUNC-CON-005 | ✅ | test_date_order (hết hạn<BĐ → chặn) — F3 đã xử lý |
+| FUNC-CON-008 (cảnh báo 7/30) | ✅ | test_renewal_thresholds (biên 7 khẩn / 30 xa / >30 loại) |
+| FUNC-CON-008 (auto hết hiệu lực) | ✅ | **F6 đã làm** — `expire_overdue_contracts` (quá hạn → is_active=False), gọi trong command. test_renewal_thresholds::TestExpireOverdueContracts |
 
-### 1.4 attendance
-| ID | Trạng thái | Test method |
+### 1.4 attendance — 26/26 ✅
+| ID nổi bật | Trạng thái | Bằng chứng |
 |---|---|---|
-| FUNC-ATT-001 | ✅ PASS | ATT-FACE-01 self_update_is_pending (đã sửa) |
-| FUNC-ATT-001b | ✅ PASS | **ATT-FACE-02 first_enrollment_applies** (mới) |
-| FUNC-ATT-002 | ✅ PASS | hr_upload_applies_immediately |
-| FUNC-ATT-003 | ✅ PASS | hr_approve_pending_enrolls |
-| FUNC-ATT-004 | ✅ PASS | hr_reject_does_not_enroll |
-| FUNC-ATT-005 | ✅ PASS | ATT-FACE-03 no_data |
-| FUNC-ATT-006 | ✅ PASS | ATT-FACE-04 require_login |
-| FUNC-ATT-007 | ✅ PASS | employee_cannot_access_review |
-| FUNC-ATT-008 | ✅ PASS | ATT-CHECK-01,03 check_in |
-| FUNC-ATT-009 | ✅ PASS | ATT-CHECK-04 check_out |
-| FUNC-ATT-010 | ✅ PASS | ATT-CHECK-05 wrong_face |
-| FUNC-ATT-011 | ✅ PASS | ATT-CHECK-06 no_face_uploaded |
-| FUNC-ATT-012 | ⚪ NR | `[BỔ SUNG]` lockout chấm công 3 fail/300s |
-| FUNC-ATT-013 | ✅ PASS | classify_status |
-| FUNC-ATT-014 | ✅ PASS | get_shift_times_fallback |
-| FUNC-ATT-015 | ✅ PASS | ATT-VIEW-01,02 view_records / data_correctness |
-| FUNC-ATT-016 | ✅ PASS | require_login |
-| FUNC-ATT-017 | ✅ PASS | ATT-ADJ-01 submit_valid |
-| FUNC-ATT-018 | ✅ PASS | ATT-ADJ-03 already_submitted |
-| FUNC-ATT-019 | ✅ PASS | out_of_month_rejected |
-| FUNC-ATT-020 | ✅ PASS | requires_at_least_one_time |
-| FUNC-ATT-021 | ✅ PASS | requires_evidence |
-| FUNC-ATT-022 | ✅ PASS | approve_applies_both_times |
-| FUNC-ATT-023 | ✅ PASS | reject_restores_late_status / no_checkout |
-| FUNC-ATT-024 | ✅ PASS | leader_can_submit / manager_can_submit |
-| FUNC-ATT-025 | ✅ PASS | non_hr_cannot_access_review |
+| FUNC-ATT-001/001b | ✅ | self_update_is_pending + first_enrollment_applies |
+| FUNC-ATT-012 | ✅ | test_face_lockout (3 fail → khóa 300s) |
 
-### 1.5 leaves
-| ID | Trạng thái | Test method |
+### 1.5 leaves — 11/11 ✅
+| ID nổi bật | Trạng thái | Bằng chứng |
 |---|---|---|
-| FUNC-LEA-001 | ✅ PASS | leave_view_get |
-| FUNC-LEA-002 | ✅ PASS | leave_create_valid |
-| FUNC-LEA-003 | ✅ PASS | leave_create_invalid_date |
-| FUNC-LEA-004 | ⚪ NR | `[BỔ SUNG]` vượt quỹ phép (boundary) |
-| FUNC-LEA-005 | ✅ PASS | leave_cancel |
-| FUNC-LEA-006 | ✅ PASS | leave_cancel_approved |
-| FUNC-LEA-007 | ✅ PASS | leave_approval_flow |
-| FUNC-LEA-008 | ✅ PASS | leave_reject |
-| FUNC-LEA-009 | ✅ PASS | create_leave_with_attachment |
-| FUNC-LEA-010 | ✅ PASS | reject_oversize_attachment |
-| FUNC-LEA-011 | ⚪ NR | `[BỔ SUNG]` L1 chỉ leader/manager |
+| FUNC-LEA-004 | ✅ | TestLeaveQuotaWarning (vượt quỹ → cảnh báo, không chặn) |
+| FUNC-LEA-011 | ✅ | test_leave_l1 (chỉ supervisor duyệt L1) |
 
-### 1.6 overtime
-| ID | Trạng thái | Test method |
+### 1.6 overtime — 8/8 ✅
+| ID nổi bật | Trạng thái | Bằng chứng |
 |---|---|---|
-| FUNC-OT-001 | ✅ PASS | overtime_view_get |
-| FUNC-OT-002 | ✅ PASS | overtime_create_valid |
-| FUNC-OT-003 | ✅ PASS | overtime_create_invalid_time |
-| FUNC-OT-004 | ✅ PASS | overtime_cancel |
-| FUNC-OT-005 | ✅ PASS | overtime_approval_flow |
-| FUNC-OT-006 | ✅ PASS | overtime_reject |
-| FUNC-OT-007 | ✅ PASS | create_overtime_with_attachment |
-| FUNC-OT-008 | ⚪ NR | `[BỔ SUNG]` HR tạo → bỏ qua L2 |
+| FUNC-OT-008 | ✅ | test_ot_hr_skip_l2 (HR owner → approved sau L1) |
 
-### 1.7 performance (đánh giá)
-| ID | Trạng thái | Test method |
+### 1.7 performance
+| ID | Trạng thái | Ghi chú |
 |---|---|---|
-| FUNC-PER-001 | ✅ PASS | evaluations_view_get |
-| FUNC-PER-002 | ✅ PASS | manager_create_evaluation |
-| FUNC-PER-003 | ✅ PASS | rating_auto_from_score |
-| FUNC-PER-004 | ✅ PASS | hr_acknowledge_evaluation |
-| FUNC-PER-005 | ⚪ NR | `[BỔ SUNG]` submitted → khóa sửa |
+| FUNC-PER-001/002/003/004 | ✅ | test_performance.py |
+| FUNC-PER-005 | ✅ | test_eval_lock (không có endpoint sửa → bất biến sau submitted; chỉ acknowledge) |
 
 ### 1.8 rewards_discipline
-| ID | Trạng thái | Test method |
+| ID | Trạng thái | Ghi chú |
 |---|---|---|
-| FUNC-RW-001 | ✅ PASS | view_employee |
-| FUNC-RW-002 | ✅ PASS | manager_propose_reward |
-| FUNC-RW-003 | ✅ PASS | hr_approval_access |
-| FUNC-RW-004 | ✅ PASS | hr_approve_reject_reward |
-| FUNC-RW-005 | ⚪ NR | `[BỔ SUNG]` luồng 2 cấp Leader→Manager→HR |
-| FUNC-RW-006 | ⚪ NR | `[BỔ SUNG]` amount boundary |
+| FUNC-RW-001/002/003/004 | ✅ | test_rewards_discipline.py |
+| FUNC-RW-005 | ✅ | **F4 đã triển khai 2 cấp** — test_full_two_level_flow (Leader→Manager L1→HR L2) + hr_cannot_do_l1 |
+| FUNC-RW-006 | ✅ | test_amount_boundary (0 hợp lệ, âm bị form chặn) |
 
-### 1.9 reports_interactions
-| ID | Trạng thái | Test method |
-|---|---|---|
-| FUNC-RI-001 | ✅ PASS | create_report |
-| FUNC-RI-002 | ✅ PASS | edit_report |
-| FUNC-RI-003 | ✅ PASS | delete_report |
-| FUNC-RI-004 | ✅ PASS | view_report_marks_as_viewed |
-| FUNC-RI-005 | ✅ PASS | recipient_request_update_sets_needs_update |
-| FUNC-RI-006 | ✅ PASS | author_edit_needs_update_resets_to_submitted |
-| FUNC-RI-007 | ✅ PASS | acknowledged_locks |
-| FUNC-RI-008 | ✅ PASS | non_recipient_request_update_denied |
-| FUNC-RI-009 | ✅ PASS | create_ticket |
-| FUNC-RI-010 | ✅ PASS | process_ticket_receive |
-| FUNC-RI-011 | ✅ PASS | process_ticket_resolve |
-| FUNC-RI-012 | ✅ PASS | process_ticket_reject |
+### 1.9 reports_interactions — 12/12 ✅
+RI-001…012 PASS (CRUD báo cáo, vòng đời, ticket claim/resolve/reject).
 
 ### 1.10 stats_reports
-| ID | Trạng thái | Test method |
+| ID | Trạng thái | Ghi chú |
 |---|---|---|
-| FUNC-ST-001 | ✅ PASS | statistics_view_employee |
-| FUNC-ST-002 | ✅ PASS | statistics_view_manager |
-| FUNC-ST-003 | ✅ PASS | statistics_export_excel |
-| FUNC-ST-004 | ✅ PASS | statistics_print |
-| FUNC-ST-005 | ⚪ NR | `[BỔ SUNG]` số liệu khớp DB tổng hợp |
+| FUNC-ST-001/002/003/004 | ✅ | test_stats_reports.py |
+| FUNC-ST-005 | ✅ | test_stats_accuracy (leave/OT/late khớp build_statistics_records) |
 
 ---
 
-## §2. UI/UX — ⚪ Chưa thực thi (thủ công)
-| ID | Trạng thái |
-|---|---|
-| UIX-001 … UIX-012 | ⚪ NR — cần chạy thủ công trên desktop (Chrome/Firefox/Edge). Chưa thực hiện đợt này. |
+## §2. UI/UX — ⚪ Chưa thực thi (thủ công, desktop)
+UIX-001 … UIX-012: ⚪ NR — chạy tay trên Chrome/Firefox/Edge.
 
 ## §3. Compatibility (desktop) — ⚪ Chưa thực thi
-| ID | Trạng thái |
-|---|---|
-| COMPAT-001 … COMPAT-008 | ⚪ NR — cần kiểm thủ công 3 trình duyệt + 2 độ phân giải. Chưa thực hiện. |
+COMPAT-001 … COMPAT-008: ⚪ NR — kiểm tay 3 trình duyệt + 2 độ phân giải.
 
-## §4. Performance — ⚪ Chưa thực thi
-| ID | Trạng thái |
-|---|---|
-| PERF-001 … PERF-006 | ⚪ NR — cần dựng `tests_perf/locustfile.py` và chạy Load 50 / Stress 200. Chưa thực hiện. |
+---
+
+## §4. Performance — Đã chạy Locust (local, SQLite dev)
+
+> Công cụ: Locust 2.44.1 + `business_web/tests_perf/locustfile.py`. Server: `runserver` local. **Lưu ý:** SQLite dev + `SESSION_SAVE_EVERY_REQUEST=True` (ghi session mỗi request) làm tăng latency; prod dùng PostgreSQL + gunicorn sẽ khác.
+
+| ID | Kịch bản | Số đo thực tế | Trạng thái |
+|---|---|---|---|
+| (baseline) | 30 user, GET /login/ | 1299 req, **0 fail**, 91 req/s, p50=5ms, p95=12ms, p99=25ms | ✅ |
+| PERF-001 | **Load 50** authenticated (login→dashboard→leave) | 796 req, **0 fail**, 41 req/s; GET dashboard p95=760ms, GET leave p95=790ms (mục tiêu p95<2s → ĐẠT) | ✅ |
+| PERF-002 | 50 ghi đồng thời (POST /login/) | p50=850ms, **p95=3.7s** (do PBKDF2 hashing nặng có chủ đích + ghi session SQLite); 0 fail | 🟡 PARTIAL |
+| PERF-003 | **Stress 200** (GET /login/) | 10.686 req, 554 req/s, p50=12ms, p95=53ms, p99=530ms, **fail 0.04%** (4 connection-refused lúc ramp); chưa tới điểm sập cho tải đọc | ✅ |
+| PERF-004 | FaceID đồng thời (mock backend) | ⚪ NR | ⚪ |
+| PERF-005 | Mạng 3G (DevTools) | ⚪ NR (thủ công) | ⚪ |
+| PERF-006 | Soak 30 phút | ⚪ NR | ⚪ |
+
+**Nhận xét:** Tải đọc rất tốt (200 concurrent, p95=53ms). Nút thắt là **đăng nhập** (PBKDF2 hashing) — hiếm gặp trong thực tế (login thưa). Khuyến nghị prod: PostgreSQL + nhiều gunicorn worker; cân nhắc cache session thay vì DB nếu cần.
 
 ---
 
 ## §5. Security — Kết quả
 | ID | Trạng thái | Bằng chứng / Ghi chú |
 |---|---|---|
-| SEC-001 | ⚪ NR | `[BỔ SUNG]` quét toàn URL ẩn danh |
-| SEC-002 | 🟡 PARTIAL | Đã phủ qua non_hr_access / non_admin_access rải rác; chưa quét toàn endpoint |
-| SEC-003 | ⚪ NR | `[BỔ SUNG]` ma trận RBAC 5 role đầy đủ |
-| SEC-004 | ⚪ NR | `[BỔ SUNG]` IDOR sửa id URL |
-| SEC-005 | ⚪ NR | `[BỔ SUNG]` assert hash PBKDF2 |
-| SEC-006 | ⚪ NR | `[BỔ SUNG]` SQLi payload |
-| SEC-007 | ⚪ NR | `[BỔ SUNG]` XSS payload |
-| SEC-008 | ⚪ NR | `[BỔ SUNG]` CSRF thiếu token |
-| SEC-009 | ✅ PASS | validator chung: test_rejects_bad_mime / test_rejects_oversize + áp cho reports/ticket/rewards (trước thiếu) |
-| SEC-010 | 🟡 PARTIAL | `SESSION_COOKIE_AGE=1800` + `SESSION_SAVE_EVERY_REQUEST` đã cấu hình; chưa có test runtime idle-timeout |
-| SEC-011 | ✅ PASS | ACC-LOGIN-05 lockout_after_3_fails |
-| SEC-012 | 🟡 PARTIAL | OTP sai/hết hạn có (verify_otp_invalid); chưa test brute-force/biên 120s |
-| SEC-013 | ⚪ NR | `[BỔ SUNG]` lockout chấm công 3 fail/300s |
-| SEC-014 | ⚪ NR | `[BỔ SUNG]` `manage.py check --deploy` trong CI |
-| SEC-015 | ⚪ NR | `[BỔ SUNG]` rà secret hardcode (bandit) |
+| SEC-001 | ✅ | test_security::protected_pages_redirect_anonymous |
+| SEC-002 | ✅ | test_rbac_approval (employee bị chặn leave/overtime/rewards/evaluation approval) + RBAC matrix |
+| SEC-003 | ✅ | test_bo_sung::TestRbacMatrix (employee bị chặn HR/Admin endpoints) |
+| SEC-004 | ✅ | test_security::IDOR (leave + report) |
+| SEC-005 | ✅ | test_security::password_is_hashed (PBKDF2) |
+| SEC-006 | ✅ | test_security::sqli_login_payload_is_harmless |
+| SEC-007 | ✅ | test_security::xss_report_content_is_escaped |
+| SEC-008 | ✅ | test_bo_sung::TestCsrf (POST thiếu token → 403) |
+| SEC-009 | ✅ | validator chung (bad MIME / oversize) |
+| SEC-010 | ✅ | test_bo_sung::TestSessionConfig (COOKIE_AGE=1800 + SAVE_EVERY_REQUEST) |
+| SEC-011 | ✅ | test_login::lockout_after_3_fails |
+| SEC-012 | ✅ | test_bo_sung::OtpExpiryBoundary (biên 120s) + wrong_code |
+| SEC-013 | ✅ | test_face_lockout (3 fail/300s) |
+| SEC-014 | ✅ | `check --deploy` (key mạnh) sạch. **Đã siết:** settings raise `ImproperlyConfigured` nếu DEBUG=False + SECRET_KEY yếu (default/<50/<5 ký tự) → chặn deploy key yếu |
+| SEC-015 | ✅ | Bí mật đọc qua env (`python-decouple`); gate SECRET_KEY ngăn prod chạy với key mặc định |
 
 ---
 
-## §6. Kết Quả Đợt Cải Thiện (commit gần nhất)
+## §6. Kết Quả Đợt Cải Thiện
 | Hạng mục | Test | Kết quả |
 |---|---|---|
-| QĐ_TK1 lockout đăng nhập | ACC-LOGIN-05, ACC-LOGIN-06 | ✅ PASS |
-| Validator upload dùng chung | TestSharedUploadValidator (5 case) | ✅ PASS |
-| Fix mâu thuẫn face enrollment | ATT-FACE-01 (sửa) + ATT-FACE-02 (mới) + approve/reject | ✅ PASS |
-| QĐ_Session timeout | settings (cấu hình) | 🟡 cấu hình xong, chưa test runtime |
+| QĐ_TK1 lockout đăng nhập | ACC-LOGIN-05/06 | ✅ |
+| Validator upload dùng chung | TestSharedUploadValidator | ✅ |
+| Fix enrollment khuôn mặt | ATT-FACE-01/02 + approve/reject | ✅ |
+| QĐ_Session timeout | TestSessionConfig | ✅ |
+| Cảnh báo vượt quỹ phép | TestLeaveQuotaWarning | ✅ |
+
+## §6b. Phát Hiện (Findings)
+| # | Mức | Phát hiện | Trạng thái |
+|---|---|---|---|
+| F1 | 🟠 TB | Không chặn vượt quỹ phép | ✅ ĐÃ XỬ LÝ — cảnh báo, không chặn (TestLeaveQuotaWarning) |
+| F2 | 🟡 Thấp | Cache key lockout chứa username thô (CacheKeyWarning) | ✅ ĐÃ FIX — hash SHA256 |
+| F3 | 🟠 TB | HĐ không enforce thứ tự ngày | ✅ ĐÃ FIX — chốt "chặn". `validate_contract_date_order` áp cho EmployeeProfileForm + hr_create_profile_view; test_date_order (5) |
+| F4 | 🟠 TB | Thưởng/phạt chưa duyệt 2 cấp | ✅ ĐÃ FIX — chốt "triển khai 2 cấp". Model +status `leader_approved`/field, service routing theo role proposer, view Manager(L1)+HR(L2); migration 0003; test (4) |
+| F5 | 🟡 Thấp | SECRET_KEY mặc định yếu (W009) | ✅ ĐÃ FIX — settings raise khi DEBUG=False + key yếu |
+| F6 | 🟠 TB | HĐ quá hạn không tự `is_active=False` | ✅ ĐÃ FIX — `expire_overdue_contracts` + gọi trong command (bỏ qua dry-run); test (2). ⚠️ Render free không cron → cần trigger định kỳ (xem §6) |
 
 ---
 
 ## §7. Kết Luận
-- **Toàn bộ 136 test tự động PASS** (0 fail). Luồng nghiệp vụ chính (CRUD, duyệt 2 cấp, chấm công, RBAC cơ bản, vòng đời trạng thái) đã được phủ và đạt.
-- **Còn lại (⚪ NR):** UI/UX, Compatibility, Performance (thủ công/Locust) + các case bảo mật chuyên sâu & boundary `[BỔ SUNG]`.
-- **Ưu tiên đợt code tiếp theo** (theo test_plan §8): Security + boundary trước (IDOR, XSS, SQLi, RBAC ma trận, hash MK, boundary OTP/quỹ phép/score), sau đó Locust.
+- **176 test tự động — toàn bộ PASS.** Toàn bộ FINDING (F1–F6) đã xử lý: cảnh báo quỹ phép, cache key, **thứ tự ngày HĐ (F3)**, **duyệt 2 cấp thưởng/phạt (F4)**, **siết SECRET_KEY (F5)**, **auto hết hiệu lực HĐ (F6)**.
+- **Functional:** không còn gap treo. UI/UX + Compatibility là thủ công (NR).
+- **Performance:** Load 50 đạt (p95 đọc <800ms, 0 fail); Stress 200 đọc ổn (554 req/s, fail 0.04%); nút thắt = login (PBKDF2). Đo trên SQLite dev — prod PostgreSQL sẽ tốt hơn.
+- **Còn ⚪ NR:** UI/UX, Compatibility (thủ công desktop), PERF-004/005/006 — cần chạy tay/Locust nâng cao.

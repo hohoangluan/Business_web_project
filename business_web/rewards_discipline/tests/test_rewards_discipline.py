@@ -36,6 +36,7 @@ class TestRewardsDiscipline(TestCase):
         self.assertFalse(response.context['can_propose'])
 
     def test_manager_propose_reward(self):
+        """Manager lập phiếu → bỏ L1, vào thẳng chờ HR (leader_approved)."""
         self.client.force_login(self.manager)
         response = self.client.post(self.url_rewards, data={
             'action': 'create',
@@ -48,48 +49,76 @@ class TestRewardsDiscipline(TestCase):
         })
         self.assertRedirects(response, self.url_rewards)
         record = RewardPenalty.objects.get(employee=self.employee)
-        self.assertEqual(record.status, 'pending')
+        self.assertEqual(record.status, RewardPenalty.LEADER_APPROVED)
         self.assertEqual(record.amount, 500000)
         self.assertEqual(record.proposer, self.manager)
 
-    def test_hr_approval_access(self):
+    def test_approval_access(self):
+        """Manager (L1) và HR (L2) vào được trang duyệt; employee thì không."""
+        self.client.force_login(self.employee)
+        self.assertRedirects(self.client.get(self.url_approval), self.url_rewards)
         self.client.force_login(self.manager)
-        response = self.client.get(self.url_approval)
-        # Manager is not HR, should redirect to rewards_penalties
-        self.assertRedirects(response, self.url_rewards)
-        
+        self.assertEqual(self.client.get(self.url_approval).status_code, 200)
         self.client.force_login(self.hr)
-        response = self.client.get(self.url_approval)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get(self.url_approval).status_code, 200)
 
     def test_hr_approve_reject_reward(self):
+        """HR duyệt/từ chối phiếu đang chờ L2 (leader_approved)."""
         record = RewardPenalty.objects.create(
-            employee=self.employee,
-            record_type=RewardPenalty.REWARD,
-            amount=200000,
-            reason_title='Test approve',
-            proposer=self.manager,
-            status='pending',
-            application_date=self.today
+            employee=self.employee, record_type=RewardPenalty.REWARD,
+            amount=200000, reason_title='Test approve', proposer=self.manager,
+            status=RewardPenalty.LEADER_APPROVED, application_date=self.today,
         )
         self.client.force_login(self.hr)
-        
-        # Approve
-        response = self.client.post(self.url_approval, data={
-            'action': 'approve',
-            'record_id': record.id
-        })
+        response = self.client.post(self.url_approval, data={'action': 'approve', 'record_id': record.id})
         self.assertRedirects(response, self.url_approval)
         record.refresh_from_db()
-        self.assertEqual(record.status, 'approved')
-        
-        # Reject
-        record.status = 'pending'
+        self.assertEqual(record.status, RewardPenalty.APPROVED)
+
+        record.status = RewardPenalty.LEADER_APPROVED
         record.save()
-        response = self.client.post(self.url_approval, data={
-            'action': 'reject',
-            'record_id': record.id
-        })
-        self.assertRedirects(response, self.url_approval)
+        self.client.post(self.url_approval, data={'action': 'reject', 'record_id': record.id})
         record.refresh_from_db()
-        self.assertEqual(record.status, 'rejected')
+        self.assertEqual(record.status, RewardPenalty.REJECTED)
+
+    def test_full_two_level_flow_leader_proposes(self):
+        """FUNC-RW-005: Leader lập → Manager L1 → HR L2 → approved."""
+        leader_role = Role.objects.create(name=Role.LEADER)
+        leader = User.objects.create_user(username='leader', password='123')
+        UserProfile.objects.create(user=leader, role=leader_role, employee_id='LD001')
+        self.client.force_login(leader)
+        self.client.post(self.url_rewards, data={
+            'action': 'create', 'employee': self.employee.id,
+            'record_type': RewardPenalty.PENALTY, 'amount': 0,
+            'reason_title': 'Đi trễ', 'reason_detail': 'x',
+            'application_date': self.today.strftime('%Y-%m-%d'),
+        })
+        rec = RewardPenalty.objects.get(employee=self.employee)
+        self.assertEqual(rec.status, RewardPenalty.PENDING)
+
+        self.client.force_login(self.manager)
+        self.client.post(self.url_approval, data={'action': 'approve', 'record_id': rec.id})
+        rec.refresh_from_db()
+        self.assertEqual(rec.status, RewardPenalty.LEADER_APPROVED)
+        self.assertEqual(rec.leader_approved_by, self.manager)
+
+        self.client.force_login(self.hr)
+        self.client.post(self.url_approval, data={'action': 'approve', 'record_id': rec.id})
+        rec.refresh_from_db()
+        self.assertEqual(rec.status, RewardPenalty.APPROVED)
+        self.assertEqual(rec.approved_by, self.hr)
+
+    def test_hr_cannot_do_l1(self):
+        """HR không duyệt được phiếu đang ở cấp 1 (phải Manager)."""
+        leader_role = Role.objects.create(name=Role.LEADER)
+        leader = User.objects.create_user(username='leader2', password='123')
+        UserProfile.objects.create(user=leader, role=leader_role, employee_id='LD002')
+        rec = RewardPenalty.objects.create(
+            employee=self.employee, record_type=RewardPenalty.REWARD, amount=0,
+            reason_title='x', proposer=leader, status=RewardPenalty.PENDING,
+            application_date=self.today,
+        )
+        self.client.force_login(self.hr)
+        self.client.post(self.url_approval, data={'action': 'approve', 'record_id': rec.id})
+        rec.refresh_from_db()
+        self.assertEqual(rec.status, RewardPenalty.PENDING)
