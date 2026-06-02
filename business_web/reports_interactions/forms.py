@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from accounts.models import Role
 from accounts.services import get_user_role_name
+from common.file_validation import EVIDENCE_MIME, validate_upload
 from reports_interactions.models import Report
 from reports_interactions.models.ticket_model import Ticket
 
@@ -38,6 +39,10 @@ class ReportForm(forms.ModelForm):
             'content': 'Nội dung báo cáo',
             'file_attachment': 'Tài liệu / File đính kèm (nếu có)',
         }
+
+    def clean_file_attachment(self):
+        # Đính kèm tùy chọn → validator dùng chung (5 MB + PDF/JPG/PNG).
+        return validate_upload(self.cleaned_data.get('file_attachment'))
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -116,3 +121,11 @@ class TicketForm(forms.ModelForm):
             'content': 'Nội dung chi tiết',
             'evidence_file': 'File minh chứng đính kèm (nếu có)',
         }
+
+    def clean_evidence_file(self):
+        # Minh chứng tùy chọn → ảnh (JPG/PNG/GIF/WEBP) hoặc PDF, ≤5 MB.
+        return validate_upload(
+            self.cleaned_data.get('evidence_file'),
+            allowed_mime=EVIDENCE_MIME,
+            mime_message='Sai định dạng. Chấp nhận: ảnh hoặc PDF.',
+        )

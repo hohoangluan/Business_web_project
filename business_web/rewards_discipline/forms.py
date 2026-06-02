@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from accounts.services import is_hr_user
+from common.file_validation import EVIDENCE_MIME, validate_upload
 from rewards_discipline.models import RewardPenalty
 
 
@@ -24,6 +25,14 @@ class RewardPenaltyForm(forms.ModelForm):
             'application_date': 'Ngày áp dụng',
             'evidence_file': 'Tài liệu / Minh chứng đính kèm',
         }
+
+    def clean_evidence_file(self):
+        # Minh chứng tùy chọn → ảnh (JPG/PNG/GIF/WEBP) hoặc PDF, ≤5 MB.
+        return validate_upload(
+            self.cleaned_data.get('evidence_file'),
+            allowed_mime=EVIDENCE_MIME,
+            mime_message='Sai định dạng. Chấp nhận: ảnh hoặc PDF.',
+        )
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

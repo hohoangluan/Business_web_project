@@ -192,3 +192,36 @@ class TestLeaveAttachment(TestCase):
         }, files={'attachment': big})
         self.assertFalse(form.is_valid())
         self.assertIn('attachment', form.errors)
+
+
+class TestSharedUploadValidator(TestCase):
+    """Validator dùng chung common.file_validation.validate_upload."""
+
+    def test_accepts_valid_pdf(self):
+        from common.file_validation import validate_upload
+        f = SimpleUploadedFile('ok.pdf', b'%PDF-1.4', content_type='application/pdf')
+        self.assertIs(validate_upload(f), f)
+
+    def test_none_optional_returns_none(self):
+        from common.file_validation import validate_upload
+        self.assertIsNone(validate_upload(None))
+
+    def test_none_required_raises(self):
+        from django.core.exceptions import ValidationError
+        from common.file_validation import validate_upload
+        with self.assertRaises(ValidationError):
+            validate_upload(None, required=True)
+
+    def test_rejects_oversize(self):
+        from django.core.exceptions import ValidationError
+        from common.file_validation import validate_upload
+        big = SimpleUploadedFile('big.pdf', b'x' * (5 * 1024 * 1024 + 1), content_type='application/pdf')
+        with self.assertRaises(ValidationError):
+            validate_upload(big)
+
+    def test_rejects_bad_mime(self):
+        from django.core.exceptions import ValidationError
+        from common.file_validation import validate_upload
+        bad = SimpleUploadedFile('x.exe', b'MZ', content_type='application/x-msdownload')
+        with self.assertRaises(ValidationError):
+            validate_upload(bad)

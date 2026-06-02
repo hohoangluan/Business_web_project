@@ -147,6 +147,22 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
+# =============================================================================
+# SESSION (QĐ_Session) — tự đăng xuất sau 30 phút KHÔNG hoạt động.
+#   SESSION_SAVE_EVERY_REQUEST=True làm mới hạn cookie mỗi request → đếm theo
+#   thời gian *không hoạt động* thay vì thời gian từ lúc đăng nhập.
+# =============================================================================
+SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=1800, cast=int)  # 30 phút
+SESSION_SAVE_EVERY_REQUEST = True
+
+# =============================================================================
+# LOGIN LOCKOUT (QĐ_TK1) — sai mật khẩu N lần liên tiếp → khóa tài khoản
+#   (is_active=False). Mở khóa do HR/Admin (QĐ_TK2). Đếm trong cache, không
+#   thêm model. Cửa sổ đếm reset sau LOGIN_LOCKOUT_WINDOW_SEC nếu ngừng thử.
+# =============================================================================
+LOGIN_LOCKOUT_MAX_FAILS = config('LOGIN_LOCKOUT_MAX_FAILS', default=3, cast=int)
+LOGIN_LOCKOUT_WINDOW_SEC = config('LOGIN_LOCKOUT_WINDOW_SEC', default=900, cast=int)
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 

@@ -2,6 +2,7 @@
 from django import forms
 from django.utils import timezone
 
+from common.file_validation import validate_upload
 from overtime.models import OvertimeRequest
 
 
@@ -58,19 +59,9 @@ class OvertimeRequestForm(forms.ModelForm):
             'attachment': 'Tệp minh chứng (nếu có)',
         }
 
-    MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
-    ALLOWED_ATTACHMENT_MIME = {'application/pdf', 'image/jpeg', 'image/png'}
-
     def clean_attachment(self):
-        f = self.cleaned_data.get('attachment')
-        if not f:
-            return f
-        if f.size > self.MAX_ATTACHMENT_BYTES:
-            raise forms.ValidationError('Tệp tối đa 5 MB.')
-        content_type = getattr(f, 'content_type', '') or ''
-        if content_type not in self.ALLOWED_ATTACHMENT_MIME:
-            raise forms.ValidationError('Chấp nhận PDF / JPG / PNG.')
-        return f
+        # Minh chứng tùy chọn → validator dùng chung (5 MB + PDF/JPG/PNG).
+        return validate_upload(self.cleaned_data.get('attachment'))
 
     def clean_overtime_date(self):
         """Ngày tăng ca không được ở quá khứ quá xa (> 30 ngày trước)."""
