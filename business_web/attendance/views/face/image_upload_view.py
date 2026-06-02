@@ -1,12 +1,8 @@
 """View xử lý upload ảnh và lưu base64 vào database."""
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.http import require_POST
 
-from attendance.services.face.face_service import (
-    get_employee_face,
-    delete_employee_face,
-)
 from attendance.services.face.face_change_service import submit_face_change
 from attendance.services.face.face_api_client import FaceApiError
 
@@ -93,43 +89,4 @@ def upload_image_base64_view(request):
         "success": True,
         "pending": False,
         "message": "Lưu ảnh thành công.",
-        "data": {
-            "base64": obj.face_base64,
-            "content_type": obj.content_type,
-            "updated_at": obj.updated_at.isoformat(),
-        },
-    })
-
-
-@login_required
-@require_http_methods(["GET"])
-def get_image_base64_view(request):
-    """
-    API lấy ảnh base64 của nhân viên đang đăng nhập.
-
-    Response (200):
-        {
-            "success": true,
-            "data": {
-                "base64": "<chuỗi base64>",
-                "content_type": "image/jpeg",
-                "updated_at": "2025-05-21T12:30:00Z"
-            }
-        }
-    """
-    face_data = get_employee_face(user=request.user)
-
-    if face_data is None:
-        return JsonResponse(
-            {"success": False, "error": "Nhân viên chưa có ảnh khuôn mặt."},
-            status=404,
-        )
-
-    return JsonResponse({
-        "success": True,
-        "data": {
-            "base64": face_data['base64'],
-            "content_type": face_data['content_type'],
-            "updated_at": face_data['updated_at'].isoformat(),
-        },
     })
