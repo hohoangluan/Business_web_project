@@ -146,8 +146,8 @@ Blocks có thể override:
                     <span>Quản lý hồ sơ nhân sự</span>
                 </a>
 
-                <!-- Đăng ký tài khoản mới -->
-                <a href="{% url 'register' %}"
+                <!-- Đăng ký tài khoản mới (chỉ username + password) -->
+                <a href="{% url 'admin_create_account' %}"
                    class="nav-item {% if active_page == 'register' %}active{% endif %}">
                     <i class="fa-solid fa-user-plus"></i>
                     <span>Tạo tài khoản</span>

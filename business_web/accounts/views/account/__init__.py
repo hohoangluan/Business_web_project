@@ -12,6 +12,7 @@ from accounts.views.account.account_status_view import (
 )
 from accounts.views.account.account_update_view import (
     account_update_view,
+    admin_create_account_view,
     assign_permissions_view,
     assign_role_view,
     delete_user_view,
@@ -27,6 +28,7 @@ __all__ = [
     "account_info_view",
     "account_status_view",
     "account_update_view",
+    "admin_create_account_view",
     "assign_permissions_view",
     "assign_role_view",
     "dashboard_view",

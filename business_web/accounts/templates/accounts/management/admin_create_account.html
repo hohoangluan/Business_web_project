@@ -1,0 +1,64 @@
+{% extends 'accounts/base_dashboard.html' %}
+{# ADMIN: TẠO TÀI KHOẢN NHANH — chỉ username + password #}
+{% load static %}
+
+{% block title %}Tạo tài khoản - HRMS{% endblock %}
+
+{% block content %}
+<style>
+    .acc-card {
+        max-width: 520px;
+        background: var(--bg-main);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 2rem 2.25rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    }
+    .acc-form-group { margin-bottom: 1.25rem; }
+    .acc-label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .acc-input {
+        width: 100%;
+        padding: 0.65rem 1rem;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        font-family: 'Inter', sans-serif;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+    .acc-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .acc-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; }
+    .acc-btn {
+        background: var(--gradient-blue); color: #fff;
+        border: none; padding: 0.65rem 1.5rem; border-radius: 6px;
+        font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .acc-btn:hover { opacity: 0.9; }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size:1.6rem; font-weight:700; color:var(--text-main); margin-bottom:0.25rem;">Tạo tài khoản</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Tạo nhanh tài khoản đăng nhập (tên đăng nhập + mật khẩu). Gán vai trò sau ở mục Quản lý tài khoản.</p>
+    </div>
+
+    <div class="acc-card">
+        <form method="post" action="{% url 'admin_create_account' %}">
+            {% csrf_token %}
+            <div class="acc-form-group">
+                <label class="acc-label">Tên đăng nhập</label>
+                <input type="text" name="username" class="acc-input" value="{{ username|default:'' }}" placeholder="VD: nguyenvana" autofocus required>
+            </div>
+            <div class="acc-form-group">
+                <label class="acc-label">Mật khẩu</label>
+                <input type="password" name="password" class="acc-input" placeholder="Nhập mật khẩu" required>
+                <div class="acc-hint">Tối thiểu 8 ký tự, không quá đơn giản.</div>
+            </div>
+            <div class="acc-form-group">
+                <label class="acc-label">Xác nhận mật khẩu</label>
+                <input type="password" name="password_confirm" class="acc-input" placeholder="Nhập lại mật khẩu" required>
+            </div>
+            <button type="submit" class="acc-btn"><i class="fa-solid fa-user-plus"></i> Tạo tài khoản</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

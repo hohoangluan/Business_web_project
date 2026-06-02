@@ -45,6 +45,34 @@ class AdminAccessTest(TestCase):
         self.client.force_login(self.hr)
         self.assertEqual(self.client.get(reverse('profile')).status_code, 200)
 
+    def test_admin_create_account_username_password(self):
+        """Admin tạo tài khoản chỉ với username + password; giữ phiên admin."""
+        self.client.force_login(self.admin)
+        resp = self.client.post(reverse('admin_create_account'), {
+            'username': 'newacc',
+            'password': 'Str0ngPass!23',
+            'password_confirm': 'Str0ngPass!23',
+        })
+        self.assertRedirects(resp, reverse('user_list'))
+        self.assertTrue(User.objects.filter(username='newacc').exists())
+        # Vẫn là phiên admin (không tự đăng nhập vào tài khoản mới).
+        self.assertEqual(self.client.get(reverse('dashboard')).wsgi_request.user, self.admin)
+
+    def test_admin_create_account_rejects_mismatch_and_weak(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('admin_create_account'), {
+            'username': 'mm', 'password': 'Str0ngPass!23', 'password_confirm': 'other',
+        })
+        self.assertFalse(User.objects.filter(username='mm').exists())
+        self.client.post(reverse('admin_create_account'), {
+            'username': 'weak', 'password': '123', 'password_confirm': '123',
+        })
+        self.assertFalse(User.objects.filter(username='weak').exists())
+
+    def test_non_admin_cannot_create_account(self):
+        self.client.force_login(self.hr)
+        self.assertEqual(self.client.get(reverse('admin_create_account')).status_code, 302)
+
     def test_superuser_role_simulation(self):
         """DEV: superuser mô phỏng role nào thì xem giao diện + quyền của role đó.
 

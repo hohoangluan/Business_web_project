@@ -3,6 +3,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -51,6 +53,50 @@ def switch_role_view(request):
         messages.success(request, "[DEV] Da go Role.")
 
     return redirect(request.META.get("HTTP_REFERER", "dashboard"))
+
+
+@login_required
+@user_passes_test(is_admin_user)
+def admin_create_account_view(request):
+    """Admin tạo tài khoản nhanh — chỉ username + password.
+
+    Khác giao diện HR "Tạo hồ sơ nhân sự" (form hồ sơ đầy đủ). Admin giữ phiên
+    đăng nhập (không tự đăng nhập vào tài khoản mới). Vai trò gán sau ở Quản lý tài khoản.
+    """
+
+    template = "accounts/management/admin_create_account.html"
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        password_confirm = request.POST.get("password_confirm", "")
+
+        errors = []
+        if not username:
+            errors.append("Tên đăng nhập không được để trống.")
+        elif User.objects.filter(username__iexact=username).exists():
+            errors.append(f'Tên đăng nhập "{username}" đã tồn tại.')
+        if not password:
+            errors.append("Mật khẩu không được để trống.")
+        elif password != password_confirm:
+            errors.append("Mật khẩu xác nhận không khớp.")
+        else:
+            try:
+                validate_password(password)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
+
+        if errors:
+            for message in errors:
+                messages.error(request, message)
+            return render(request, template, {"active_page": "register", "username": username})
+
+        user = User.objects.create_user(username=username, password=password)
+        ensure_profile(user)
+        messages.success(request, f'Đã tạo tài khoản "{username}" thành công.')
+        return redirect("user_list")
+
+    return render(request, template, {"active_page": "register"})
 
 
 @login_required
