@@ -29,6 +29,7 @@ from .views import (
     reset_user_password_view,
     notifications_view,
     mark_notifications_read_view,
+    admin_create_account_view,
 )
 
 urlpatterns = [
@@ -52,6 +53,7 @@ urlpatterns = [
     path('notifications/mark-read/', mark_notifications_read_view, name='mark_notifications_read'),
 
     # ---------- Admin: User Management ----------
+    path('users/create-account/', admin_create_account_view, name='admin_create_account'),
     path('users/', user_list_view, name='user_list'),
     path('users/<int:user_id>/role/', assign_role_view, name='assign_role'),
     path('users/<int:user_id>/permissions/', assign_permissions_view, name='assign_permissions'),
