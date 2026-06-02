@@ -67,7 +67,7 @@ flowchart LR
     DSU -->|password_hash, is_active| P1
     P1 -->|lấy role| DSP
     DSP -->|role| P1
-    P1 -->|session_id + redirect theo role| U
+    P1 -->|session_id + redirect tới /dashboard/ (nội dung theo role)| U
 ```
 
 **Từ điển dữ liệu**
@@ -84,7 +84,7 @@ flowchart LR
 3. Sai → trả lỗi "Sai tài khoản hoặc mật khẩu".
 4. Đúng nhưng `is_active = False` → chặn, báo "Tài khoản bị khóa".
 5. Hợp lệ → `login()` tạo session.
-6. Đọc `UserProfile.role` → điều hướng trang chủ tương ứng (admin/hr/manager/leader/employee).
+6. `login()` redirect tới `LOGIN_REDIRECT_URL='dashboard'` — **một** URL `/dashboard/`. `dashboard_view` đọc `UserProfile.role` → truyền capability flags (`can_access_statistics`, `can_manage_work_info`...) cho template; nội dung hiển thị khác nhau theo role (không phải redirect riêng từng role).
 
 ---
 
@@ -473,13 +473,14 @@ flowchart LR
 | Luồng | Dữ liệu | Kiểu |
 |-------|---------|------|
 | Đầu vào | `record_type ∈ {reward, penalty}`, `amount` (VND), `reason_title`, `reason_detail`, `evidence_file`, `application_date` | str, int, file, date |
-| Trạng thái | `pending → approved` / `rejected` | str |
+| Trạng thái | `pending → leader_approved → approved` / `rejected` | str |
 
-**Thuật toán**
+**Thuật toán** (`rewards_discipline/services/__init__.py`)
 1. Leader/Manager/HR lập phiếu `RewardPenalty(status=pending)`, gắn `proposer`.
-2. **L1**: Manager duyệt nếu Leader đề xuất; Manager tự đề xuất → bỏ qua L1, chuyển thẳng HR.
-3. **L2**: HR duyệt → `approved` (ban hành) hoặc `rejected`.
-4. NV xem quyết định của mình.
+2. **L1** (`approve_reward_penalty` khi `pending`): Manager duyệt → `leader_approved` (ghi `leader_approved_by/at`). Không tự duyệt phiếu của chính mình.
+3. **L2** (`approve_reward_penalty` khi `leader_approved`): HR duyệt → `approved` (ban hành, ghi `approved_by`) hoặc `rejected`.
+4. Mỗi lần duyệt/từ chối → `create_notification` tới nhân viên.
+5. NV xem quyết định của mình.
 
 ---
 
@@ -589,7 +590,7 @@ flowchart LR
 2. `parse_ddmmyyyy()` → `days_left`. Giữ nếu `0 ≤ days_left ≤ 30`.
 3. Phân loại `urgency`: `near` nếu ≤7 ngày, `far` nếu ≤30. Sắp xếp tăng dần.
 4. `get_recipients_for_contract()`: gộp email NV + manager_user + leader_user + **mọi HR**, loại trùng/rỗng.
-5. Gửi cảnh báo qua Gmail SMTP tại mốc 30/15/7 ngày.
+5. Gửi cảnh báo qua Gmail SMTP: `urgency=far` khi `days_left ≤ THRESHOLD_FAR=30`, `urgency=near` (khẩn) khi `≤ THRESHOLD_NEAR=7`.
 6. Gia hạn: tạo HĐ mới, đóng HĐ cũ `is_active=False`. HĐ quá hạn chưa gia hạn → tự `is_active=False`.
 
 ---

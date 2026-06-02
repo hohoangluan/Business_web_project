@@ -2,7 +2,8 @@
 
 > **Hệ thống Quản lý Nhân sự (Human Resource Management System)**
 > Môn học: SE104 – Nhập môn Công nghệ Phần mềm
-> Stack: Django · SQLite3 · HTML/CSS/JS · Tailwind · Alpine.js · Remote Face API (DeepFace/Facenet512)
+> Stack: Django · PostgreSQL (prod, Render) / SQLite3 (dev) · HTML · CSS tự viết (`style.css`) · JavaScript thuần · Font Awesome · Chart.js (trang thống kê) · Remote Face API (DeepFace/Facenet512)
+> Deploy: Render PaaS (gunicorn + WhiteNoise) · Cloudinary (media) · Gmail SMTP — chi tiết: `deployment_architecture.md`
 
 ---
 
@@ -13,11 +14,12 @@
 | Tầng | Công nghệ |
 |------|-----------|
 | **Backend** | Django (Python) — MTV pattern |
-| **Database** | SQLite3 (dev) → MySQL (production) |
-| **Frontend** | HTML/CSS, Tailwind CSS, Alpine.js |
+| **Database** | SQLite3 (dev) → **PostgreSQL** (production, Render — qua `dj-database-url` + `psycopg2`) |
+| **Deploy** | Render Web Service (`gunicorn`) · WhiteNoise (static) · Cloudinary (media) — xem `deployment_architecture.md` |
+| **Frontend** | HTML + CSS tự viết (`accounts/static/accounts/css/style.css`) · JavaScript thuần (`accounts.js`) · Font Awesome (icon) · Chart.js (biểu đồ thống kê) · Google Fonts (Inter) — **không** dùng Tailwind/Alpine |
 | **AI** | Nhận diện khuôn mặt chạy trên **service từ xa** (FastAPI + DeepFace `Facenet512` + FAISS, host HuggingFace Space). Django chỉ gọi HTTP, không nạp model local. |
 | **Email** | Gmail SMTP (OTP đặt lại mật khẩu) |
-| **Kiến trúc** | Client–Server · Multi-App Django · 3 lớp |
+| **Kiến trúc** | Client–Server · Multi-App Django · 3 lớp · deploy lên Render (PaaS) |
 
 > [!NOTE]
 > Các tính năng sau **đã bị loại bỏ** khỏi phạm vi hiện tại: CEO role, Super_User role, Audit Log, Cơ chế tính lương (BangLuong).
@@ -26,7 +28,7 @@
 
 ```
 ┌─────────────────────────────────────┐
-│  Presentation Layer                 │  Templates (HTML/CSS/JS/Tailwind)
+│  Presentation Layer                 │  Templates (HTML + CSS tự viết + JS thuần)
 │  → Views, Forms, URL routing        │
 ├─────────────────────────────────────┤
 │  Business Logic Layer               │  Services, validation, workflows
@@ -54,6 +56,12 @@ business_web/               ← Project root (settings, urls, wsgi)
 ├── reports_interactions/   ← Báo cáo công việc, helpdesk ticket
 └── stats_reports/          ← Thống kê tổng hợp (không có model riêng)
 ```
+
+### 1.4 Kiến Trúc Triển Khai (Deployment)
+
+Hệ thống deploy lên **Render PaaS**: `gunicorn` chạy WSGI app, WhiteNoise serve static, **PostgreSQL** (Render) làm DB, **Cloudinary** giữ media, **Gmail SMTP** gửi email, **HuggingFace Space** chạy face API. Build qua `business_web/build.sh` (`pip install → collectstatic → migrate → ensure_superuser`).
+
+> 📐 **Sơ đồ System Architecture + Deployment đầy đủ + bảng env var + deployment gaps:** xem `deployment_architecture.md`.
 
 ---
 
@@ -97,7 +105,19 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `code` | CharField(6) | Mã OTP 6 chữ số |
 | `created_at` | DateTimeField (auto) | Hết hạn sau **120 giây** (`OTP_EXPIRY_SECONDS=120`, method `is_expired()`) |
 
-> `login_history_model.py` hiện là **placeholder** (chưa có model). RBAC vận hành qua `UserProfile.role` + `permissions` M2M.
+#### `Notification`
+> **1 User ↔ N Notification** (ForeignKey, `related_name='notifications'`). Sinh tự động khi có sự kiện: đổi vai trò, duyệt/từ chối nghỉ phép · OT · thưởng/phạt, cập nhật hồ sơ. Helper service `create_notification(user, title, message, link)`.
+
+| Trường | Kiểu | Mô tả |
+|--------|------|-------|
+| `user` | ForeignKey → User | Người nhận thông báo |
+| `title` | CharField(255) | Tiêu đề |
+| `message` | TextField | Nội dung |
+| `link` | CharField(255, nullable) | Liên kết điều hướng (tuỳ chọn) |
+| `is_read` | BooleanField (default=False) | Đã đọc? (set khi mở chuông / trang thông báo) |
+| `created_at` | DateTimeField (auto) | Thời điểm tạo |
+
+> `login_history_model.py`, `role_permission_model.py`, `user_role_model.py` hiện là **placeholder** (chưa có model). RBAC vận hành qua `UserProfile.role` + `permissions` M2M.
 
 ---
 
@@ -222,10 +242,15 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `user` | ForeignKey → User | Nhân viên chủ khuôn mặt |
 | `submitted_by` | ForeignKey → User (PROTECT) | Người nộp ảnh (giám sát upload thay) |
 | `image_base64` | TextField | Ảnh khuôn mặt chờ duyệt |
+| `content_type` | CharField(50, default `image/jpeg`) | MIME type ảnh |
+| `image_sha256` | CharField(64) | SHA-256 của ảnh — audit / phát hiện đảo ảnh |
+| `ip_address` | GenericIPAddressField (nullable) | IP người nộp |
 | `status` | CharField | `pending` → `approved` / `rejected` |
 | `reviewed_by` / `reviewed_at` | FK User / DateTime | Người duyệt (HR/Admin) |
 | `hr_note` | TextField | Ghi chú từ HR (lý do từ chối / tự động) |
 | `created_at` | DateTimeField (auto) | Thời gian nộp yêu cầu |
+
+> Property `is_cross_user`: `True` nếu `submitted_by != user` (cờ nghi vấn đổi mặt hộ).
 
 #### `AttendanceRecord`
 > **1 User ↔ N AttendanceRecord** (`unique_together: user + record_date`)
@@ -346,13 +371,15 @@ business_web/               ← Project root (settings, urls, wsgi)
 | `amount` | PositiveIntegerField (default=0) | Số tiền (VND), 0 = văn bản |
 | `reason_title` | CharField | Tiêu đề lý do |
 | `reason_detail` | TextField | Chi tiết lý do |
-| `proposer` | ForeignKey → User (SET_NULL) | Người đề xuất (Leader/Manager) |
-| `status` | CharField (default `pending`) | `pending` → `approved` / `rejected` |
+| `proposer` | ForeignKey → User (SET_NULL) | Người đề xuất (Leader/Manager/HR) |
+| `status` | CharField (default `pending`) | `pending` → `leader_approved` → `approved` / `rejected` (duyệt 2 cấp) |
+| `leader_approved_by` / `leader_approved_at` | FK User (SET_NULL) / DateTime | Manager duyệt L1 (khi Leader lập phiếu) |
+| `approved_by` | ForeignKey → User (SET_NULL) | HR duyệt L2 (cuối) |
 | `application_date` | DateField | Ngày áp dụng |
 | `evidence_file` | FileField (`reward_evidence/`, nullable) | File minh chứng |
 | `created_at` | DateTimeField (auto) | — |
 
-> Property `evidence_filename` trả tên file gốc.
+> Property `evidence_filename` trả tên file gốc. **Quy tắc duyệt:** Leader lập → Manager duyệt L1 → HR duyệt L2. Manager/HR lập → bỏ qua L1, chuyển thẳng HR L2. Không tự duyệt phiếu của chính mình.
 
 ---
 
@@ -412,6 +439,7 @@ erDiagram
     User ||--o{ LeaveRequest : "submits"
     User ||--o{ OvertimeRequest : "registers"
     User ||--o{ OtpCode : "requests"
+    User ||--o{ Notification : "receives"
     User ||--o{ RewardPenalty : "receives"
     User ||--o{ Evaluation : "receives (employee)"
     User ||--o{ Evaluation : "creates (reviewer)"
@@ -434,7 +462,7 @@ erDiagram
 
 | Chức năng | Admin | HR | Manager | Leader | Employee |
 |-----------|:---:|:---:|:---:|:---:|:---:|
-| Quản lý tài khoản (gán role, khóa/mở, xóa, reset MK) | ✅ | | | | |
+| Quản lý tài khoản (tạo TK nhanh, gán role, khóa/mở, xóa, reset MK) | ✅ | | | | |
 | Toàn quyền hồ sơ & hợp đồng | | ✅ | | | |
 | Phê duyệt L2 (nghỉ phép, OT, thưởng/phạt) | | ✅ | | | |
 | Điều chỉnh giờ công thủ công | | ✅ | | | |
@@ -468,15 +496,22 @@ sequenceDiagram
     alt Tài khoản bị khóa (is_active=False)
         Auth-->>Web: ❌ "Tài khoản bị khóa"
     else Mật khẩu sai
-        Auth-->>Web: ❌ "Sai thông tin đăng nhập"
+        Auth->>Auth: register_failure(username) (đếm qua cache)
+        alt Đạt ngưỡng LOGIN_LOCKOUT_MAX_FAILS (3)
+            Auth->>DB: is_active = False (khóa tài khoản)
+            Auth-->>Web: ❌ "Tài khoản đã bị khóa do nhập sai 3 lần"
+        else Chưa đạt ngưỡng
+            Auth-->>Web: ❌ "Sai thông tin đăng nhập"
+        end
     else Đăng nhập thành công
-        Auth->>Session: Tạo session, ghi role
-        Auth-->>Web: ✅ Redirect Dashboard theo Role
+        Auth->>Auth: clear_failures(username)
+        Auth->>Session: Tạo session
+        Auth-->>Web: ✅ Redirect tới /dashboard/ (1 trang, nội dung hiển thị theo Role qua capability flags)
     end
 ```
 
 > [!NOTE]
-> Khóa sau 3 lần sai và session timeout 30 phút là yêu cầu nghiệp vụ (mục 7). Hiện chưa thấy cấu hình `SESSION_COOKIE_AGE`/đếm `failed_login` trong `settings.py`/views — cần bổ sung khi siết bảo mật (mục 8).
+> **Đã triển khai bảo mật đăng nhập:** sai mật khẩu liên tiếp `LOGIN_LOCKOUT_MAX_FAILS=3` lần (cửa sổ `LOGIN_LOCKOUT_WINDOW_SEC=900s`, đếm qua cache trong `login_lockout_service.py`) → tự khóa `is_active=False`, chờ HR/Admin mở khóa. Session timeout 30 phút qua `SESSION_COOKIE_AGE=1800` + `SESSION_SAVE_EVERY_REQUEST=True` (làm mới hạn mỗi request).
 
 ---
 
@@ -550,6 +585,11 @@ sequenceDiagram
         View-->>Web: ✅ "Tạo hồ sơ thành công"
     end
 ```
+
+> [!NOTE]
+> **Hai đường tạo tài khoản:**
+> 1. **HR — Tạo hồ sơ nhân sự** (luồng trên): form hồ sơ đầy đủ, sinh username từ MSNV, đăng ký khuôn mặt, gửi email.
+> 2. **Admin — Tạo tài khoản nhanh** (`admin_create_account_view`, route `users/create-account/`): chỉ nhập `username` + `password` + xác nhận (qua `validate_password`). Không tạo hồ sơ/khuôn mặt; vai trò gán sau ở trang Quản lý tài khoản. Admin giữ nguyên phiên đăng nhập hiện tại.
 
 ---
 
@@ -737,7 +777,7 @@ sequenceDiagram
     end
 ```
 
-> Lập lịch qua Task Scheduler (`setup_task_scheduler.py`) trên Windows; production cân nhắc cron/Celery beat.
+> Lập lịch qua Task Scheduler (`setup_task_scheduler.py`) trên Windows — **chỉ chạy ở máy local**. **Render free KHÔNG có cron** ⇒ trên prod batch job này hiện không tự chạy; cần Render Cron Job (paid), external scheduler gọi endpoint trigger, hoặc Celery beat + worker.
 
 ---
 
@@ -927,7 +967,7 @@ stateDiagram-v2
 
 | Mã | Nội dung | Trạng thái trong code |
 |----|---------|------------------------|
-| `QĐ_TK1` | Sai MK 3 lần → khóa `is_active=False` | Yêu cầu nghiệp vụ (chưa thấy đếm failed_login) |
+| `QĐ_TK1` | Sai MK 3 lần → khóa `is_active=False` | ✅ `login_lockout_service` (cache, `LOGIN_LOCKOUT_MAX_FAILS=3`, window 900s) wired ở `AccountsLoginView` |
 | `QĐ_TK2` | HR mở khóa Employee/Leader/Manager; Admin mở khóa mọi tài khoản | Có view khóa/mở (`account_status_view`) |
 | `QĐ_Tao_MSNV` | HR **nhập MSNV tay** khi tạo hồ sơ | ✅ Nhập thủ công (không auto-sinh) |
 | `QĐ_Tao_Username` | username = MSNV viết thường bỏ trắng; pass mặc định `{MSNV}@2026` | ✅ Triển khai |
@@ -940,7 +980,7 @@ stateDiagram-v2
 | `QĐ_XacNhanBaoCao` | Sau `acknowledged` → khóa sửa/xóa báo cáo | ✅ `can_edit_or_delete` |
 | `QĐ_DieuHuong` | Ticket `new` → người có quyền tự nhận (claim), không auto-route | ✅ Claim thủ công |
 | `QĐ_NghiViec` | NV `resigned` → `is_active=False` | Yêu cầu nghiệp vụ |
-| `QĐ_Session` | Không hoạt động 30 phút → tự đăng xuất | Yêu cầu nghiệp vụ (chưa cấu hình `SESSION_COOKIE_AGE`) |
+| `QĐ_Session` | Không hoạt động 30 phút → tự đăng xuất | ✅ `SESSION_COOKIE_AGE=1800` + `SESSION_SAVE_EVERY_REQUEST=True` |
 
 ---
 
@@ -948,15 +988,16 @@ stateDiagram-v2
 
 - [ ] Service nhận diện từ xa (`FACE_API_BASE_URL`) sống & `/health` ok; test `/register` + `/recognize` với webcam thực (server threshold cosine 0.40)
 - [ ] `FACE_API_TIMEOUT_SEC` đủ lớn cho cold-start DeepFace; xử lý fallback khi service down (503)
-- [ ] Batch Job cảnh báo HĐ chạy đúng giờ (Task Scheduler / cron / Celery beat)
+- [ ] Batch Job (cảnh báo HĐ + `close_open_attendance`) chạy đúng giờ — ⚠️ Render free không có cron, cần Render Cron Job / external scheduler / Celery beat
 - [ ] Gmail SMTP config qua `.env` cho OTP reset mật khẩu
-- [ ] **Bổ sung** `SESSION_COOKIE_AGE` để có session timeout 30 phút
-- [ ] **Bổ sung** đếm `failed_login` → khóa sau 3 lần sai
+- [x] `SESSION_COOKIE_AGE=1800` + `SESSION_SAVE_EVERY_REQUEST=True` — session timeout 30 phút
+- [x] Đếm `failed_login` qua cache → khóa sau 3 lần sai (`login_lockout_service`)
 - [ ] File upload: validate định dạng (PDF/JPG/PNG) và giới hạn 5MB
 - [ ] RBAC test đủ 5 role không bị bypass
-- [ ] SQLite → cân nhắc MySQL khi deploy production
-- [ ] HTTPS bắt buộc (dữ liệu nhân sự nhạy cảm)
+- [x] DB production: **PostgreSQL trên Render** (`dj-database-url` + `psycopg2`) — đã chuyển khỏi SQLite
+- [x] HTTPS bắt buộc — đã enforce (`SECURE_SSL_REDIRECT` + HSTS khi `DEBUG=False`, Render terminate TLS)
+- [x] Media bền qua redeploy: **Cloudinary** (`USE_CLOUDINARY=True`)
 
 ---
 
-> 📌 **Ghi chú:** File phản ánh codebase đến ngày **01/06/2026** (đã đối chiếu trực tiếp với models trong `business_web/*/models/`). Các mục đánh dấu "Yêu cầu nghiệp vụ" là quy định theo đặc tả nhưng chưa xác nhận trong code — cần kiểm tra/bổ sung khi siết bảo mật.
+> 📌 **Ghi chú:** File phản ánh codebase đến ngày **03/06/2026** (đối chiếu trực tiếp với models trong `business_web/*/models/`, services & `settings.py`). Đã cập nhật: model `Notification`, khóa đăng nhập sau 3 lần sai (`login_lockout_service`), session timeout 30 phút, RewardPenalty duyệt 2 cấp, FaceChangeRequest (sha256/ip/content_type), Admin tạo tài khoản nhanh. Các mục đánh dấu "Yêu cầu nghiệp vụ" còn lại là quy định theo đặc tả nhưng chưa xác nhận trong code.

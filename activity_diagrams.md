@@ -31,10 +31,14 @@ flowchart TD
     D2 -- Có --> E2["Hiển thị: Tài khoản bị khóa"]
     E2 --> End1(["⚪ Kết thúc"])
     D2 -- Không --> D3{"Mật khẩu đúng?"}
-    D3 -- Sai --> E3["Hiển thị: Sai thông tin đăng nhập"]
+    D3 -- Sai --> A5["register_failure(username)<br/>tăng đếm qua cache"]
+    A5 --> D4{"Đạt 3 lần sai liên tiếp?<br/>LOGIN_LOCKOUT_MAX_FAILS"}
+    D4 -- Có --> E4["Khóa is_active=False<br/>Hiển thị: Tài khoản đã bị khóa"]
+    E4 --> End3(["⚪ Kết thúc"])
+    D4 -- Chưa --> E3["Hiển thị: Sai thông tin đăng nhập"]
     E3 --> A2
-    D3 -- Đúng --> A3["Tạo Session, ghi vai trò"]
-    A3 --> A4["Redirect tới Dashboard theo Role"]
+    D3 -- Đúng --> A3["clear_failures(username)<br/>Tạo Session"]
+    A3 --> A4["Redirect tới /dashboard/<br/>(1 trang, nội dung theo Role)"]
     A4 --> End2(["⚪ Kết thúc"])
 ```
 
@@ -309,12 +313,12 @@ flowchart TD
     A4 --> D2{"Manager quyết định L1?"}
     D2 -- Từ chối --> E1["status=rejected"]
     E1 --> End1(["⚪ Kết thúc"])
-    D2 -- Duyệt L1 --> A5["Chuyển HR duyệt L2"]
+    D2 -- Duyệt L1 --> A5["status=leader_approved<br/>Ghi leader_approved_by + at<br/>Chuyển HR duyệt L2"]
     D1 -- "Manager / HR" --> A5
     A5 --> D3{"HR quyết định L2?"}
     D3 -- Từ chối --> E2["status=rejected"]
     E2 --> End2(["⚪ Kết thúc"])
-    D3 -- Duyệt L2 --> A6["status=approved<br/>Ban hành quyết định"]
+    D3 -- Duyệt L2 --> A6["status=approved<br/>Ghi approved_by · Thông báo NV<br/>Ban hành quyết định"]
     A6 --> End3(["⚪ Kết thúc"])
 ```
 

@@ -1,7 +1,7 @@
 # 🧪 Kế Hoạch Kiểm Thử Toàn Hệ Thống — HRMS
 
 > **Hệ thống Quản lý Nhân sự (HRMS)** · Môn SE104 – Nhập môn Công nghệ Phần mềm
-> Stack: Django · PostgreSQL (prod) / SQLite3 (dev) · Tailwind · Alpine.js · Remote Face API
+> Stack: Django · PostgreSQL (prod) / SQLite3 (dev) · CSS tự viết · JS thuần · Chart.js · Remote Face API
 > Tài liệu nghiệp vụ gốc: [walkthrough.md](walkthrough.md) · Kiến trúc deploy: [deployment_architecture.md](deployment_architecture.md)
 >
 > Phiên bản kế hoạch: **v1.0** · Ngày lập: **02/06/2026** · Phạm vi: **10 Django app (đồng đều)**
@@ -263,7 +263,7 @@ Mã app: `ACC` accounts · `EP` employee_profiles · `CON` contracts · `ATT` at
 
 | ID | Hạng mục | Cách kiểm | Kết quả mong đợi | Ưu tiên |
 |---|---|---|---|---|
-| UIX-001 | Nhất quán thị giác nội tại (không có Figma gốc) | Rà màu/font/size/spacing giữa các trang dashboard, form, bảng | Đồng nhất xuyên hệ thống, dùng đúng Tailwind token (không lệch tùy trang) | 🟡 |
+| UIX-001 | Nhất quán thị giác nội tại (không có Figma gốc) | Rà màu/font/size/spacing giữa các trang dashboard, form, bảng | Đồng nhất xuyên hệ thống, dùng đúng CSS variable trong `style.css` (không lệch tùy trang) | 🟡 |
 | UIX-002 | Nhất quán nút bấm | Rà tất cả button (primary/secondary/danger) toàn hệ thống | Cùng style, cùng vị trí, cùng wording | 🟡 |
 | UIX-003 | Nhất quán thông báo lỗi | Submit form sai ở mỗi app | Error message cùng phong cách, tiếng Việt rõ ràng | 🟡 |
 | UIX-004 | Điều hướng menu theo role | Đăng nhập từng role | Menu hiện đúng quyền, link không gãy | 🔴 |
@@ -301,7 +301,7 @@ Mã app: `ACC` accounts · `EP` employee_profiles · `CON` contracts · `ATT` at
 |---|---|---|---|
 | COMPAT-006 | Chấm công FaceID (getUserMedia) | Quyền camera + HTTPS khác nhau giữa Chrome/Firefox/Edge | Webcam hoạt động trên cả 3 trình duyệt desktop |
 | COMPAT-007 | Upload file | Hộp thoại chọn file | Chọn & upload được PDF/JPG trên cả 3 |
-| COMPAT-008 | Alpine.js interactivity | Dropdown/modal/toggle | Hoạt động đồng nhất trên cả 3 |
+| COMPAT-008 | JS thuần interactivity (`accounts.js`) | Dropdown/modal/toggle/toast | Hoạt động đồng nhất trên cả 3 |
 
 ---
 

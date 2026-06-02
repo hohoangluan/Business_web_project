@@ -67,6 +67,13 @@ classDiagram
             +int OTP_EXPIRY_SECONDS
             +is_expired() bool
         }
+        class Notification {
+            +str title
+            +text message
+            +str link
+            +bool is_read
+            +datetime created_at
+        }
     }
 
     namespace employee_profiles {
@@ -229,6 +236,7 @@ classDiagram
             +str reason_title
             +text reason_detail
             +str status
+            +datetime leader_approved_at
             +date application_date
             +FileField evidence_file
             +datetime created_at
@@ -268,6 +276,7 @@ classDiagram
     UserProfile "0..*" -- "1" Role : role
     UserProfile "*" -- "*" CustomPermission : permissions
     User "1" -- "0..*" OtpCode : otp_codes
+    User "1" -- "0..*" Notification : notifications
 
     %% ===== employee_profiles =====
     User "1" -- "1" PersonalInfo : personal_info
@@ -306,6 +315,7 @@ classDiagram
     %% ===== rewards_discipline =====
     User "1" -- "0..*" RewardPenalty : employee
     RewardPenalty "0..*" -- "1" User : proposer
+    RewardPenalty "0..*" -- "1" User : leader_approved_by, approved_by
 
     %% ===== reports_interactions =====
     User "1" -- "0..*" Report : author
@@ -326,8 +336,10 @@ classDiagram
   qua `UserProfile`.
 - **Tự tham chiếu quản lý:** `EmployeeWorkInfo.manager_user` và `.leader_user` trỏ ngược
   về `User` → tạo cây phân cấp tổ chức.
-- **Quy trình duyệt 2 cấp:** `LeaveRequest`, `OvertimeRequest` dùng `leader_approved_by`
-  (L1) + `approved_by` (L2 = HR).
+- **Quy trình duyệt 2 cấp:** `LeaveRequest`, `OvertimeRequest`, `RewardPenalty` dùng
+  `leader_approved_by` (L1) + `approved_by` (L2 = HR).
+- **Thông báo hệ thống:** `Notification` (1 User → N) sinh tự động khi đổi vai trò,
+  duyệt/từ chối đơn từ — tạo qua service `create_notification()`.
 - **App `stats_reports` KHÔNG có model** — chỉ đọc & tổng hợp dữ liệu từ các app khác.
 - **Cấu hình công ty / quy định nhân sự** lưu ngoài DB (settings/JSON), không phải model.
 ```
