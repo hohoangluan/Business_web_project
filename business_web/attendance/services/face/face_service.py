@@ -14,10 +14,11 @@ def resolve_slot_id(user) -> int:
     return existing.slot_id if existing else 1
 
 
-def apply_face_enrollment(user, raw_bytes, content_type='image/jpeg') -> EmployeeFace:
+def apply_face_enrollment(user, raw_bytes) -> EmployeeFace:
     """Đẩy ảnh lên service từ xa rồi upsert row local (chỉ slot_id).
 
     Điểm DUY NHẤT khiến một khuôn mặt trở thành enrollment có hiệu lực.
+    Remote `/register` luôn nhận bytes (filename jpg cố định phía client).
     Raises FaceApiError nếu remote từ chối.
     """
     slot_id = resolve_slot_id(user)
@@ -31,15 +32,6 @@ def apply_face_enrollment(user, raw_bytes, content_type='image/jpeg') -> Employe
         defaults={'slot_id': slot_id},
     )
     return face
-
-
-def save_employee_face(user, image_file) -> EmployeeFace:
-    """Enroll trực tiếp (đường tin cậy — VD HR/Admin). Có hiệu lực ngay."""
-    image_file.seek(0)
-    raw_bytes = image_file.read()
-    image_file.seek(0)
-    content_type = getattr(image_file, 'content_type', 'image/jpeg')
-    return apply_face_enrollment(user, raw_bytes, content_type)
 
 
 def delete_employee_face(user) -> bool:

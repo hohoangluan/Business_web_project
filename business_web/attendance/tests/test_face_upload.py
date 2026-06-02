@@ -173,3 +173,16 @@ class TestFaceChangeImageView(TestCase):
     def test_stranger_404(self):
         self.client.force_login(self.stranger)
         self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_anonymous_redirects(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    @patch('attendance.services.face.face_api_client.register_face_remote')
+    def test_purged_image_404_after_approve(self, mock_register):
+        """Sau approve → ảnh bị purge → xem trả 404 (không còn ảnh)."""
+        mock_register.return_value = {"status": "success"}
+        from attendance.services.face.face_change_service import approve_face_change
+        approve_face_change(self.hr, self.req.id)
+        self.client.force_login(self.hr)
+        self.assertEqual(self.client.get(self.url).status_code, 404)

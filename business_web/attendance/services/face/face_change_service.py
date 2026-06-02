@@ -22,17 +22,15 @@ def _is_trusted(actor) -> bool:
 
 def submit_face_change(owner, submitted_by, image_file, ip_address=None):
     """Nộp cập nhật khuôn mặt. Trả (outcome, obj)."""
-    import hashlib
     image_file.seek(0)
     raw_bytes = image_file.read()
     image_file.seek(0)
-    content_type = getattr(image_file, 'content_type', 'image/jpeg')
     sha = hashlib.sha256(raw_bytes).hexdigest()
 
     has_face = hasattr(owner, 'employee_face')
     # Đường tin cậy (HR/Admin) HOẶC lần đầu → enroll ngay, KHÔNG lưu ảnh.
     if _is_trusted(submitted_by) or not has_face:
-        face = face_service.apply_face_enrollment(owner, raw_bytes, content_type)
+        face = face_service.apply_face_enrollment(owner, raw_bytes)
         note = ('Tự động duyệt (người thực hiện là HR/Admin).'
                 if _is_trusted(submitted_by) else 'Tự động duyệt (Lần đầu đăng ký).')
         FaceChangeRequest.objects.create(
