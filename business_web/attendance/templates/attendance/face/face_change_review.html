@@ -55,7 +55,7 @@
                         {% for req in pending %}
                         <tr>
                             <td style="padding-left:1.5rem;">
-                                <img class="fc-thumb" src="data:{{ req.content_type }};base64,{{ req.image_base64 }}" alt="face">
+                                <img class="fc-thumb" src="{% url 'face_change_image' req.id %}" alt="face">
                             </td>
                             <td>{{ req.user.profile.full_name|default:req.user.username }}</td>
                             <td>
