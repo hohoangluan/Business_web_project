@@ -374,9 +374,21 @@
 
     <!-- SECTION: Hợp đồng lao động -->
     <div class="profile-card">
-        <div class="profile-card-header">
-            <i class="pc-icon-contract fa-solid fa-file-contract"></i>
-            <h3>Hợp đồng lao động</h3>
+        <div class="profile-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <i class="pc-icon-contract fa-solid fa-file-contract"></i>
+                <h3>Hợp đồng lao động</h3>
+            </div>
+            {% if can_manage_work_info %}
+            <div style="display:flex; gap:0.5rem;">
+                <a href="{% url 'hr_adjust_contract' target_user.id %}" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-file-pen"></i> Điều chỉnh HĐ
+                </a>
+                <a href="{% url 'contract_history' target_user.id %}" class="btn btn-sm btn-outline">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử HĐ
+                </a>
+            </div>
+            {% endif %}
         </div>
         <div class="profile-card-body">
             <div class="pv-info-grid">
