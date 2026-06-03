@@ -164,11 +164,5 @@ class EmployeeProfileForm(forms.Form):
         return value
 
     def clean(self):
-        """Công việc và hợp đồng phải đủ, cá nhân có thể để trống."""
-        cleaned_data = super().clean()
-        required_messages = {}
-        for field_name, error_message in required_messages.items():
-            value = cleaned_data.get(field_name)
-            if value in [None, '']:
-                self.add_error(field_name, error_message)
-        return cleaned_data
+        """Thông tin cá nhân có thể để trống; ràng buộc đặc thù xử lý ở từng field."""
+        return super().clean()

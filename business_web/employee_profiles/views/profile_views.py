@@ -349,7 +349,7 @@ def edit_work_info_view(request, user_id):
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     work_info = ensure_work_info(target_user)
-    contract_info = ensure_contract_info(target_user)
+    ensure_contract_info(target_user)
     personal_info = ensure_personal_info(target_user)
     emergency_contact = ensure_emergency_contact(target_user)
     education_info = ensure_education_info(target_user)

@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from accounts.services import (
     ensure_profile, ensure_contract_info,
-    is_admin_user, is_hr_user, can_manage_work_info,
+    is_admin_user, can_manage_work_info,
 )
 from contracts.forms import ContractAdjustForm
 from contracts.services import adjust_contract, get_contract_history
@@ -60,7 +60,7 @@ def contract_history_view(request, user_id):
 
     target_user = get_object_or_404(User, pk=user_id)
 
-    if not (is_hr_user(request.user) or request.user.id == target_user.id):
+    if not (can_manage_work_info(request.user) or request.user.id == target_user.id):
         messages.error(request, 'Bạn không có quyền xem lịch sử hợp đồng này.')
         return redirect('dashboard')
 
@@ -68,6 +68,6 @@ def contract_history_view(request, user_id):
     return render(request, 'contracts/contract_history.html', {
         'target_user': target_user,
         'history': history,
-        'is_hr_viewer': is_hr_user(request.user),
+        'is_hr_viewer': can_manage_work_info(request.user),
         'active_page': 'contract',
     })
