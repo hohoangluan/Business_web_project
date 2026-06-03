@@ -379,9 +379,6 @@ def edit_work_info_view(request, user_id):
             # Lưu thông tin công việc vào EmployeeWorkInfo
             save_work_info_from_data(target_user, form.cleaned_data)
 
-            # Lưu thông tin hợp đồng vào ContractInfo
-            save_contract_info_from_data(target_user, form.cleaned_data)
-
             # Lưu thông tin bổ sung (Cá nhân, Liên hệ, Học vấn)
             save_personal_info_from_data(target_user, form.cleaned_data)
             save_emergency_contact_from_data(target_user, form.cleaned_data)
@@ -406,14 +403,6 @@ def edit_work_info_view(request, user_id):
                 'work_status': work_info.work_status,
                 'manager_user': work_info.manager_user,
                 'leader_user': work_info.leader_user,
-                'contract_number': contract_info.contract_number,
-                'contract_type': contract_info.contract_type,
-                'contract_signed_date': contract_info.contract_signed_date,
-                'contract_start_date': contract_info.contract_start_date,
-                'contract_end_date': contract_info.contract_end_date,
-                'contract_annual_leave_days': contract_info.contract_annual_leave_days,
-                'contract_standard_shift': contract_info.contract_standard_shift,
-                'contract_attachment_reference': contract_info.contract_attachment_reference,
                 # Thông tin cá nhân mở rộng
                 'gender': personal_info.gender,
                 'marital_status': personal_info.marital_status,

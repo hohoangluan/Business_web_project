@@ -178,50 +178,15 @@
             <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
 
             <h4 style="margin-bottom: 1rem;">Thông tin hợp đồng</h4>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Số hợp đồng</label>
-                    {{ form.contract_number }}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Loại hợp đồng</label>
-                    {{ form.contract_type }}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Ngày ký hợp đồng</label>
-                    {{ form.contract_signed_date }}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Ngày bắt đầu hiệu lực</label>
-                    {{ form.contract_start_date }}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Ngày hết hạn</label>
-                    {{ form.contract_end_date }}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Số ngày nghỉ phép/năm</label>
-                    {{ form.contract_annual_leave_days }}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Ca làm tiêu chuẩn</label>
-                    {{ form.contract_standard_shift }}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">File tham chiếu hợp đồng</label>
-                    {{ form.contract_attachment_reference }}
-                </div>
-            </div>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:0.75rem;">
+                Hợp đồng được quản lý riêng để lưu lịch sử điều chỉnh.
+            </p>
+            <a href="{% url 'hr_adjust_contract' target_user.id %}" class="btn btn-outline">
+                <i class="fa-solid fa-file-pen"></i> Điều chỉnh hợp đồng
+            </a>
+            <a href="{% url 'contract_history' target_user.id %}" class="btn btn-outline">
+                <i class="fa-solid fa-clock-rotate-left"></i> Xem lịch sử hợp đồng
+            </a>
 
             <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
 

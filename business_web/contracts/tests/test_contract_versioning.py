@@ -116,3 +116,17 @@ class ContractViewsTests(TestCase):
         self.client.force_login(self.hr)
         resp = self.client.get(reverse('contract_history', args=[self.employee.id]))
         self.assertEqual(resp.status_code, 200)
+
+    def test_edit_work_info_does_not_create_contract_version(self):
+        self.client.force_login(self.hr)
+        before = ContractInfo.objects.filter(user=self.employee).count()
+        url = reverse('edit_work_info', args=[self.employee.id])
+        self.client.post(url, {
+            'full_name': 'Nguyen Van A',
+            'department': 'Kinh doanh',
+            'contract_number': 'HD-PHAI-BO-QUA',
+        })
+        after = ContractInfo.objects.filter(user=self.employee).count()
+        self.assertEqual(before, after)  # không sinh phiên bản
+        contract = ensure_contract_info(self.employee)
+        self.assertNotEqual(contract.contract_number, 'HD-PHAI-BO-QUA')  # không ghi đè
