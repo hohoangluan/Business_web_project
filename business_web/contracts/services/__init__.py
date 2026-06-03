@@ -117,3 +117,40 @@ def get_shift_times(user):
     end = (contract.shift_end_time if contract and contract.shift_end_time
            else settings.WORK_END_TIME)
     return start, end
+
+
+# ----- Versioning hợp đồng -----
+
+CONTRACT_VERSION_FIELDS = [
+    'contract_number', 'contract_type', 'contract_signed_date',
+    'contract_start_date', 'contract_end_date', 'contract_annual_leave_days',
+    'contract_standard_shift', 'shift_start_time', 'shift_end_time',
+    'contract_attachment_reference',
+]
+
+
+def adjust_contract(user, data):
+    """Tạo phiên bản HĐ mới từ HĐ active hiện tại + field sửa.
+
+    Archive HĐ active cũ (is_active=False) và tạo HĐ mới copy-forward toàn bộ
+    field rồi ghi đè các field có trong `data`. Nguyên tử trong transaction.
+    Trả về HĐ mới.
+    """
+    from django.db import transaction
+    from contracts.models import ContractInfo
+    from accounts.services import ensure_contract_info
+
+    with transaction.atomic():
+        old = ensure_contract_info(user)
+        new_values = {f: getattr(old, f) for f in CONTRACT_VERSION_FIELDS}
+        for f in CONTRACT_VERSION_FIELDS:
+            if f in data:
+                new_values[f] = data[f]
+        old.is_active = False
+        old.save(update_fields=['is_active'])
+        return ContractInfo.objects.create(user=user, is_active=True, **new_values)
+
+
+def get_contract_history(user):
+    """Mọi phiên bản HĐ của user (active + archived), mới nhất trước."""
+    return user.contracts.order_by('-created_at', '-id')
