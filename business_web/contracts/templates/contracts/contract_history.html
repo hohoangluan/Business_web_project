@@ -1,0 +1,5 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Lịch sử hợp đồng{% endblock %}
+{% block content %}
+<ul>{% for c in history %}<li>{{ c.contract_number }} — {{ c.is_active }}</li>{% endfor %}</ul>
+{% endblock %}

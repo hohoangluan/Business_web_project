@@ -5,6 +5,8 @@ from contracts.views import (
     hr_expiring_contracts_view,
     hr_send_reminder_view,
     hr_send_all_reminders_view,
+    hr_adjust_contract_view,
+    contract_history_view,
 )
 
 urlpatterns = [
@@ -19,4 +21,10 @@ urlpatterns = [
 
     # HR gửi nhắc nhở tất cả (POST only)
     path('contract/hr/send-all-reminders/', hr_send_all_reminders_view, name='hr_send_all_reminders'),
+
+    # HR điều chỉnh HĐ (tạo phiên bản mới)
+    path('contract/hr/adjust/<int:user_id>/', hr_adjust_contract_view, name='hr_adjust_contract'),
+
+    # Xem lịch sử HĐ (HR mọi người / nhân viên của mình)
+    path('contract/history/<int:user_id>/', contract_history_view, name='contract_history'),
 ]

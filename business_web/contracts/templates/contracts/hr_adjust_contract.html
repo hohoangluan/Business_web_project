@@ -1,0 +1,6 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Điều chỉnh hợp đồng{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}{{ form.as_p }}
+<button type="submit">Lưu</button></form>
+{% endblock %}

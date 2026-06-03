@@ -1,11 +1,13 @@
 """Test versioning hợp đồng: adjust_contract + get_contract_history."""
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 from contracts.models import ContractInfo
 from contracts.services import adjust_contract, get_contract_history
-from accounts.services import ensure_contract_info
+from accounts.services import ensure_contract_info, ensure_profile
 from contracts.forms import ContractAdjustForm
+from accounts.models import Role, UserProfile
 
 
 class AdjustContractTests(TestCase):
@@ -69,3 +71,48 @@ class ContractAdjustFormTests(TestCase):
         form = ContractAdjustForm(data=data)
         self.assertFalse(form.is_valid())
         self.assertIn('contract_start_date', form.errors)
+
+
+def _set_role(user, role_name):
+    role, _ = Role.objects.get_or_create(name=role_name)
+    profile = ensure_profile(user)
+    profile.role = role
+    profile.save()
+
+
+class ContractViewsTests(TestCase):
+    def setUp(self):
+        self.employee = User.objects.create_user(username='emp', password='x')
+        _set_role(self.employee, Role.EMPLOYEE)
+        ensure_contract_info(self.employee)
+
+        self.other = User.objects.create_user(username='other', password='x')
+        _set_role(self.other, Role.EMPLOYEE)
+
+        self.hr = User.objects.create_user(username='hr', password='x')
+        _set_role(self.hr, Role.HR)
+
+    def test_hr_adjust_creates_version(self):
+        self.client.force_login(self.hr)
+        url = reverse('hr_adjust_contract', args=[self.employee.id])
+        resp = self.client.post(url, {
+            'contract_number': 'HD-2026-009',
+            'contract_annual_leave_days': 12,
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(ContractInfo.objects.filter(user=self.employee).count(), 2)
+
+    def test_owner_can_view_history(self):
+        self.client.force_login(self.employee)
+        resp = self.client.get(reverse('contract_history', args=[self.employee.id]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_employee_cannot_view_others_history(self):
+        self.client.force_login(self.employee)
+        resp = self.client.get(reverse('contract_history', args=[self.other.id]))
+        self.assertEqual(resp.status_code, 302)  # bị chặn, redirect
+
+    def test_hr_can_view_any_history(self):
+        self.client.force_login(self.hr)
+        resp = self.client.get(reverse('contract_history', args=[self.employee.id]))
+        self.assertEqual(resp.status_code, 200)
