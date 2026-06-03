@@ -17,6 +17,11 @@ class ContractInfo(models.Model):
         default=True,
         help_text="Hợp đồng đang hiệu lực?",
     )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        null=True,
+        help_text="Thời điểm tạo bản HĐ này (dùng cho lịch sử).",
+    )
 
     # ----- Thông tin hợp đồng -----
     contract_number = models.CharField(
