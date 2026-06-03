@@ -18,6 +18,9 @@
             <i class="fa-solid fa-file-shield"></i> Xem hợp đồng sắp hết hạn
         </a>
         {% endif %}
+        <a href="{% url 'contract_history' request.user.id %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+            <i class="fa-solid fa-clock-rotate-left"></i> Xem lịch sử HĐ
+        </a>
     </div>
 
     {% if not contract_context.has_contract %}

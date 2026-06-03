@@ -1,0 +1,91 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Điều chỉnh hợp đồng - {{ target_user.username }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <div style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main);">
+            <i class="fa-solid fa-file-pen" style="color:var(--primary); margin-right:8px;"></i>
+            Điều chỉnh hợp đồng
+        </h2>
+        <p style="color:var(--text-muted); font-size:0.9rem;">
+            Nhân viên: <strong>{{ target_user.profile.full_name|default:target_user.username }}</strong>.
+            Mỗi lần lưu sẽ tạo một phiên bản hợp đồng mới; bản hiện tại được lưu vào lịch sử.
+        </p>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Số hợp đồng</label>
+                        {{ form.contract_number }}
+                        {% for e in form.contract_number.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Loại hợp đồng</label>
+                        {{ form.contract_type }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ngày ký hợp đồng</label>
+                        {{ form.contract_signed_date }}
+                        {% for e in form.contract_signed_date.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ngày bắt đầu hiệu lực</label>
+                        {{ form.contract_start_date }}
+                        {% for e in form.contract_start_date.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ngày hết hạn</label>
+                        {{ form.contract_end_date }}
+                        {% for e in form.contract_end_date.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Số ngày nghỉ phép/năm</label>
+                        {{ form.contract_annual_leave_days }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ca làm tiêu chuẩn</label>
+                        {{ form.contract_standard_shift }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">File tham chiếu hợp đồng</label>
+                        {{ form.contract_attachment_reference }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Giờ bắt đầu ca</label>
+                        {{ form.shift_start_time }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Giờ kết thúc ca</label>
+                        {{ form.shift_end_time }}
+                    </div>
+                </div>
+
+                <div style="margin-top:1.5rem; display:flex; gap:0.75rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Lưu phiên bản mới
+                    </button>
+                    <a href="{% url 'contract_history' target_user.id %}" class="btn btn-outline">Xem lịch sử</a>
+                    <a href="{% url 'hr_view_profile' target_user.id %}" class="btn btn-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

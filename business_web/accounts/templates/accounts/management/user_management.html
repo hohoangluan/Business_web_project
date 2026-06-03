@@ -142,6 +142,11 @@
                             {% endif %}
 
                             {% if can_manage_system_users %}
+                                <!-- Nút phân vai trò (role) -->
+                                <a href="{% url 'hr_assign_role' u.id %}"
+                                   class="btn btn-icon btn-sm btn-outline" title="Phân vai trò">
+                                    <i class="fa-solid fa-user-tag"></i>
+                                </a>
                                 <!-- Nút phân quyền -->
                                 <a href="{% url 'assign_permissions' u.id %}"
                                    class="btn btn-icon btn-sm btn-outline" title="Phân quyền">

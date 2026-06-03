@@ -22,7 +22,6 @@ from .views import (
     settings_view,
     switch_role_view,
     user_list_view,
-    assign_role_view,
     assign_permissions_view,
     delete_user_view,
     toggle_user_active_view,
@@ -55,7 +54,6 @@ urlpatterns = [
     # ---------- Admin: User Management ----------
     path('users/create-account/', admin_create_account_view, name='admin_create_account'),
     path('users/', user_list_view, name='user_list'),
-    path('users/<int:user_id>/role/', assign_role_view, name='assign_role'),
     path('users/<int:user_id>/permissions/', assign_permissions_view, name='assign_permissions'),
     path('users/<int:user_id>/delete/', delete_user_view, name='delete_user'),
     path('users/<int:user_id>/toggle-active/', toggle_user_active_view, name='toggle_active'),

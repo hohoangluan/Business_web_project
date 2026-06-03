@@ -50,11 +50,10 @@ class TestHRAssignRoleView(TestCase):
         self.normal_profile.refresh_from_db()
         self.assertIsNone(self.normal_profile.role)
 
-    def test_ep_role_03_admin_blocked_from_hr_flow(self):
-        """EP-ROLE-03: Admin không dùng flow gán vai trò của HR -> chuyển về user_list.
+    def test_ep_role_03_admin_assigns_via_shared_picker(self):
+        """EP-ROLE-03: Admin dùng CHUNG trang card-picker, gán được cả Admin.
 
-        Admin gán vai trò qua mục Quản lý tài khoản hệ thống (assign_role_view),
-        không qua hr_assign_role_view dành cho HR/hồ sơ nhân sự.
+        Trang phân role hợp nhất cho HR + Admin. Admin lưu xong → về user_list.
         """
         self.client.force_login(self.admin_user)
 
@@ -64,7 +63,29 @@ class TestHRAssignRoleView(TestCase):
 
         self.assertRedirects(response, reverse('user_list'))
         self.normal_profile.refresh_from_db()
-        self.assertIsNone(self.normal_profile.role)
+        self.assertEqual(self.normal_profile.role, self.admin_role)
+
+    def test_ep_role_05_admin_get_sees_admin_card(self):
+        """EP-ROLE-05: Admin GET trang phân role → có lựa chọn vai trò Admin."""
+        self.client.force_login(self.admin_user)
+        response = self.client.get(self.assign_url)
+        self.assertEqual(response.status_code, 200)
+        roles = list(response.context['available_roles'])
+        self.assertIn(self.admin_role, roles)
+
+    def test_ep_role_06_hr_get_no_admin_card(self):
+        """EP-ROLE-06: HR GET trang phân role → KHÔNG có vai trò Admin."""
+        self.client.force_login(self.hr_user)
+        response = self.client.get(self.assign_url)
+        self.assertEqual(response.status_code, 200)
+        roles = list(response.context['available_roles'])
+        self.assertNotIn(self.admin_role, roles)
+
+    def test_ep_role_07_role_removed_from_profile_form(self):
+        """EP-ROLE-07: form sửa hồ sơ KHÔNG còn field role (chỉ đổi qua trang phân role)."""
+        from employee_profiles.forms import EmployeeProfileForm
+        form = EmployeeProfileForm()
+        self.assertNotIn('role', form.fields)
 
     def test_ep_role_04_remove_role(self):
         """EP-ROLE-04: Bỏ gán role (set empty) -> role = None"""

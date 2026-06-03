@@ -74,7 +74,7 @@ class TestRbacMatrix(TestCase):
         cases = [
             ('hr_create_profile', None),
             ('user_list', None),
-            ('assign_role', [self.target.pk]),
+            ('hr_assign_role', [self.target.pk]),
             ('hr_view_profile', [self.target.pk]),
             ('reset_user_password', [self.target.pk]),
         ]

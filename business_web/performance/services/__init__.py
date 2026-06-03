@@ -22,6 +22,7 @@ from accounts.services import (
 from performance.services.evaluation_data import (
     build_evaluation_records,
     build_reviewer_evaluation_records,
+    exclude_self_records,
 )
 from performance.models import Evaluation, EvaluationCategory
 
@@ -110,11 +111,6 @@ def acknowledge_evaluation(hr_user, eval_id, note):
         return True, "Xác nhận đánh giá thành công."
     except Evaluation.DoesNotExist:
         return False, "Không tìm thấy đánh giá."
-
-
-def get_evaluations_for_employee(employee):
-    """Nhân viên xem các đánh giá của mình (chỉ xem các đánh giá đã được HR xác nhận)."""
-    return Evaluation.objects.filter(employee=employee, status='acknowledged').select_related('reviewer', 'category')
 
 
 def get_evaluation_scope(user):
@@ -386,6 +382,8 @@ def build_evaluations_page_context(user, params, post_data=None, uploaded_file=N
         filters['filtered_users'], filters['selected_employee'],
     )
     records = build_reviewer_evaluation_records(filters['filtered_users'], user)
+    # Chốt cuối: không bao giờ hiện phiếu đánh giá của chính người xem (Gói 4).
+    records = exclude_self_records(records, user.username)
     filtered_records = filter_evaluation_records(records, filters, date_range)
     sections = build_evaluation_sections(
         filters['filtered_users'], filtered_records, filters, scope, date_range,

@@ -12,18 +12,6 @@ class AccountUpdateForm(forms.Form):
     phone_number = forms.CharField(max_length=20, required=False)
 
 
-class AssignRoleForm(forms.Form):
-    """Form used by admins to assign a role to a user."""
-
-    role = forms.ModelChoiceField(
-        queryset=Role.objects.all(),
-        required=False,
-        empty_label="-- Chua gan vai tro --",
-        help_text="Vai tro quyet dinh giao dien va quyen truy cap.",
-        widget=forms.Select(attrs={"class": "form-select", "id": "role-select"}),
-    )
-
-
 class AssignPermissionsForm(forms.Form):
     """Form used by admins to assign custom permissions to a user."""
 

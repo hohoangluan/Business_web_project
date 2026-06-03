@@ -4,7 +4,6 @@ from accounts.forms.account.account_status_form import AccountStatusForm
 from accounts.forms.account.account_update_form import (
     AccountUpdateForm,
     AssignPermissionsForm,
-    AssignRoleForm,
 )
 from accounts.forms.auth.forgot_password_form import (
     ForgotPasswordCodeForm,
@@ -18,7 +17,6 @@ __all__ = [
     "AccountStatusForm",
     "AccountUpdateForm",
     "AssignPermissionsForm",
-    "AssignRoleForm",
     "ForgotPasswordCodeForm",
     "ForgotPasswordUsernameForm",
     "LoginForm",

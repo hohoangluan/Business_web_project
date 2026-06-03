@@ -16,6 +16,17 @@ def get_demo_display_name(user):
     return user.username
 
 
+def exclude_self_records(records, viewer_username):
+    """Loại các phiếu đánh giá mà người xem chính là nhân viên được đánh giá.
+
+    Chính sách: user không được xem phiếu đánh giá của chính mình (Gói 4).
+    Dùng làm chốt cuối ở mọi nơi build danh sách đánh giá cho người xem.
+    """
+    if not viewer_username:
+        return list(records)
+    return [r for r in records if r.get('employee_username') != viewer_username]
+
+
 def build_evaluation_records(users):
     """
     Lấy danh sách đánh giá từ database thật cho các nhân viên được truyền vào.

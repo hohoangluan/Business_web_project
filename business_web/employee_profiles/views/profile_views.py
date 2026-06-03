@@ -320,10 +320,17 @@ def hr_create_profile_view(request):
                 f'Username: {username} | Mật khẩu: {password}'
             )
         else:
-            display_name = full_name or employee_id or 'nhân viên mới'
-            messages.success(
+            # Hồ sơ (UserProfile/work info/HĐ) đều gắn FK tới một User → không thể lưu
+            # nếu không tạo tài khoản. Báo rõ thay vì giả thành công làm mất dữ liệu.
+            messages.error(
                 request,
-                f'✅ Đã mô phỏng lưu hồ sơ "{display_name}". Demo UI.'
+                'Vui lòng bật "Tạo tài khoản đăng nhập" để lưu hồ sơ — '
+                'hồ sơ nhân viên phải gắn với một tài khoản.',
+            )
+            return render(
+                request,
+                'employee_profiles/hr_create_profile.html',
+                build_hr_create_profile_context(request.POST),
             )
 
         return redirect('hr_create_profile')
@@ -349,7 +356,7 @@ def edit_work_info_view(request, user_id):
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     work_info = ensure_work_info(target_user)
-    contract_info = ensure_contract_info(target_user)
+    ensure_contract_info(target_user)
     personal_info = ensure_personal_info(target_user)
     emergency_contact = ensure_emergency_contact(target_user)
     education_info = ensure_education_info(target_user)
@@ -379,9 +386,6 @@ def edit_work_info_view(request, user_id):
             # Lưu thông tin công việc vào EmployeeWorkInfo
             save_work_info_from_data(target_user, form.cleaned_data)
 
-            # Lưu thông tin hợp đồng vào ContractInfo
-            save_contract_info_from_data(target_user, form.cleaned_data)
-
             # Lưu thông tin bổ sung (Cá nhân, Liên hệ, Học vấn)
             save_personal_info_from_data(target_user, form.cleaned_data)
             save_emergency_contact_from_data(target_user, form.cleaned_data)
@@ -396,7 +400,6 @@ def edit_work_info_view(request, user_id):
                 'phone_number': personal_info.phone_number,
                 'date_of_birth': personal_info.date_of_birth,
                 'employee_id': profile.employee_id,
-                'role': profile.role,
                 'department': work_info.department,
                 'employee_type': work_info.employee_type,
                 'position': work_info.position,
@@ -406,14 +409,6 @@ def edit_work_info_view(request, user_id):
                 'work_status': work_info.work_status,
                 'manager_user': work_info.manager_user,
                 'leader_user': work_info.leader_user,
-                'contract_number': contract_info.contract_number,
-                'contract_type': contract_info.contract_type,
-                'contract_signed_date': contract_info.contract_signed_date,
-                'contract_start_date': contract_info.contract_start_date,
-                'contract_end_date': contract_info.contract_end_date,
-                'contract_annual_leave_days': contract_info.contract_annual_leave_days,
-                'contract_standard_shift': contract_info.contract_standard_shift,
-                'contract_attachment_reference': contract_info.contract_attachment_reference,
                 # Thông tin cá nhân mở rộng
                 'gender': personal_info.gender,
                 'marital_status': personal_info.marital_status,
@@ -454,18 +449,20 @@ def edit_work_info_view(request, user_id):
 @user_passes_test(can_manage_work_info)
 def hr_assign_role_view(request, user_id):
     """
-    HR/Admin chỉnh sửa vai trò nhân viên (trang riêng, UI card picker).
+    Trang phân vai trò HỢP NHẤT cho HR + Admin (UI card picker).
     - HR: chỉ được gán Employee, Leader, Manager, HR (không Admin).
     - Admin: gán tất cả vai trò.
+    Sau khi lưu: Admin → user_list (quản lý tài khoản hệ thống);
+    HR → hồ sơ nhân viên.
     Template: employee_profiles/hr_assign_role.html
     """
-    if is_admin_user(request.user):
-        messages.error(request, 'Tài khoản Admin gán vai trò qua mục Quản lý tài khoản hệ thống.')
-        return redirect('user_list')
-
     target_user = get_object_or_404(User, pk=user_id)
     profile = ensure_profile(target_user)
     editor_is_admin = is_admin_user(request.user)
+
+    # Đích quay về tuỳ người dùng: admin không có trang hồ sơ nhân sự.
+    done_redirect = redirect('user_list') if editor_is_admin \
+        else redirect('hr_view_profile', user_id=target_user.pk)
 
     # Lấy danh sách vai trò phù hợp
     if editor_is_admin:
@@ -499,7 +496,7 @@ def hr_assign_role_view(request, user_id):
             profile.role = None
             profile.save()
             messages.success(request, f'Đã bỏ gán vai trò cho "{profile.full_name or target_user.username}".')
-        return redirect('hr_view_profile', user_id=target_user.pk)
+        return done_redirect
 
     return render(request, 'employee_profiles/hr_assign_role.html', {
         'target_user': target_user,

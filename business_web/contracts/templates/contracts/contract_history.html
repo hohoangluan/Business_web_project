@@ -1,0 +1,54 @@
+{% extends 'accounts/base_dashboard.html' %}
+{% block title %}Lịch sử hợp đồng - {{ target_user.username }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <div style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-main);">
+                <i class="fa-solid fa-clock-rotate-left" style="color:var(--primary); margin-right:8px;"></i>
+                Lịch sử hợp đồng
+            </h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">
+                Nhân viên: <strong>{{ target_user.profile.full_name|default:target_user.username }}</strong>
+            </p>
+        </div>
+        {% if is_hr_viewer %}
+        <a href="{% url 'hr_adjust_contract' target_user.id %}" class="btn btn-primary">
+            <i class="fa-solid fa-file-pen"></i> Điều chỉnh hợp đồng
+        </a>
+        {% endif %}
+    </div>
+
+    {% for c in history %}
+    <div class="card" style="margin-bottom:1rem;">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-file-invoice" style="color:var(--primary);"></i>&nbsp;
+                {{ c.contract_number|default:"(chưa có số HĐ)" }}</h3>
+            {% if c.is_active %}
+                <span class="badge badge-active">Đang hiệu lực</span>
+            {% else %}
+                <span class="badge badge-inactive">Đã thay thế</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item"><div class="info-label">Loại hợp đồng</div><div class="info-value">{{ c.contract_type|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">Ngày ký</div><div class="info-value">{{ c.contract_signed_date|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">Ngày bắt đầu</div><div class="info-value">{{ c.contract_start_date|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">Ngày hết hạn</div><div class="info-value">{{ c.contract_end_date|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">Nghỉ phép/năm</div><div class="info-value">{% if c.contract_annual_leave_days != None %}{{ c.contract_annual_leave_days }} ngày{% else %}—{% endif %}</div></div>
+                <div class="info-item"><div class="info-label">Ca làm tiêu chuẩn</div><div class="info-value">{{ c.contract_standard_shift|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">File tham chiếu</div><div class="info-value">{{ c.contract_attachment_reference|default:"—" }}</div></div>
+                <div class="info-item"><div class="info-label">Tạo lúc</div><div class="info-value">{{ c.created_at|date:"d/m/Y H:i"|default:"—" }}</div></div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="card-body"><div class="empty-state">
+        <i class="fa-solid fa-file-circle-xmark"></i>
+        <h3>Chưa có hợp đồng nào</h3>
+    </div></div></div>
+    {% endfor %}
+</div>
+{% endblock %}

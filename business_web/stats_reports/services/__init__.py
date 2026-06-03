@@ -528,7 +528,8 @@ def build_statistics_page_context(user, params):
     summary_rows = build_statistics_summary_rows(filters['filtered_users'], filtered_records)
 
     emp_users = [u for u in filters['filtered_users'] if get_user_role_name(u) == Role.EMPLOYEE]
-    eval_records = build_evaluation_records(emp_users)
+    from performance.services.evaluation_data import exclude_self_records
+    eval_records = exclude_self_records(build_evaluation_records(emp_users), user.username)
     filtered_eval = filter_evaluation_records_by_time(eval_records, time_range)
     rewards_records = build_rewards_penalties_records(emp_users)
     filtered_rewards = filter_rewards_records_by_time(rewards_records, time_range)

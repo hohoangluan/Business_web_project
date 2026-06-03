@@ -12,6 +12,11 @@ from contracts.views.expiring_view import (
     hr_send_all_reminders_view,
 )
 
+from contracts.views.contract_versioning_view import (
+    hr_adjust_contract_view,
+    contract_history_view,
+)
+
 
 @login_required
 @deny_admin

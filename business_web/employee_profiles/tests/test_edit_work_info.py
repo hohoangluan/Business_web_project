@@ -69,7 +69,8 @@ class TestEditWorkInfoView(TestCase):
         
         self.assertEqual(self.normal_profile.full_name, 'New Full Name')
         self.assertEqual(self.work_info.department, 'HR')
-        self.assertEqual(self.contract_info.contract_number, 'HD-999')
+        # Contract fields are no longer editable via edit_work_info (use hr_adjust_contract instead)
+        self.assertNotEqual(self.contract_info.contract_number, 'HD-999')
         self.assertEqual(self.personal_info.gender, 'Female')
         self.assertEqual(self.emergency_contact.contact_name, 'Husband')
         self.assertEqual(self.education.education_level, 'Master')

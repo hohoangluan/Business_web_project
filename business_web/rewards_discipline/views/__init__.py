@@ -36,10 +36,20 @@ def rewards_penalties_view(request):
     # 2. Xử lý lựa chọn nhân viên để xem (chỉ áp dụng đối với HR)
     all_employees = []
     if is_hr:
-        all_employees = User.objects.filter(is_active=True).select_related('profile').order_by('username')
+        # HR xem được phiếu của TẤT CẢ nhân viên (mọi staff), chỉ loại tài khoản Admin
+        # hệ thống — Admin không phải nhân viên, không có khen thưởng/xử phạt.
+        all_employees = (
+            User.objects.filter(is_active=True)
+            .exclude(profile__role__name=Role.ADMIN)
+            .exclude(is_superuser=True)
+            .select_related('profile').order_by('username')
+        )
         target_user_id = request.GET.get('employee_id')
         if target_user_id:
             selected_user = get_object_or_404(User, id=target_user_id)
+            if is_admin_user(selected_user):
+                messages.error(request, 'Tài khoản Admin không có khen thưởng/xử phạt.')
+                selected_user = request.user
         else:
             selected_user = request.user
     else:

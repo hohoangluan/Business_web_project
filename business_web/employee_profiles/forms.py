@@ -10,8 +10,6 @@ from django import forms
 from django.contrib.auth.models import User
 from accounts.models import UserProfile, Role
 from employee_profiles.models import EmployeeWorkInfo
-from contracts.models import ContractInfo
-
 
 class UserChoiceField(forms.ModelChoiceField):
     """Hiển thị tên thân thiện trong dropdown chọn manager/leader."""
@@ -80,12 +78,7 @@ class EmployeeProfileForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: NV001'}),
     )
 
-    # ----- Vai trò hệ thống (Role) -----
-    role = forms.ModelChoiceField(
-        queryset=Role.objects.none(), required=False,
-        empty_label='-- Chưa gán vai trò --',
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
+    # Vai trò hệ thống KHÔNG sửa ở đây — chỉ đổi qua trang phân role (hr_assign_role).
 
     # ----- Thông tin công việc (EmployeeWorkInfo) -----
     department = forms.CharField(
@@ -128,59 +121,12 @@ class EmployeeProfileForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
 
-    # ----- Thông tin hợp đồng (ContractInfo) -----
-    contract_number = forms.CharField(
-        max_length=100, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: HD-2026-001'}),
-    )
-    contract_type = forms.CharField(
-        max_length=100, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: Thử việc 2 tháng'}),
-    )
-    contract_signed_date = forms.CharField(
-        max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 01/05/2026'}),
-    )
-    contract_start_date = forms.CharField(
-        max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 05/05/2026'}),
-    )
-    contract_end_date = forms.CharField(
-        max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 05/05/2027'}),
-    )
-    contract_annual_leave_days = forms.IntegerField(
-        required=False, min_value=0,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'VD: 12'}),
-    )
-    contract_standard_shift = forms.CharField(
-        max_length=100, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 08:30 - 17:30'}),
-    )
-    shift_start_time = forms.TimeField(
-        required=False,
-        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-    )
-    shift_end_time = forms.TimeField(
-        required=False,
-        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-    )
-    contract_attachment_reference = forms.CharField(
-        max_length=255, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: HD_NV001.pdf'}),
-    )
-
     def __init__(self, *args, manager_queryset=None, leader_queryset=None,
                  current_user=None, is_admin_editor=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_user = current_user
         self.fields['manager_user'].queryset = manager_queryset or User.objects.none()
         self.fields['leader_user'].queryset = leader_queryset or User.objects.none()
-        # Admin can assign any role; HR can assign all except Admin
-        if is_admin_editor:
-            self.fields['role'].queryset = Role.objects.all()
-        else:
-            self.fields['role'].queryset = Role.objects.exclude(name=Role.ADMIN)
 
     def clean_employee_id(self):
         """Không cho trùng mã nhân viên với user khác."""
@@ -208,39 +154,5 @@ class EmployeeProfileForm(forms.Form):
         return value
 
     def clean(self):
-        """Công việc và hợp đồng phải đủ, cá nhân có thể để trống."""
-        cleaned_data = super().clean()
-        # Các trường trước đây bị bắt buộc (required) trong clean()
-        # Đã được gỡ bỏ để HR có thể lưu dữ liệu từng phần (như chỉ lưu số HĐ).
-        required_messages = {}
-        for field_name, error_message in required_messages.items():
-            value = cleaned_data.get(field_name)
-            if value in [None, '']:
-                self.add_error(field_name, error_message)
-                
-        # Validate date format DD/MM/YYYY for contract dates
-        import re
-        date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
-        date_fields = ['contract_signed_date', 'contract_start_date', 'contract_end_date']
-        bad_format = False
-        for field_name in date_fields:
-            value = cleaned_data.get(field_name)
-            if value and not date_pattern.match(value.strip()):
-                self.add_error(field_name, 'Định dạng ngày phải là DD/MM/YYYY.')
-                bad_format = True
-
-        # Ràng buộc thứ tự ngày HĐ (chỉ khi định dạng đúng).
-        if not bad_format:
-            from contracts.services import validate_contract_date_order
-            order_errors = validate_contract_date_order(
-                cleaned_data.get('contract_signed_date'),
-                cleaned_data.get('contract_start_date'),
-                cleaned_data.get('contract_end_date'),
-            )
-            if order_errors and 'phải từ ngày ký' in order_errors[0]:
-                self.add_error('contract_start_date', order_errors[0])
-            for err in order_errors:
-                if 'từ ngày bắt đầu' in err:
-                    self.add_error('contract_end_date', err)
-
-        return cleaned_data
+        """Thông tin cá nhân có thể để trống; ràng buộc đặc thù xử lý ở từng field."""
+        return super().clean()
