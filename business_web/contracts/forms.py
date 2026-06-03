@@ -74,4 +74,10 @@ class ContractAdjustForm(forms.Form):
                 elif 'từ ngày bắt đầu' in err:
                     self.add_error('contract_end_date', err)
 
+        # Giờ ca: nếu điền cả 2 thì giờ kết thúc phải sau giờ bắt đầu (đồng bộ chấm công).
+        shift_start = cleaned_data.get('shift_start_time')
+        shift_end = cleaned_data.get('shift_end_time')
+        if shift_start and shift_end and shift_end <= shift_start:
+            self.add_error('shift_end_time', 'Giờ kết thúc ca phải sau giờ bắt đầu ca.')
+
         return cleaned_data

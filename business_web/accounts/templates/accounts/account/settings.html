@@ -181,7 +181,9 @@
                 </div>
                 {% endif %}
 
-                <button class="st-btn-save" onclick="alert('Đã lưu cấu hình cá nhân!')">Lưu thay đổi</button>
+                <button type="button" class="st-btn-save" disabled
+                        style="opacity:0.6; cursor:not-allowed;"
+                        title="Tính năng đang phát triển">Lưu thay đổi (đang phát triển)</button>
             </div>
 
             <!-- PANEL 2: CÔNG TY (Chỉ Admin) -->
@@ -207,7 +209,9 @@
                     <input type="email" class="st-input" value="noreply@kinhrambay.vn">
                 </div>
 
-                <button class="st-btn-save" style="background: var(--gradient-blue);" onclick="alert('Đã lưu Thông tin Doanh nghiệp!')">Lưu Cấu hình</button>
+                <button type="button" class="st-btn-save" disabled
+                        style="background: var(--gradient-blue); opacity:0.6; cursor:not-allowed;"
+                        title="Tính năng đang phát triển">Lưu Cấu hình (đang phát triển)</button>
             </div>
             {% endif %}
 
@@ -216,47 +220,55 @@
             <div id="tab-hr" class="st-panel">
                 <div class="st-panel-header">
                     <div class="st-panel-title">Quy định Nhân Sự Nội Bộ</div>
-                    <div class="st-panel-desc">Các thông số demo giúp thống nhất cách theo dõi chấm công, nghỉ phép và vận hành nhóm.</div>
-                </div>
-                
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 600px;">
-                    <div>
-                        <h4 style="margin-bottom: 1rem; color: #ef4444;"><i class="fa-solid fa-calendar-check"></i> QUY ĐỊNH CHẤM CÔNG</h4>
-                        <div class="st-form-group">
-                            <label class="st-label">Giờ bắt đầu làm việc chuẩn</label>
-                            <input type="text" class="st-input" value="08:30" style="width: 120px; display: inline-block;">
-                        </div>
-                        <div class="st-form-group">
-                            <label class="st-label">Giờ kết thúc ca làm chuẩn</label>
-                            <input type="text" class="st-input" value="17:30" style="width: 120px; display: inline-block;">
-                        </div>
-                        <div class="st-form-group">
-                            <label class="st-label">Ngưỡng cảnh báo đi trễ</label>
-                            <input type="number" class="st-input" value="3" style="width: 100px; display: inline-block;"> <span style="font-weight:bold; margin-left: 5px;">lần/tháng</span>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h4 style="margin-bottom: 1rem; color: #f59e0b;"><i class="fa-solid fa-people-group"></i> QUY ĐỊNH NGHỈ PHÉP & TĂNG CA</h4>
-                        <div class="st-form-group">
-                            <label class="st-label">Số ngày nghỉ phép mặc định</label>
-                            <input type="text" class="st-input" value="12" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">ngày/năm</span>
-                        </div>
-                        <div class="st-form-group">
-                            <label class="st-label">Giới hạn tăng ca mỗi ngày</label>
-                            <input type="text" class="st-input" value="4" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">giờ/ngày</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <hr style="border:0; border-top: 1px dashed #cbd5e1; margin: 1.5rem 0; max-width: 600px;">
-                
-                <div class="st-form-group">
-                    <label class="st-label">SLA duyệt đơn chuẩn</label>
-                    <input type="text" class="st-input" value="24" style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">giờ</span>
+                    <div class="st-panel-desc">Giờ làm chuẩn áp dụng cho toàn bộ nhân viên — dùng để tính đi trễ / về sớm khi chấm công.</div>
                 </div>
 
-                <button class="st-btn-save" style="background: var(--gradient-purple);" onclick="alert('Đã cập nhật bộ quy định nhân sự demo thành công!')">Cập nhật Quy định</button>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="form_section" value="work_schedule">
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 600px;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #ef4444;"><i class="fa-solid fa-calendar-check"></i> QUY ĐỊNH CHẤM CÔNG</h4>
+                            <div class="st-form-group">
+                                <label class="st-label">Giờ bắt đầu làm việc chuẩn</label>
+                                {{ schedule_form.shift_start }}
+                                {% for err in schedule_form.shift_start.errors %}
+                                    <div style="color:#dc2626; font-size:0.8rem; margin-top:0.35rem;">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="st-form-group">
+                                <label class="st-label">Giờ kết thúc ca làm chuẩn</label>
+                                {{ schedule_form.shift_end }}
+                                {% for err in schedule_form.shift_end.errors %}
+                                    <div style="color:#dc2626; font-size:0.8rem; margin-top:0.35rem;">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="st-form-group">
+                                <label class="st-label">Thời gian ân hạn đi trễ</label>
+                                {{ schedule_form.late_grace_minutes }} <span style="font-weight:bold; margin-left: 5px;">phút</span>
+                                {% for err in schedule_form.late_grace_minutes.errors %}
+                                    <div style="color:#dc2626; font-size:0.8rem; margin-top:0.35rem;">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #f59e0b;"><i class="fa-solid fa-people-group"></i> QUY ĐỊNH NGHỈ PHÉP & TĂNG CA</h4>
+                            {# Các thông số dưới đây là demo, chưa nối backend. #}
+                            <div class="st-form-group">
+                                <label class="st-label">Số ngày nghỉ phép mặc định</label>
+                                <input type="text" class="st-input" value="12" disabled style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">ngày/năm</span>
+                            </div>
+                            <div class="st-form-group">
+                                <label class="st-label">Giới hạn tăng ca mỗi ngày</label>
+                                <input type="text" class="st-input" value="4" disabled style="width: 150px; display: inline-block;"> <span style="color:var(--text-muted); margin-left: 5px;">giờ/ngày</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="st-btn-save" style="background: var(--gradient-purple); margin-top: 1rem;">Cập nhật Quy định</button>
+                </form>
             </div>
             {% endif %}
 

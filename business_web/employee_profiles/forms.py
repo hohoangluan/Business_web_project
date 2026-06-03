@@ -78,12 +78,7 @@ class EmployeeProfileForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: NV001'}),
     )
 
-    # ----- Vai trò hệ thống (Role) -----
-    role = forms.ModelChoiceField(
-        queryset=Role.objects.none(), required=False,
-        empty_label='-- Chưa gán vai trò --',
-        widget=forms.Select(attrs={'class': 'form-control'}),
-    )
+    # Vai trò hệ thống KHÔNG sửa ở đây — chỉ đổi qua trang phân role (hr_assign_role).
 
     # ----- Thông tin công việc (EmployeeWorkInfo) -----
     department = forms.CharField(
@@ -132,11 +127,6 @@ class EmployeeProfileForm(forms.Form):
         self.current_user = current_user
         self.fields['manager_user'].queryset = manager_queryset or User.objects.none()
         self.fields['leader_user'].queryset = leader_queryset or User.objects.none()
-        # Admin can assign any role; HR can assign all except Admin
-        if is_admin_editor:
-            self.fields['role'].queryset = Role.objects.all()
-        else:
-            self.fields['role'].queryset = Role.objects.exclude(name=Role.ADMIN)
 
     def clean_employee_id(self):
         """Không cho trùng mã nhân viên với user khác."""

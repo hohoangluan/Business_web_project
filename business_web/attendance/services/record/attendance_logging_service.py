@@ -31,9 +31,17 @@ def decide_next_action(record: AttendanceRecord) -> str:
     return 'done'
 
 
-def classify_status(check_in_time, check_out_time, shift_start, shift_end):
-    """Phân loại bản ghi: late nếu vào trễ, early_leave nếu ra sớm, else on_time."""
-    grace = timedelta(minutes=settings.WORK_LATE_GRACE_MIN)
+def classify_status(check_in_time, check_out_time, shift_start, shift_end,
+                    grace_minutes=None):
+    """Phân loại bản ghi: late nếu vào trễ, early_leave nếu ra sớm, else on_time.
+
+    `grace_minutes` mặc định lấy từ cấu hình HR (WorkScheduleConfig); truyền tham số
+    để test thuần không chạm DB.
+    """
+    if grace_minutes is None:
+        from attendance.services.schedule import get_late_grace_minutes
+        grace_minutes = get_late_grace_minutes()
+    grace = timedelta(minutes=grace_minutes)
     today = date.today()
     in_limit = (datetime.combine(today, shift_start) + grace).time()
     status = 'late' if check_in_time and check_in_time > in_limit else 'on_time'

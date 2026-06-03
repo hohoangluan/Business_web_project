@@ -109,13 +109,14 @@ def get_active_contract(user):
 
 
 def get_shift_times(user):
-    """Trả (shift_start, shift_end) từ HĐ active, fallback settings."""
-    from django.conf import settings
+    """Trả (shift_start, shift_end): HĐ active override → cấu hình HR (WorkScheduleConfig)."""
+    from attendance.services.schedule import get_work_schedule
     contract = get_active_contract(user)
+    config = get_work_schedule()
     start = (contract.shift_start_time if contract and contract.shift_start_time
-             else settings.WORK_START_TIME)
+             else config.shift_start)
     end = (contract.shift_end_time if contract and contract.shift_end_time
-           else settings.WORK_END_TIME)
+           else config.shift_end)
     return start, end
 
 

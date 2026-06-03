@@ -136,9 +136,15 @@
         <h1>Chỉnh sửa vai trò</h1>
         <p class="text-secondary">Thay đổi vai trò cho tài khoản: <strong>{{ target_user.username }}</strong></p>
     </div>
+    {% if editor_is_admin %}
+    <a href="{% url 'user_list' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+    </a>
+    {% else %}
     <a href="{% url 'hr_view_profile' target_user.id %}" class="btn btn-secondary">
         <i class="fa-solid fa-arrow-left"></i> Quay lại hồ sơ
     </a>
+    {% endif %}
 </div>
 
 <div class="role-picker-wrapper animate-fade">
@@ -217,7 +223,11 @@
                 {% endif %}
             </div>
             <div class="rp-actions">
+                {% if editor_is_admin %}
+                <a href="{% url 'user_list' %}" class="btn btn-secondary">Hủy</a>
+                {% else %}
                 <a href="{% url 'hr_view_profile' target_user.id %}" class="btn btn-secondary">Hủy</a>
+                {% endif %}
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-check"></i> Lưu vai trò
                 </button>

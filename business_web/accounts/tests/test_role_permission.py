@@ -23,8 +23,8 @@ class TestRolePermissionView(TestCase):
             codename='can_do_something', name='Can do something'
         )
         
-        # Test URLs
-        self.assign_role_url = reverse('assign_role', args=[self.normal_user.pk])
+        # Test URLs — phân role hợp nhất dùng trang chung 'hr_assign_role'.
+        self.assign_role_url = reverse('hr_assign_role', args=[self.normal_user.pk])
         self.assign_perms_url = reverse('assign_permissions', args=[self.normal_user.pk])
 
     def test_acc_role_01_assign_role(self):

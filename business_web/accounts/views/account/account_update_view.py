@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from accounts.forms import AssignPermissionsForm, AssignRoleForm
+from accounts.forms import AssignPermissionsForm
 from accounts.models import Role
 from accounts.services import (
     can_manage_work_info,
@@ -122,49 +122,6 @@ def user_list_view(request):
             "active_page": "users",
             "can_manage_system_users": is_admin_user(request.user),
             "can_manage_work_info": can_manage_work_info(request.user),
-        },
-    )
-
-
-@login_required
-@user_passes_test(is_admin_user)
-def assign_role_view(request, user_id):
-    """Assign or remove a role for a user."""
-
-    target_user = get_object_or_404(User, pk=user_id)
-    profile = ensure_profile(target_user)
-
-    if request.method == "POST":
-        form = AssignRoleForm(request.POST)
-        if form.is_valid():
-            profile.role = form.cleaned_data["role"]
-            profile.save()
-            if profile.role:
-                create_notification(
-                    target_user,
-                    "Vai trò của bạn đã thay đổi",
-                    f"Quản trị viên đã cập nhật vai trò của bạn thành '{profile.role.get_name_display()}'.",
-                )
-            messages.success(
-                request,
-                (
-                    f"Vai tro cua '{target_user.username}' da duoc cap nhat thanh "
-                    f"'{profile.role}' thanh cong."
-                )
-                if profile.role
-                else f"Da go vai tro khoi '{target_user.username}'.",
-            )
-            return redirect("user_list")
-    else:
-        form = AssignRoleForm(initial={"role": profile.role})
-
-    return render(
-        request,
-        "accounts/permission/assign_role.html",
-        {
-            "form": form,
-            "target_user": target_user,
-            "active_page": "users",
         },
     )
 

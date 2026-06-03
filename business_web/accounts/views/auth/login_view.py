@@ -27,9 +27,18 @@ class AccountsLoginView(LoginView):
         clear_failures(form.get_user().get_username())
         return super().form_valid(form)
 
+    LOCKED_MESSAGE = (
+        'Tài khoản đã bị khóa. Vui lòng liên hệ HR/Admin để mở khóa.'
+    )
+
     def form_invalid(self, form):
         username = (self.request.POST.get('username') or '').strip()
         if username:
+            user = User.objects.filter(username__iexact=username).first()
+            if user and not user.is_active:
+                # Đã bị khóa từ trước → báo rõ lý do, không đếm sai thêm.
+                messages.error(self.request, self.LOCKED_MESSAGE)
+                return super().form_invalid(form)
             count = register_failure(username)
             if reached_limit(count):
                 self._lock_account(username)
