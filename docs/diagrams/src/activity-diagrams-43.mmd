@@ -1,0 +1,9 @@
+flowchart TD
+  A([HR mở trang xác nhận]) --> B{can_acknowledge_evaluation?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C[POST acknowledge_evaluation pk + hr_note]
+  C --> D{status == submitted?}
+  D -- Không --> E[Báo: không hợp lệ]
+  D -- Có --> F[status=acknowledged<br/>acknowledged_by/at · immutable]
+  F --> Y([Redirect evaluation_hr_approval])
+  E --> Y

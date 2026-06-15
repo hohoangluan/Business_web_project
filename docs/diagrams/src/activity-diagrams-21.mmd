@@ -1,0 +1,8 @@
+flowchart TD
+  A([Nhân viên đã có mặt · gửi ảnh mới]) --> B[POST upload_image_base64_view]
+  B --> C{File hợp lệ?}
+  C -- Không --> Z([400])
+  C -- Có --> D[submit_face_change · self-service]
+  D --> E[Xóa FaceChangeRequest PENDING cũ]
+  E --> F[Tạo FaceChangeRequest status=PENDING<br/>lưu ảnh chờ HR]
+  F --> G([outcome=pending · CHƯA đổi mặt nhận diện])

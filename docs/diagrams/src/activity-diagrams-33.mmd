@@ -1,0 +1,6 @@
+flowchart TD
+  A([Quản lý/HR chọn Từ chối]) --> B{can_manage_requests?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C[reject_leave_request pk + lý do]
+  C --> D[status=REJECTED · rejected_reason<br/>tạo notification]
+  D --> Y([Redirect approval])

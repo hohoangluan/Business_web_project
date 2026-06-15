@@ -1,0 +1,17 @@
+flowchart TD
+  A([Nhân viên mở Báo cáo]) --> B{action}
+  B -- create --> C[Tạo Report · author · status=submitted]
+  B -- edit --> D{can_edit_or_delete?<br/>chưa acknowledged}
+  D -- Không --> E[Báo: đã tiếp nhận · không sửa]
+  D -- Có --> F[Lưu nội dung]
+  F --> G{status == needs_update?}
+  G -- Có --> H[Reset status=submitted]
+  G -- Không --> I[Giữ submitted]
+  B -- delete --> J{can_edit_or_delete?}
+  J -- Không --> E
+  J -- Có --> K[Xóa báo cáo]
+  C --> Y([Redirect reports])
+  H --> Y
+  I --> Y
+  K --> Y
+  E --> Y

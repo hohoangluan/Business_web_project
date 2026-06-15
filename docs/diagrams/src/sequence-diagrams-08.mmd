@@ -1,0 +1,18 @@
+sequenceDiagram
+  actor ND as Người dùng
+  participant GD as Giao diện<br/>Trang hồ sơ
+  participant HT as Hệ Thống<br/>profile_view / hr_view_profile_view
+  participant DB as Cơ sở dữ liệu<br/>UserProfile · PersonalInfo · Document
+  ND->>GD: Mở hồ sơ
+  GD->>HT: GET hồ sơ
+  alt Admin
+    HT-->>GD: Chặn (Admin không dùng hồ sơ)
+  else Nhân viên (self)
+    HT->>DB: lấy profile + personal_info + documents
+    DB-->>HT: dữ liệu
+    HT-->>GD: Render hồ sơ
+  else HR/Manager xem NV khác
+    HT->>DB: lấy hồ sơ target_user
+    HT-->>GD: Render hồ sơ NV
+  end
+  GD-->>ND: Hiển thị

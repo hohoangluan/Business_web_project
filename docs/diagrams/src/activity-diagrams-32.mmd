@@ -1,0 +1,9 @@
+flowchart TD
+  A([HR mở trang duyệt bước 2]) --> B[approve_leave_request pk]
+  B --> C{status == LEADER_APPROVED?}
+  C -- Không --> D[Báo: không ở bước chờ HR]
+  C -- Có --> E{Là HR?}
+  E -- Không --> F[Chặn]
+  E -- Có --> G[approved_by=HR · status=APPROVED<br/>tạo notification]
+  G --> Y([Redirect approval])
+  D --> Y

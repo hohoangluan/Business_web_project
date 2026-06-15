@@ -1,0 +1,11 @@
+flowchart TD
+  A([Leader/Manager/HR mở trang]) --> B[POST create · decision_type=reward + amount + lý do]
+  B --> C{Form hợp lệ?<br/>amount PositiveInteger ≥ 0}
+  C -- Không --> D[Báo lỗi biểu mẫu] --> B
+  C -- Có --> E[proposer = người lập]
+  E --> F[status = initial_status_for]
+  F --> G{Người lập là Leader?}
+  G -- Có --> H[status=PENDING · chờ Manager L1]
+  G -- Không · Manager/HR --> I[status=LEADER_APPROVED · thẳng HR L2]
+  H --> Y([Báo gửi · Redirect])
+  I --> Y

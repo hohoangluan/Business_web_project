@@ -1,0 +1,6 @@
+flowchart TD
+  A([Nhân viên mở Nghỉ phép]) --> B[get_user_leave_stats]
+  B --> C[total_allowed = HĐ active<br/>contract_annual_leave_days]
+  C --> D[used_days = Σ days đơn APPROVED trong năm]
+  D --> E[remaining_days = max total − used, 0]
+  E --> F[Hiển thị: tổng · đã dùng · còn lại · pending_count]

@@ -1,0 +1,31 @@
+sequenceDiagram
+  actor ND as Người dùng
+  participant GD as Giao diện<br/>Trang đăng nhập
+  participant HT as Hệ Thống<br/>AccountsLoginView
+  participant DB as Cơ sở dữ liệu<br/>User
+  participant EX as Mở rộng<br/>Cache lockout
+  ND->>GD: Nhập username + mật khẩu
+  GD->>HT: POST /login/
+  HT->>DB: authenticate(credentials)
+  alt Hợp lệ
+    DB-->>HT: user
+    HT->>EX: clear_failures(username)
+    HT-->>GD: Redirect /dashboard/
+    GD-->>ND: Vào Dashboard
+  else Sai mật khẩu
+    DB-->>HT: None
+    HT->>DB: lookup user theo username
+    alt is_active = False
+      HT-->>GD: "Tài khoản đã bị khóa"
+      GD-->>ND: Hiển thị thông báo
+    else Còn mở khóa
+      HT->>EX: register_failure() ++count
+      EX-->>HT: count
+      opt count ≥ MAX_FAILS
+        HT->>DB: is_active = False (khóa TK)
+        HT->>EX: clear_failures()
+      end
+      HT-->>GD: Báo sai mật khẩu / đã khóa
+      GD-->>ND: Hiển thị lỗi
+    end
+  end

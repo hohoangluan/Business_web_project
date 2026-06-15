@@ -1,0 +1,125 @@
+flowchart LR
+    %% Actors
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 Nhân sự HR"])
+    Admin(["🛠️ Quản trị viên"])
+    FaceAPI["🌐 Remote Face API"]
+    SMTP["📧 Gmail SMTP"]
+
+    %% System
+    subgraph HRMS["🏢 Hệ thống Quản lý Nhân sự HRMS"]
+        direction TB
+        subgraph G1["1. Tài khoản & Xác thực"]
+            UC_Login("Đăng nhập / Đăng xuất")
+            UC_OTP("Quên mật khẩu qua OTP")
+            UC_AccMgmt("Quản lý tài khoản")
+            UC_RBAC("Phân quyền & Vai trò")
+        end
+        subgraph G2["2. Hồ sơ & Hợp đồng"]
+            UC_ViewProfile("Xem hồ sơ cá nhân")
+            UC_CreateProfile("Tạo hồ sơ nhân viên mới")
+            UC_EditProfile("Cập nhật hồ sơ nhân viên")
+            UC_Contract("Quản lý hợp đồng lao động")
+            UC_ContractWarn("Cảnh báo HĐ sắp hết hạn")
+        end
+        subgraph G3["3. Chấm công & Khuôn mặt"]
+            UC_FaceReg("Đăng ký / Cập nhật khuôn mặt")
+            UC_FaceApprove("Duyệt yêu cầu đổi khuôn mặt")
+            UC_CheckIn("Chấm công vào/ra bằng FaceID")
+            UC_History("Xem lịch sử chấm công")
+            UC_Adjust("Yêu cầu điều chỉnh giờ công")
+            UC_AdjApprove("Duyệt điều chỉnh giờ công")
+        end
+        subgraph G4["4. Nghỉ phép"]
+            UC_Leave("Nộp đơn nghỉ phép")
+            UC_LeaveL1("Phê duyệt nghỉ phép L1")
+            UC_LeaveL2("Phê duyệt nghỉ phép L2")
+        end
+        subgraph G5["5. Tăng ca"]
+            UC_OT("Đăng ký tăng ca")
+            UC_OTL1("Phê duyệt tăng ca L1")
+            UC_OTL2("Phê duyệt tăng ca L2")
+        end
+        subgraph G6["6. Đánh giá hiệu suất"]
+            UC_ViewEval("Xem phiếu đánh giá")
+            UC_CreateEval("Lập phiếu đánh giá")
+            UC_AckEval("Xác nhận đánh giá")
+        end
+        subgraph G7["7. Khen thưởng & Kỷ luật"]
+            UC_ViewRW("Xem quyết định thưởng/phạt")
+            UC_ProposeRW("Đề xuất khen thưởng/xử phạt")
+            UC_ApproveRW("Duyệt quyết định thưởng/phạt")
+        end
+        subgraph G8["8. Báo cáo & Hỗ trợ"]
+            UC_Report("Gửi báo cáo công việc")
+            UC_ReviewReport("Phản hồi báo cáo")
+            UC_Ticket("Gửi ticket hỗ trợ/khiếu nại")
+            UC_HandleTicket("Xử lý ticket")
+        end
+        subgraph G9["9. Thống kê"]
+            UC_Stats("Xem thống kê tổng hợp")
+            UC_Export("Xuất báo cáo dữ liệu")
+        end
+        subgraph G10["10. Cài đặt hệ thống"]
+            UC_Settings("Cài đặt cá nhân")
+            UC_CompanyConfig("Cấu hình công ty")
+            UC_HRConfig("Cấu hình quy định nhân sự")
+        end
+    end
+
+    %% Relationships
+    Employee --> UC_Login
+    Employee --> UC_OTP
+    Employee --> UC_ViewProfile
+    Employee --> UC_FaceReg
+    Employee --> UC_CheckIn
+    Employee --> UC_History
+    Employee --> UC_Adjust
+    Employee --> UC_Leave
+    Employee --> UC_OT
+    Employee --> UC_ViewEval
+    Employee --> UC_ViewRW
+    Employee --> UC_Report
+    Employee --> UC_Ticket
+    Employee --> UC_Settings
+
+    Leader --> UC_LeaveL1
+    Leader --> UC_OTL1
+    Leader --> UC_CreateEval
+    Leader --> UC_ProposeRW
+    Leader --> UC_ReviewReport
+
+    Manager --> UC_LeaveL1
+    Manager --> UC_OTL1
+    Manager --> UC_CreateEval
+    Manager --> UC_ProposeRW
+    Manager --> UC_ReviewReport
+    Manager --> UC_Stats
+
+    HR --> UC_CreateProfile
+    HR --> UC_EditProfile
+    HR --> UC_Contract
+    HR --> UC_ContractWarn
+    HR --> UC_FaceApprove
+    HR --> UC_AdjApprove
+    HR --> UC_LeaveL2
+    HR --> UC_OTL2
+    HR --> UC_AckEval
+    HR --> UC_ApproveRW
+    HR --> UC_HandleTicket
+    HR --> UC_Stats
+    HR --> UC_Export
+    HR --> UC_HRConfig
+    HR --> UC_AccMgmt
+
+    Admin --> UC_AccMgmt
+    Admin --> UC_RBAC
+    Admin --> UC_CompanyConfig
+    Admin --> UC_Stats
+    Admin --> UC_HandleTicket
+
+    FaceAPI --> UC_FaceReg
+    FaceAPI --> UC_CheckIn
+    SMTP --> UC_OTP

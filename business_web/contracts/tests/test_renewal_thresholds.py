@@ -26,7 +26,8 @@ class TestRenewalThresholds(TestCase):
 
     def test_threshold_classification(self):
         self._contract(7, 'C7')    # khẩn (<=7)
-        self._contract(8, 'C8')    # xa
+        self._contract(8, 'C8')    # mốc lẻ → không xuất hiện
+        self._contract(15, 'C15')  # xa (mốc 15)
         self._contract(30, 'C30')  # xa (biên trên)
         self._contract(31, 'C31')  # ngoài ngưỡng → không xuất hiện
 
@@ -34,7 +35,8 @@ class TestRenewalThresholds(TestCase):
         by_num = {r['contract'].contract_number: r['urgency'] for r in results}
 
         self.assertEqual(by_num.get('C7'), 'near')
-        self.assertEqual(by_num.get('C8'), 'far')
+        self.assertNotIn('C8', by_num)   # 8 ngày không phải mốc → loại
+        self.assertEqual(by_num.get('C15'), 'far')  # mốc 15 → xa
         self.assertEqual(by_num.get('C30'), 'far')
         self.assertNotIn('C31', by_num)  # >30 ngày → loại
 

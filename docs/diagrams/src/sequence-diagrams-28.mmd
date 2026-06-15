@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang chấm công / hồ sơ mặt
+  participant HT as Hệ Thống<br/>face status
+  participant DB as Cơ sở dữ liệu<br/>EmployeeFace · FaceChangeRequest
+  ND->>GD: Xem trạng thái khuôn mặt
+  GD->>HT: GET
+  HT->>DB: có EmployeeFace?
+  alt Chưa có
+    HT-->>GD: Chưa đăng ký
+  else Có
+    HT->>DB: FaceChangeRequest PENDING?
+    alt Có pending
+      HT-->>GD: Chờ HR duyệt đổi mặt
+    else
+      HT-->>GD: Đang dùng (Active)
+    end
+  end
+  GD-->>ND: Hiển thị trạng thái

@@ -19,11 +19,17 @@ class AdminAccessTest(TestCase):
         self.admin_role, _ = Role.objects.get_or_create(name=Role.ADMIN)
         self.emp_role, _ = Role.objects.get_or_create(name=Role.EMPLOYEE)
         self.hr_role, _ = Role.objects.get_or_create(name=Role.HR)
+        self.manager_role, _ = Role.objects.get_or_create(name=Role.MANAGER)
+        self.leader_role, _ = Role.objects.get_or_create(name=Role.LEADER)
 
         self.admin = User.objects.create_user('admin_u', password='x')
         UserProfile.objects.create(user=self.admin, role=self.admin_role, employee_id='ADM')
         self.hr = User.objects.create_user('hr_u', password='x')
         UserProfile.objects.create(user=self.hr, role=self.hr_role, employee_id='HR')
+        self.manager = User.objects.create_user('mgr_u', password='x')
+        UserProfile.objects.create(user=self.manager, role=self.manager_role, employee_id='MGR')
+        self.leader = User.objects.create_user('lead_u', password='x')
+        UserProfile.objects.create(user=self.leader, role=self.leader_role, employee_id='LEAD')
 
     def test_is_admin_property(self):
         self.assertTrue(self.admin.profile.is_admin)
@@ -35,6 +41,57 @@ class AdminAccessTest(TestCase):
             resp = self.client.get(reverse(name))
             self.assertEqual(resp.status_code, 302, f'{name} phải chặn admin')
             self.assertEqual(resp.headers['Location'], reverse('dashboard'))
+
+    def test_admin_blocked_from_eval_and_stats_views(self):
+        """Admin bị chặn khỏi trang đánh giá, xác nhận đánh giá và thống kê."""
+        self.client.force_login(self.admin)
+        for name in ['statistics', 'evaluations', 'evaluation_hr_approval']:
+            resp = self.client.get(reverse(name))
+            self.assertEqual(resp.status_code, 302, f'{name} phải chặn admin')
+            self.assertEqual(resp.headers['Location'], reverse('dashboard'))
+
+    def test_admin_permission_flags_for_eval_and_stats(self):
+        """Admin không có quyền xem/xác nhận đánh giá và xem thống kê."""
+        from accounts.services import (
+            can_acknowledge_evaluation, can_access_statistics,
+            can_access_evaluations,
+        )
+        self.assertFalse(can_access_evaluations(self.admin))
+        self.assertFalse(can_acknowledge_evaluation(self.admin))
+        self.assertFalse(can_access_statistics(self.admin))
+        # HR vẫn xác nhận được đánh giá.
+        self.assertTrue(can_acknowledge_evaluation(self.hr))
+
+    def test_admin_stripped_from_all_business_processes(self):
+        """Admin chỉ giữ kênh hỗ trợ (ticket); gỡ mọi phê duyệt/yêu cầu nhân sự."""
+        from accounts.services import can_manage_requests, can_process_tickets
+        from rewards_discipline.services import _is_l1_approver, _is_l2_approver
+        from attendance.services.face.face_change_service import _is_trusted
+
+        # Admin: gỡ hết nghiệp vụ nhân sự (phê duyệt / yêu cầu).
+        self.assertFalse(can_manage_requests(self.admin))
+        self.assertFalse(_is_l1_approver(self.admin))
+        self.assertFalse(_is_l2_approver(self.admin))
+        self.assertFalse(_is_trusted(self.admin))
+        # Admin: GIỮ kênh hỗ trợ (xử lý ticket).
+        self.assertTrue(can_process_tickets(self.admin))
+        # HR vẫn đủ quyền nghiệp vụ + hỗ trợ.
+        self.assertTrue(can_manage_requests(self.hr))
+        self.assertTrue(_is_l2_approver(self.hr))
+        self.assertTrue(_is_trusted(self.hr))
+        self.assertTrue(can_process_tickets(self.hr))
+        # Quản lý/Leader: duyệt nghiệp vụ NHƯNG không xử lý ticket.
+        self.assertTrue(can_manage_requests(self.manager))
+        self.assertTrue(can_manage_requests(self.leader))
+        self.assertFalse(can_process_tickets(self.manager))
+        self.assertFalse(can_process_tickets(self.leader))
+
+    def test_admin_ticket_support_views(self):
+        """Admin vào được trang xử lý ticket; bị chặn khỏi hộp thư báo cáo nhân sự."""
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(reverse('ticket_process')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('tickets')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('report_inbox')).status_code, 302)
 
     def test_hr_can_view_rewards(self):
         """HR phải xem được Khen thưởng & Xử phạt."""

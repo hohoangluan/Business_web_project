@@ -103,6 +103,8 @@ def acknowledge_evaluation(hr_user, eval_id, note):
     """HR xác nhận đánh giá."""
     try:
         evaluation = Evaluation.objects.get(id=eval_id)
+        if evaluation.status != 'submitted':
+            return False, "Chỉ xác nhận được phiếu đang ở trạng thái đã gửi."
         evaluation.status = 'acknowledged'
         evaluation.acknowledged_by = hr_user
         evaluation.acknowledged_at = timezone.now()

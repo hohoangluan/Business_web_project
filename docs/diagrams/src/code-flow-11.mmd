@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant ML as Manager/Leader
+    participant V as evaluations_view
+    participant S as create_evaluation
+    participant DB as Database
+    participant HR as HR
+
+    ML->>V: POST /evaluations/ (employee, category, score 0-100, content, date)
+    V->>V: build_evaluation_form_state → validate (score 0..100, content, date, category)
+    alt Hợp lệ
+        V->>S: create_evaluation(reviewer, employee, data, file)
+        S->>DB: Evaluation.create(status='submitted')
+        Note over DB: save() tự tính rating: ≥90 A, ≥75 B, ≥60 C, else D
+        S-->>V: eval_obj
+        V-->>ML: preview + "Đã lưu và gửi lên HR"
+    end
+
+    HR->>V: GET /evaluations/hr-approval/
+    V->>DB: get_pending_evaluations_for_hr → status='submitted'
+    V-->>HR: Danh sách chờ xác nhận
+
+    HR->>V: POST acknowledge (eval_id, note)
+    V->>DB: acknowledge_evaluation → status='acknowledged', acknowledged_by/at, hr_note
+    V-->>HR: Success

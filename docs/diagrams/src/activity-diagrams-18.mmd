@@ -1,0 +1,9 @@
+flowchart TD
+  A([Cron job / HR bấm nhắc]) --> B[get_expiring_contracts threshold 30]
+  B --> C{days_left ∈ 30 / 15 / 7 ?}
+  C -- Không --> D[Bỏ qua]
+  C -- Có --> E[get_recipients_for_contract<br/>NV + manager + leader + tất cả HR]
+  E --> F{Có email?}
+  F -- Không --> D
+  F -- Có --> G[send_renewal_reminder_email<br/>tiêu đề KHẨN nếu days_left ≤ 7]
+  G --> H[Ghi nhận đã gửi]

@@ -1,0 +1,10 @@
+flowchart TD
+  A([HR mở trang duyệt điều chỉnh]) --> B{is_hr_user?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C{Hành động}
+  C -- Duyệt --> D[approve_adjustment]
+  D --> E[Áp giờ vào/ra khai báo<br/>recompute_record_status]
+  E --> F[adj.status=approved · record cập nhật]
+  C -- Từ chối --> G[reject_adjustment<br/>recompute_record_status · adj=rejected]
+  F --> Y([Redirect review])
+  G --> Y

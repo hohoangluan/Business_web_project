@@ -1,0 +1,8 @@
+flowchart TD
+  A([HR/Manager mở Sửa thông tin công việc]) --> B[POST · edit_work_info_view]
+  B --> C{can_manage_work_info?<br/>target không phải Admin}
+  C -- Không --> Z([Chặn])
+  C -- Có --> D[Cập nhật email · UserProfile]
+  D --> E[Lưu EmployeeWorkInfo<br/>phòng ban · chức vụ · manager_user · leader_user]
+  E --> F[Báo: đã cập nhật hồ sơ]
+  F --> Y([Redirect hr_view_profile])

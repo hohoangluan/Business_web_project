@@ -1,0 +1,15 @@
+flowchart TD
+  A([Nhân viên mở trang Hồ sơ]) --> B{Admin?}
+  B -- Có --> Z([Chặn · Admin không dùng hồ sơ])
+  B -- Không --> C[POST: họ tên · email · SĐT · ngày sinh<br/>+ thông tin mở rộng · liên hệ khẩn cấp · học vấn]
+  C --> D{Email thay đổi?}
+  D -- Có --> E{Email mới đã dùng<br/>bởi người khác?}
+  E -- Có --> F[Báo: email đã được sử dụng]
+  F --> Y([Redirect profile])
+  E -- Không --> G[transaction.atomic · lưu all-or-nothing]
+  D -- Không --> G
+  G --> H[profile.full_name · User.email nếu đổi]
+  H --> I[PersonalInfo: SĐT · ngày sinh + thông tin mở rộng]
+  I --> J[EmergencyContact · EducationInfo]
+  J --> K[COMMIT · Báo: cập nhật hồ sơ thành công]
+  K --> Y

@@ -1,0 +1,10 @@
+sequenceDiagram
+  actor ND as Người dùng
+  participant GD as Giao diện<br/>Nút Đăng xuất
+  participant HT as Hệ Thống<br/>logout_view
+  participant EX as Mở rộng<br/>Session
+  ND->>GD: Nhấn Đăng xuất
+  GD->>HT: GET /logout/
+  HT->>EX: auth.logout(request) · flush session
+  HT-->>GD: messages.info "Đã đăng xuất"
+  GD-->>ND: Redirect /login/

@@ -1,0 +1,6 @@
+stateDiagram-v2
+  [*] --> Pending: NV gửi yêu cầu · record=pending_adjustment
+  Pending --> Approved: HR duyệt · áp giờ khai báo · recompute status
+  Pending --> Rejected: HR từ chối · recompute status
+  Approved --> [*]
+  Rejected --> [*]

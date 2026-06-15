@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor HR as Người dùng · HR
+  participant GD as Giao diện<br/>Form điều chỉnh/tạo HĐ
+  participant HT as Hệ Thống<br/>hr_adjust_contract_view · adjust_contract
+  participant DB as Cơ sở dữ liệu<br/>ContractInfo
+  HR->>GD: Nhập form HĐ
+  GD->>HT: POST
+  HT->>HT: validate_contract_date_order
+  alt Lỗi ngày
+    HT-->>GD: Hiển thị lỗi
+    GD-->>HR: Giữ form
+  else OK
+    HT->>DB: archive HĐ active cũ (nếu có) is_active=False
+    HT->>DB: create ContractInfo mới is_active=True
+    HT-->>GD: Tạo phiên bản mới
+    GD-->>HR: Redirect contract_history
+  end

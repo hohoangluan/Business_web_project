@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor ND as Người dùng
+  participant GD as Giao diện<br/>Trang hợp đồng / lịch sử
+  participant HT as Hệ Thống<br/>contract view · build_contract_page_context
+  participant DB as Cơ sở dữ liệu<br/>ContractInfo
+  ND->>GD: Mở hợp đồng
+  GD->>HT: GET hợp đồng
+  HT->>DB: get_active_contract(user)
+  DB-->>HT: HĐ active
+  HT->>HT: tính status từ ngày (ký/bắt đầu/hết hạn) · cảnh báo ≤30 ngày
+  HT-->>GD: label + cảnh báo
+  GD-->>ND: Hiển thị HĐ
+  opt Xem lịch sử
+    ND->>GD: Mở lịch sử
+    GD->>HT: GET contract_history
+    HT->>DB: get_contract_history (mọi phiên bản)
+    HT-->>GD: Danh sách active + archived
+    GD-->>ND: Hiển thị lịch sử
+  end

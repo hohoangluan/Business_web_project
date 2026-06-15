@@ -1,0 +1,33 @@
+flowchart LR
+    User(["🧑‍💼 Employee/Leader/Manager"])
+    HR(["👩‍💻 HR"])
+    Admin(["🛠️ Admin"])
+    SMTP["📧 Gmail SMTP"]
+
+    subgraph G["Phân hệ Tài khoản & Xác thực"]
+        direction TB
+        UC1("UC1.1: Đăng nhập hệ thống")
+        UC2("UC1.2: Đăng xuất")
+        UC3("UC1.3: Quên mật khẩu")
+        UC3a("UC1.3a: Gửi OTP qua Email")
+        UC3b("UC1.3b: Xác thực OTP & Đổi mật khẩu")
+        UC4("UC1.4: Khóa / Mở khóa tài khoản")
+        UC5("UC1.5: Reset mật khẩu cho NV")
+        UC6("UC1.6: Gán vai trò cho tài khoản")
+        UC7("UC1.7: Tạo tài khoản mới")
+    end
+
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    UC3 -. "<<include>>" .-> UC3a
+    UC3 -. "<<include>>" .-> UC3b
+    UC3a --> SMTP
+
+    HR --> UC4
+    HR --> UC5
+
+    Admin --> UC4
+    Admin --> UC5
+    Admin --> UC6
+    Admin --> UC7

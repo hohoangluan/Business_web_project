@@ -1,0 +1,24 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Form tăng ca · OvertimeForm
+  participant HT as Hệ Thống<br/>overtime_view · create_overtime_request
+  participant DB as Cơ sở dữ liệu<br/>OvertimeRequest
+  participant EX as Mở rộng<br/>Notification
+  ND->>GD: Nhập đơn OT
+  GD->>GD: validate end_time > start_time
+  alt Sai giờ
+    GD-->>ND: Giờ kết thúc phải sau bắt đầu
+  else OK
+    GD->>HT: POST
+    HT->>HT: _resolve_initial_status (theo leader/manager)
+    alt Có leader/manager
+      HT->>DB: status=PENDING · hours = end−start
+    else Trống cả 2 · là HR
+      HT->>DB: status=APPROVED (tự duyệt)
+      HT->>EX: create_notification
+    else Trống cả 2 · nhân viên thường
+      HT->>DB: status=LEADER_APPROVED (thẳng HR L2)
+    end
+    HT-->>GD: Gửi đơn thành công
+    GD-->>ND: Hiển thị kết quả
+  end

@@ -1,0 +1,5 @@
+flowchart TD
+  A([Người dùng nhấn Đăng xuất]) --> B[GET /logout/ · logout_view]
+  B --> C[auth.logout request<br/>xóa toàn bộ session]
+  C --> D[messages.info: Đã đăng xuất]
+  D --> E([Redirect /login/])

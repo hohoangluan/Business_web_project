@@ -1,0 +1,28 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
+
+    subgraph G["Phân hệ Hồ sơ Nhân sự"]
+        direction TB
+        UC1("UC2.1: Xem hồ sơ cá nhân")
+        UC2("UC2.2: Tạo hồ sơ nhân viên mới")
+        UC2a("UC2.2a: Tạo username từ MSNV")
+        UC2b("UC2.2b: Đặt mật khẩu mặc định")
+        UC2c("UC2.2c: Gửi email thông tin tài khoản")
+        UC3("UC2.3: Cập nhật thông tin cá nhân")
+        UC4("UC2.4: Cập nhật thông tin công việc")
+        UC5("UC2.5: Quản lý tài liệu đính kèm")
+        UC6("UC2.6: Xem danh sách nhân viên")
+    end
+
+    Employee --> UC1
+
+    HR --> UC1
+    HR --> UC2
+    UC2 -. "<<include>>" .-> UC2a
+    UC2 -. "<<include>>" .-> UC2b
+    UC2 -. "<<include>>" .-> UC2c
+    HR --> UC3
+    HR --> UC4
+    HR --> UC5
+    HR --> UC6

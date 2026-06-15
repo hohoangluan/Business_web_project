@@ -1,0 +1,7 @@
+flowchart TD
+  A([HR mở Thống kê]) --> B[statistics_view]
+  B --> C{is_hr_user?<br/>Admin bị chặn}
+  C -- Không --> Z([Phạm vi nhóm · xem 10.1])
+  C -- Có --> D[Phạm vi: toàn bộ nhân viên]
+  D --> E[Tổng hợp toàn công ty theo phòng ban]
+  E --> F[Hiển thị dashboard tổng]

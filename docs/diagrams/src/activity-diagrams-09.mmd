@@ -1,0 +1,15 @@
+flowchart TD
+  A([HR mở Tạo hồ sơ nhân sự]) --> B[POST form hồ sơ]
+  B --> C{is_hr_user?}
+  C -- Không --> Z([Chặn])
+  C -- Có --> D{Validate: field bắt buộc · email<br/>manager & leader tùy chọn}
+  D -- Lỗi --> E[Hiển thị lỗi · giữ form] --> B
+  D -- OK --> F{auto_create_account?}
+  F -- Có --> G{Username trùng?}
+  G -- Trùng --> E
+  G -- Không --> H[create_user + gán role]
+  F -- Không --> I[Bỏ qua tạo tài khoản]
+  H --> J[Tạo UserProfile + PersonalInfo<br/>+ EmployeeWorkInfo + ContractInfo]
+  I --> J
+  J --> K[Báo tạo hồ sơ thành công]
+  K --> Y([Redirect hr_create_profile])

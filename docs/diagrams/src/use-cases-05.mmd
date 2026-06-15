@@ -1,0 +1,40 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
+    FaceAPI["🌐 Remote Face API"]
+
+    subgraph G["Phân hệ Chấm công"]
+        direction TB
+        UC1("UC4.1: Đăng ký khuôn mặt lần đầu")
+        UC2("UC4.2: Cập nhật khuôn mặt")
+        UC2a("UC4.2a: Tự động duyệt (lần đầu)")
+        UC2b("UC4.2b: Chờ HR duyệt (đã có mặt)")
+        UC3("UC4.3: Duyệt yêu cầu đổi khuôn mặt")
+        UC4("UC4.4: Chấm công vào (Check-in)")
+        UC5("UC4.5: Chấm công ra (Check-out)")
+        UC4a("UC4.4a: Nhận diện khuôn mặt")
+        UC4b("UC4.4b: Xác định trạng thái đúng giờ/trễ")
+        UC6("UC4.6: Xem lịch sử chấm công")
+        UC7("UC4.7: Yêu cầu điều chỉnh giờ công")
+        UC8("UC4.8: Duyệt yêu cầu điều chỉnh")
+        UC9("UC4.9: Theo dõi trạng thái khuôn mặt")
+    end
+
+    Employee --> UC1
+    Employee --> UC2
+    UC1 -. "<<include>>" .-> UC2a
+    UC2 -. "<<extend>>" .-> UC2b
+    Employee --> UC4
+    Employee --> UC5
+    UC4 -. "<<include>>" .-> UC4a
+    UC4 -. "<<include>>" .-> UC4b
+    UC5 -. "<<include>>" .-> UC4a
+    Employee --> UC6
+    Employee --> UC7
+    Employee --> UC9
+
+    HR --> UC3
+    HR --> UC8
+
+    UC4a --> FaceAPI
+    UC2a --> FaceAPI

@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang báo cáo
+  participant HT as Hệ Thống<br/>report_view
+  participant DB as Cơ sở dữ liệu<br/>Report
+  ND->>GD: Chọn hành động
+  GD->>HT: POST action
+  alt create
+    HT->>DB: Report status=submitted · author
+  else edit (can_edit_or_delete)
+    HT->>DB: lưu nội dung
+    opt status == needs_update
+      HT->>DB: status=submitted (reset)
+    end
+  else delete (can_edit_or_delete)
+    HT->>DB: xóa
+  end
+  HT-->>GD: Kết quả
+  GD-->>ND: Redirect reports

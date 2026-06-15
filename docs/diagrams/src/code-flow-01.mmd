@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant U as User (Browser)
+    participant V as register_view
+    participant S as create_manual_account
+    participant P as ensure_account_profiles
+    participant DB as Database
+
+    U->>V: GET /register/
+    alt Đã đăng nhập
+        V-->>U: Redirect → /dashboard/
+    end
+    V-->>U: Render RegisterForm (employee_id, email, full_name, password)
+
+    U->>V: POST /register/ (form data)
+    V->>V: RegisterForm.is_valid()
+    alt Form invalid
+        V-->>U: Render form với lỗi
+    else Form valid
+        V->>S: create_manual_account(employee_id, password, full_name, email)
+        Note over S,DB: @transaction.atomic
+        S->>S: username = normalize_employee_username(employee_id)
+        S->>S: validate_email(email) + validate_password(password)
+        S->>DB: Check trùng username / email (iexact)
+        alt Trùng hoặc password yếu
+            S-->>V: raise ValidationError
+            V-->>U: form.add_error(None, exc) → render lại
+        else Hợp lệ
+            S->>DB: User.objects.create_user(username, email, password)
+            S->>P: ensure_account_profiles(user, employee_id, full_name, email)
+            P->>DB: UserProfile (employee_id, full_name, email, role=None)
+            P->>DB: PersonalInfo / WorkInfo / ContractInfo / EmergencyContact / EducationInfo (rỗng)
+            S-->>V: user
+            V->>V: login(request, user)
+            V-->>U: Redirect → /dashboard/ + message thành công
+        end
+    end

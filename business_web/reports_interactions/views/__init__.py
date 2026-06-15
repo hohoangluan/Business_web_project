@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from accounts.decorators import deny_admin
-from accounts.services import ensure_profile, can_manage_requests
+from accounts.services import ensure_profile, can_manage_requests, can_process_tickets
 from reports_interactions.models import Report
 from reports_interactions.models.ticket_model import Ticket
 from reports_interactions.forms import ReportForm, TicketForm
@@ -88,12 +88,13 @@ def report_detail_view(request, pk):
     ensure_profile(request.user)
     report = get_object_or_404(Report, pk=pk)
 
-    # Kiểm tra quyền xem báo cáo
+    # Kiểm tra quyền xem báo cáo — theo quan hệ (tác giả / người nhận),
+    # KHÔNG bypass theo is_superuser: hệ thống phân quyền theo role,
+    # superuser chỉ mô phỏng role để thao tác (không có quyền trực tiếp).
     is_author = (report.author == request.user)
     is_recipient = (report.recipient == request.user)
-    is_superuser = request.user.is_superuser
 
-    if not (is_author or is_recipient or is_superuser):
+    if not (is_author or is_recipient):
         messages.error(request, 'Bạn không có quyền xem báo cáo này!')
         return redirect('reports')
 
@@ -103,7 +104,7 @@ def report_detail_view(request, pk):
         report.viewed_at = timezone.now()
         report.save()
 
-    if request.method == 'POST' and (is_recipient or is_superuser):
+    if request.method == 'POST' and is_recipient:
         action = request.POST.get('action')
         if action == 'request_update':
             report.status = report.NEEDS_UPDATE
@@ -185,7 +186,7 @@ def ticket_list_view(request):
 
     return render(request, 'reports_interactions/tickets.html', {
         'active_page': 'tickets',
-        'can_process': can_manage_requests(request.user),
+        'can_process': can_process_tickets(request.user),
         'tickets': tickets,
         'form': form,
         'stats': stats,
@@ -197,7 +198,7 @@ def ticket_list_view(request):
 def ticket_process_view(request):
     """Trang xử lý ticket. Template: reports_interactions/ticket_process.html"""
     ensure_profile(request.user)
-    if not can_manage_requests(request.user):
+    if not can_process_tickets(request.user):
         messages.error(request, 'Bạn không có quyền truy cập trang xử lý ticket!')
         return redirect('tickets')
         

@@ -16,7 +16,11 @@ class TestReportsInteractions(TestCase):
         self.manager = User.objects.create_user(username='manager', password='123')
         UserProfile.objects.create(user=self.manager, role=self.mgr_role, employee_id='MGR001')
         EmployeeWorkInfo.objects.create(user=self.manager, department='IT')
-        
+
+        # Ticket hỗ trợ do HR/Admin xử lý (can_process_tickets), không phải Manager.
+        self.hr = User.objects.create_user(username='hr_proc', password='123')
+        UserProfile.objects.create(user=self.hr, role=self.hr_role, employee_id='HR001')
+
         self.employee = User.objects.create_user(username='employee', password='123')
         UserProfile.objects.create(user=self.employee, role=self.emp_role, employee_id='EMP001')
         EmployeeWorkInfo.objects.create(user=self.employee, manager_user=self.manager, department='IT')
@@ -117,7 +121,7 @@ class TestReportsInteractions(TestCase):
             content='Help me',
             status=Ticket.STATUS_NEW
         )
-        self.client.force_login(self.manager)
+        self.client.force_login(self.hr)
         response = self.client.post(self.url_ticket_process, data={
             'action': 'receive',
             'ticket_id': ticket.id
@@ -125,7 +129,7 @@ class TestReportsInteractions(TestCase):
         self.assertRedirects(response, self.url_ticket_process)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, Ticket.STATUS_PROCESSING)
-        self.assertEqual(ticket.assigned_to, self.manager)
+        self.assertEqual(ticket.assigned_to, self.hr)
 
     def test_process_ticket_resolve(self):
         ticket = Ticket.objects.create(
@@ -135,9 +139,9 @@ class TestReportsInteractions(TestCase):
             title='Need help',
             content='Help me',
             status=Ticket.STATUS_PROCESSING,
-            assigned_to=self.manager
+            assigned_to=self.hr
         )
-        self.client.force_login(self.manager)
+        self.client.force_login(self.hr)
         response = self.client.post(self.url_ticket_process, data={
             'action': 'resolve',
             'ticket_id': ticket.id
@@ -155,7 +159,7 @@ class TestReportsInteractions(TestCase):
             content='Help me',
             status=Ticket.STATUS_NEW
         )
-        self.client.force_login(self.manager)
+        self.client.force_login(self.hr)
         response = self.client.post(self.url_ticket_process, data={
             'action': 'reject',
             'ticket_id': ticket.id,

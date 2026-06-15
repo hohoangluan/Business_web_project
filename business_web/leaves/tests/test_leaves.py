@@ -201,6 +201,11 @@ class TestLeaveQuotaWarning(TestCase):
         from contracts.models import ContractInfo
         self.user = User.objects.create_user(username='nvquota', password='123')
         UserProfile.objects.create(user=self.user, employee_id='Q001')
+        # Có quản lý trực tiếp → đơn đi đúng luồng L1 (status=PENDING).
+        from employee_profiles.models import EmployeeWorkInfo
+        manager = User.objects.create_user(username='mgrquota', password='123')
+        UserProfile.objects.create(user=manager, employee_id='QM01')
+        EmployeeWorkInfo.objects.create(user=self.user, manager_user=manager)
         self.client.force_login(self.user)
         self.today = timezone.localdate()
         self._ContractInfo = ContractInfo

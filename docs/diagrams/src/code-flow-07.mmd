@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant HR as HR/Manager
+    participant V as hr_adjust_contract_view
+    participant S as adjust_contract
+    participant DB as Database
+
+    HR->>V: GET /contract/hr/adjust/<user_id>/
+    Note over V: @user_passes_test(can_manage_work_info)
+    alt request.user là Admin
+        V-->>HR: Chặn ("Admin không có quyền") → redirect user_list
+    end
+    V->>DB: ensure_profile + ensure_contract_info(target_user)
+    V-->>HR: Render ContractAdjustForm (initial = HĐ hiện tại)
+
+    HR->>V: POST (modified fields)
+    V->>V: ContractAdjustForm.is_valid()
+    alt valid
+        V->>S: adjust_contract(target_user, cleaned_data)
+        Note over S,DB: @transaction.atomic
+        S->>DB: old = ensure_contract_info(user)
+        S->>S: new_values = {f: getattr(old,f) for f in CONTRACT_VERSION_FIELDS}
+        S->>S: Ghi đè các field có trong data
+        S->>DB: old.is_active = False (save)
+        S->>DB: ContractInfo.create(user, is_active=True, **new_values)
+        S-->>V: HĐ mới
+        V-->>HR: Redirect → contract_history + message
+    else invalid
+        V-->>HR: Render lại form với lỗi
+    end

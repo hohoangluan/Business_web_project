@@ -1,0 +1,7 @@
+flowchart TD
+  A([Quản lý/Leader mở Thống kê]) --> B[statistics_view]
+  B --> C{Quyền xem?<br/>Manager/Leader/HR · Admin bị chặn}
+  C -- Không · employee --> Z([Chặn])
+  C -- Có --> D[Lọc phạm vi: nhân viên trực thuộc<br/>leader_user / manager_user]
+  D --> E[Tổng hợp chấm công · nghỉ · OT · đánh giá]
+  E --> F[Hiển thị dashboard nhóm]

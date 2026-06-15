@@ -1,0 +1,8 @@
+flowchart TD
+  A([Quản lý/HR từ chối]) --> B{can_manage_requests?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C[reject_overtime_request pk + lý do]
+  C --> D{Đúng cấp duyệt?<br/>PENDING→supervisor · LEADER_APPROVED→HR}
+  D -- Không --> E[Chặn]
+  D -- Có --> F[status=REJECTED · lý do · notification]
+  F --> Y([Redirect approval])

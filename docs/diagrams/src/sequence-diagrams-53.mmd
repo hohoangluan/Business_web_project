@@ -1,0 +1,18 @@
+sequenceDiagram
+  actor HR as Người dùng · HR/Admin
+  participant GD as Giao diện<br/>Trang xử lý ticket
+  participant HT as Hệ Thống<br/>ticket_process_view
+  participant DB as Cơ sở dữ liệu<br/>Ticket
+  HR->>GD: Chọn hành động + ticket
+  GD->>HT: POST (can_process_tickets · HR + Admin)
+  alt receive
+    HT->>DB: status=processing · assigned_to
+  else resolve
+    HT->>DB: status=resolved
+  else close
+    HT->>DB: status=closed
+  else reject (có lý do)
+    HT->>DB: status=rejected · rejection_reason
+  end
+  HT-->>GD: Kết quả
+  GD-->>HR: Redirect ticket_process

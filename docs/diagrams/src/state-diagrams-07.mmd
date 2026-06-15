@@ -1,0 +1,9 @@
+stateDiagram-v2
+  [*] --> Submitted: NV gửi báo cáo
+  Submitted --> NeedsUpdate: quản lý yêu cầu cập nhật (+manager_note)
+  NeedsUpdate --> Submitted: tác giả sửa & gửi lại
+  Submitted --> Acknowledged: quản lý tiếp nhận
+  Acknowledged --> [*]
+  note right of Acknowledged
+    can_edit_or_delete = False (khóa sửa/xóa)
+  end note

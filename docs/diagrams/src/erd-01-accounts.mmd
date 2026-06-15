@@ -1,0 +1,56 @@
+---
+title: ERD — Module Accounts (Tài khoản & Phân quyền)
+---
+erDiagram
+    auth_user {
+        integer id PK
+        varchar(150) username
+        varchar(254) email
+        boolean is_active
+        boolean is_superuser
+    }
+    accounts_role {
+        bigint id PK
+        varchar(50) name
+        text description
+    }
+    accounts_custompermission {
+        bigint id PK
+        varchar(100) codename
+        varchar(255) name
+        text description
+    }
+    accounts_userprofile {
+        bigint id PK
+        varchar(50) employee_id
+        varchar(255) full_name
+        bigint role_id FK
+        integer user_id FK
+    }
+    accounts_userprofile_permissions {
+        bigint id PK
+        bigint userprofile_id FK
+        bigint custompermission_id FK
+    }
+    accounts_notification {
+        bigint id PK
+        varchar(255) title
+        text message
+        varchar(255) link
+        boolean is_read
+        timestamptz created_at
+        integer user_id FK
+    }
+    accounts_otpcode {
+        bigint id PK
+        varchar(6) code
+        timestamptz created_at
+        integer user_id FK
+    }
+
+    auth_user      ||--|| accounts_userprofile : "1-1"
+    accounts_role  ||--o{ accounts_userprofile : "role"
+    accounts_userprofile        ||--o{ accounts_userprofile_permissions : ""
+    accounts_custompermission   ||--o{ accounts_userprofile_permissions : ""
+    auth_user ||--o{ accounts_notification : ""
+    auth_user ||--o{ accounts_otpcode : ""

@@ -60,7 +60,7 @@ def settings_view(request):
 
     if (request.method == "POST"
             and request.POST.get("form_section") == "work_schedule"):
-        # Chỉ HR/Admin được đổi giờ làm chuẩn của toàn công ty.
+        # Chỉ HR được đổi giờ làm chuẩn của toàn công ty (Admin không xử lý nhân sự).
         if is_hr_user(request.user):
             schedule_form = WorkScheduleConfigForm(request.POST, instance=config)
             if schedule_form.is_valid():

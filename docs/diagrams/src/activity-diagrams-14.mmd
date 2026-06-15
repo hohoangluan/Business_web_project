@@ -1,0 +1,14 @@
+flowchart TD
+  A([Người dùng mở Hợp đồng]) --> B{Vai trò / quyền}
+  B -- Admin --> Z([Chặn])
+  B -- Chủ HĐ / HR / quản lý --> C[build_contract_page_context]
+  C --> D{Tính status từ ngày}
+  D -- end trống --> E[Không thời hạn]
+  D -- end < hôm nay --> F[Hết hạn]
+  D -- start > hôm nay --> G[Sắp hiệu lực]
+  D -- đang trong hạn --> H[Có hiệu lực<br/>cảnh báo nếu ≤ 30 ngày]
+  E --> I[Hiển thị HĐ hiện tại]
+  F --> I
+  G --> I
+  H --> I
+  I -. Xem lịch sử .-> J[contract_history_view<br/>get_contract_history mọi phiên bản]
