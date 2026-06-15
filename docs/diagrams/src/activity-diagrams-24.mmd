@@ -1,0 +1,7 @@
+flowchart TD
+  A([Nhân viên chấm công lần 2 trong ngày]) --> B[POST face_check_view · verify OK]
+  B --> C[decide_next_action]
+  C --> D{action}
+  D -- check_out --> E[record_check_out · ghi giờ ra<br/>clear_failures]
+  E --> F([Trả giờ ra])
+  D -- done --> G([Đã đủ vào/ra · no-op])

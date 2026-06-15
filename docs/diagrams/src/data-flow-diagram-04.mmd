@@ -1,0 +1,87 @@
+flowchart TB
+    Emp([Employee])
+    HR([HR])
+    
+    subgraph "4.0 Chấm công"
+        direction TB
+        
+        subgraph "4.1 Face Registration"
+            FR1[Decode base64 image]
+            FR2{Đã có EmployeeFace?}
+            FR3[Gọi /register API]
+            FR4[Tạo EmployeeFace]
+            FR5[Tạo FaceChangeRequest - pending]
+        end
+        
+        subgraph "4.2 Face Check"
+            FC1[check_lockout]
+            FC2[Gọi /recognize API]
+            FC3{Match employee?}
+            FC4[record_fail]
+            FC5[reset_fails]
+            FC6[get_shift_times]
+            FC7[log_attendance]
+        end
+        
+        subgraph "4.3 Adjustment"
+            AD1[Submit: reason + evidence + claimed times]
+            AD2[Create AdjustmentRequest - pending]
+        end
+        
+        subgraph "4.4 HR Review"
+            HR1[List pending requests]
+            HR2[Approve: update AttendanceRecord]
+            HR3[Reject: hr_note]
+        end
+        
+        subgraph "4.5 Face Change Review"
+            FCR1[List pending FaceChangeRequests]
+            FCR2[Approve: re-register on API]
+            FCR3[Reject: hr_note]
+        end
+    end
+    
+    FaceAPI([Face Recognition API])
+    D4[(AttendanceRecord + EmployeeFace)]
+    D3[(ContractInfo)]
+    D11[(WorkScheduleConfig)]
+    
+    Emp -->|image| FR1
+    FR1 --> FR2
+    FR2 -->|No| FR3
+    FR3 --> FaceAPI
+    FR3 --> FR4
+    FR4 -->|write| D4
+    FR2 -->|Yes| FR5
+    FR5 -->|write| D4
+    
+    Emp -->|image| FC1
+    FC1 --> FC2
+    FC2 --> FaceAPI
+    FC2 --> FC3
+    FC3 -->|No| FC4
+    FC3 -->|Yes| FC5
+    FC5 --> FC6
+    FC6 -->|read| D3
+    FC6 -->|read| D11
+    FC6 --> FC7
+    FC7 -->|write| D4
+    
+    Emp -->|adjustment| AD1
+    AD1 --> AD2
+    AD2 -->|write| D4
+    
+    HR --> HR1
+    HR1 -->|read| D4
+    HR --> HR2
+    HR2 -->|write| D4
+    HR --> HR3
+    HR3 -->|write| D4
+    
+    HR --> FCR1
+    FCR1 -->|read| D4
+    HR --> FCR2
+    FCR2 --> FaceAPI
+    FCR2 -->|write| D4
+    HR --> FCR3
+    FCR3 -->|write| D4

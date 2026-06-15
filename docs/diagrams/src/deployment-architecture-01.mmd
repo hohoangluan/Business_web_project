@@ -1,0 +1,35 @@
+flowchart TD
+    Client(["Trình duyệt (Browser)"])
+    
+    subgraph "Render (Cloud Hosting)"
+        direction TB
+        LoadBalancer[Render Load Balancer]
+        
+        subgraph "Web Service (Python 3)"
+            Gunicorn[Gunicorn WSGI Server]
+            Django[Django App]
+            WhiteNoise[WhiteNoise - Static Files]
+        end
+        
+        subgraph "Database Service"
+            Postgres[(PostgreSQL DB)]
+        end
+    end
+    
+    subgraph "External Services"
+        Cloudinary[(Cloudinary CDN)]
+        HF[HuggingFace Spaces API]
+        Gmail[Gmail SMTP Server]
+    end
+
+    Client <-->|HTTPS| LoadBalancer
+    Client <-->|HTTPS| Cloudinary
+    
+    LoadBalancer <--> Gunicorn
+    Gunicorn <--> Django
+    Gunicorn <--> WhiteNoise
+    
+    Django <-->|SQL/psycopg2| Postgres
+    Django <-->|Media Upload API| Cloudinary
+    Django <-->|REST API| HF
+    Django -->|SMTP 587/465| Gmail

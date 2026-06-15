@@ -5,7 +5,7 @@ CONTRACT RENEWAL SERVICE
 Cung cấp logic phát hiện hợp đồng sắp hết hạn và tổng hợp danh sách
 người nhận thông báo (nhân viên, manager, leader, HR).
 
-Ngưỡng cảnh báo: 30 ngày và 7 ngày.
+Ngưỡng cảnh báo: 30 ngày, 15 ngày và 7 ngày.
 ==============================================================================
 """
 
@@ -14,8 +14,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 
-# Hai ngưỡng cảnh báo (ngày)
+# Các ngưỡng cảnh báo (ngày)
 THRESHOLD_FAR = 30    # Nhắc lần đầu: còn 30 ngày
+THRESHOLD_MID = 15    # Nhắc lần hai: còn 15 ngày
 THRESHOLD_NEAR = 7    # Nhắc khẩn cấp: còn 7 ngày
 
 
@@ -88,8 +89,8 @@ def get_expiring_contracts(days_threshold=THRESHOLD_FAR):
         if end_date is None:
             continue
         days_left = (end_date - today).days
-        # Chỉ lấy hợp đồng chưa hết hạn và sắp hết hạn trong ngưỡng
-        if 0 <= days_left <= days_threshold:
+        # Chỉ lấy hợp đồng sắp hết hạn vào đúng các mốc: 30, 15, 7 ngày để tránh spam
+        if days_left in (THRESHOLD_FAR, THRESHOLD_MID, THRESHOLD_NEAR) and days_left <= days_threshold:
             urgency = 'near' if days_left <= THRESHOLD_NEAR else 'far'
             results.append({
                 'contract': contract,

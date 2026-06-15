@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant EMP as Employee
+    participant V as upload_image_base64_view
+    participant DB as Database
+    participant HR as HR (face_change_review)
+    participant API as Remote Face API
+
+    EMP->>V: POST /attendance/upload-image/ (new face image)
+    Note over V: Employee đã có EmployeeFace
+    V->>DB: Create FaceChangeRequest(status=pending, image, image_sha256, ip_address)
+    V-->>EMP: "Yêu cầu đã gửi, chờ HR duyệt"
+
+    HR->>HR: GET /attendance/face-changes/review/
+    HR->>HR: Xem ảnh, kiểm tra is_cross_user
+
+    alt approve_face_change
+        HR->>API: apply_face_enrollment → POST /register (str(user.id), bytes)
+        Note over HR: API từ chối → return (False, lý do), giữ pending
+        HR->>DB: update_or_create EmployeeFace (slot_id)
+        HR->>DB: status=APPROVED, reviewed_by/at, hr_note
+        HR->>DB: req.image.delete() — purge ảnh (giảm PII)
+    else reject_face_change
+        HR->>DB: status=REJECTED, reviewed_by/at, hr_note
+        Note over DB: GIỮ req.image làm minh chứng chống gian lận
+    end

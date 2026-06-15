@@ -1,0 +1,7 @@
+flowchart TD
+  A([Nhân viên mở Chấm công / Hồ sơ mặt]) --> B{Đã có EmployeeFace?}
+  B -- Chưa --> C[Trạng thái: Chưa đăng ký]
+  B -- Có --> D{FaceChangeRequest PENDING?}
+  D -- Có --> E[Trạng thái: Chờ HR duyệt đổi mặt]
+  D -- Không --> F[Trạng thái: Đang dùng · Active]
+  E --> G[Mặt nhận diện vẫn là mặt cũ tới khi duyệt]

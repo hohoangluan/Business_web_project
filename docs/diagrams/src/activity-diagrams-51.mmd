@@ -1,0 +1,14 @@
+flowchart TD
+  A([Người nhận/tác giả mở chi tiết]) --> B{is_author / recipient?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C{is_recipient & chưa viewed?}
+  C -- Có --> D[is_viewed=True · viewed_at]
+  C -- Không --> E[Hiển thị nội dung]
+  D --> F{POST hành động · recipient}
+  E --> F
+  F -- needs_update --> G[status=NEEDS_UPDATE · manager_note]
+  F -- acknowledge --> H[status=ACKNOWLEDGED · khóa sửa/xóa]
+  F -- chỉ xem --> I[Không đổi trạng thái]
+  G --> Y([Redirect report_detail])
+  H --> Y
+  I --> Y

@@ -1,0 +1,29 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
+
+    subgraph G["Phân hệ Khen thưởng & Kỷ luật"]
+        direction TB
+        UC1("UC8.1: Xem quyết định thưởng/phạt")
+        UC2("UC8.2: Đề xuất khen thưởng")
+        UC3("UC8.3: Đề xuất xử phạt")
+        UC4("UC8.4: Phê duyệt cấp L1")
+        UC5("UC8.5: Phê duyệt cấp L2")
+        UC6("UC8.6: Từ chối đề xuất")
+    end
+
+    Employee --> UC1
+
+    Leader --> UC2
+    Leader --> UC3
+    Manager --> UC2
+    Manager --> UC3
+    HR --> UC2
+    HR --> UC3
+
+    Manager --> UC4
+
+    HR --> UC5
+    HR --> UC6

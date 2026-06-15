@@ -1,0 +1,17 @@
+flowchart TD
+  A([Người dùng mở trang Đăng nhập]) --> B[Nhập username + mật khẩu]
+  B --> C[POST /login/ · AccountsLoginView]
+  C --> D{Form hợp lệ?<br/>authenticate OK}
+  D -- Đúng --> E[clear_failures cache]
+  E --> F[Tạo session đăng nhập]
+  F --> G([Redirect /dashboard/])
+  D -- Sai --> H{Tài khoản<br/>is_active = False?}
+  H -- Đã khóa --> I[Báo: Tài khoản đã bị khóa<br/>không đếm thêm]
+  H -- Còn mở --> J[register_failure: cache += 1]
+  J --> K{reached_limit?<br/>count ≥ MAX_FAILS}
+  K -- Chưa --> L[Báo: sai mật khẩu]
+  K -- Đủ ngưỡng --> M[is_active = False · khóa TK<br/>clear_failures]
+  M --> N[Báo: đã khóa do sai nhiều lần]
+  I --> O([Ở lại trang Đăng nhập])
+  L --> O
+  N --> O

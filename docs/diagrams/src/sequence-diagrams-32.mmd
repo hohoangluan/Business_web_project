@@ -1,0 +1,13 @@
+sequenceDiagram
+  actor HR as Người dùng · HR
+  participant GD as Giao diện<br/>Trang duyệt bước 2
+  participant HT as Hệ Thống<br/>leave_approve_action · approve_leave_request
+  participant DB as Cơ sở dữ liệu<br/>LeaveRequest
+  participant EX as Mở rộng<br/>Notification
+  HR->>GD: Bấm Duyệt cuối
+  GD->>HT: POST pk
+  HT->>DB: kiểm LEADER_APPROVED + là HR
+  HT->>DB: approved_by=HR · status=APPROVED
+  HT->>EX: tạo notification cho NV
+  HT-->>GD: Kết quả
+  GD-->>HR: Redirect leave_approval

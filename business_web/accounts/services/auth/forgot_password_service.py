@@ -35,7 +35,7 @@ def send_otp_email(email, otp):
     message = (
         f"Xin chào,\n\n"
         f"Mã xác nhận của bạn là: {otp}\n\n"
-        f"Mã có hiệu lực trong 1 phút kể từ lúc gửi thành công.\n"
+        f"Mã có hiệu lực trong 2 phút kể từ lúc gửi thành công.\n"
         f"Vui lòng không chia sẻ mã này với bất kỳ ai.\n\n"
         f"Trân trọng,\nHRMS Portal"
     )

@@ -16,7 +16,7 @@
 | `..>` | Quan hệ `<<include>>` hoặc `<<extend>>` |
 | `rectangle` | Ranh giới hệ thống (System Boundary) |
 
-> **Lưu ý:** Sơ đồ dùng **PlantUML** để actor hiển thị dạng stick figure. Render bằng VSCode (extension *PlantUML*), IntelliJ, hoặc <https://www.plantuml.com/plantuml>. GitHub không render trực tiếp PlantUML.
+> **Lưu ý:** Sơ đồ dùng **Mermaid** để tương thích tốt với hiển thị trên GitHub và các nền tảng markdown hiện đại. Render bằng VSCode (extension *PlantUML*), IntelliJ, hoặc <https://www.plantuml.com/plantuml>. GitHub không render trực tiếp PlantUML.
 
 ---
 
@@ -36,143 +36,132 @@
 
 ## 🗺️ USE CASE TỔNG QUÁT — Toàn bộ Hệ thống
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    %% Actors
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 Nhân sự HR"])
+    Admin(["🛠️ Quản trị viên"])
+    FaceAPI["🌐 Remote Face API"]
+    SMTP["📧 Gmail SMTP"]
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor "Nhân sự HR" as HR
-actor "Quản trị viên" as Admin
-actor "Remote Face API" as FaceAPI <<system>>
-actor "Gmail SMTP" as SMTP <<system>>
+    %% System
+    subgraph HRMS["🏢 Hệ thống Quản lý Nhân sự HRMS"]
+        direction TB
+        subgraph G1["1. Tài khoản & Xác thực"]
+            UC_Login("Đăng nhập / Đăng xuất")
+            UC_OTP("Quên mật khẩu qua OTP")
+            UC_AccMgmt("Quản lý tài khoản")
+            UC_RBAC("Phân quyền & Vai trò")
+        end
+        subgraph G2["2. Hồ sơ & Hợp đồng"]
+            UC_ViewProfile("Xem hồ sơ cá nhân")
+            UC_CreateProfile("Tạo hồ sơ nhân viên mới")
+            UC_EditProfile("Cập nhật hồ sơ nhân viên")
+            UC_Contract("Quản lý hợp đồng lao động")
+            UC_ContractWarn("Cảnh báo HĐ sắp hết hạn")
+        end
+        subgraph G3["3. Chấm công & Khuôn mặt"]
+            UC_FaceReg("Đăng ký / Cập nhật khuôn mặt")
+            UC_FaceApprove("Duyệt yêu cầu đổi khuôn mặt")
+            UC_CheckIn("Chấm công vào/ra bằng FaceID")
+            UC_History("Xem lịch sử chấm công")
+            UC_Adjust("Yêu cầu điều chỉnh giờ công")
+            UC_AdjApprove("Duyệt điều chỉnh giờ công")
+        end
+        subgraph G4["4. Nghỉ phép"]
+            UC_Leave("Nộp đơn nghỉ phép")
+            UC_LeaveL1("Phê duyệt nghỉ phép L1")
+            UC_LeaveL2("Phê duyệt nghỉ phép L2")
+        end
+        subgraph G5["5. Tăng ca"]
+            UC_OT("Đăng ký tăng ca")
+            UC_OTL1("Phê duyệt tăng ca L1")
+            UC_OTL2("Phê duyệt tăng ca L2")
+        end
+        subgraph G6["6. Đánh giá hiệu suất"]
+            UC_ViewEval("Xem phiếu đánh giá")
+            UC_CreateEval("Lập phiếu đánh giá")
+            UC_AckEval("Xác nhận đánh giá")
+        end
+        subgraph G7["7. Khen thưởng & Kỷ luật"]
+            UC_ViewRW("Xem quyết định thưởng/phạt")
+            UC_ProposeRW("Đề xuất khen thưởng/xử phạt")
+            UC_ApproveRW("Duyệt quyết định thưởng/phạt")
+        end
+        subgraph G8["8. Báo cáo & Hỗ trợ"]
+            UC_Report("Gửi báo cáo công việc")
+            UC_ReviewReport("Phản hồi báo cáo")
+            UC_Ticket("Gửi ticket hỗ trợ/khiếu nại")
+            UC_HandleTicket("Xử lý ticket")
+        end
+        subgraph G9["9. Thống kê"]
+            UC_Stats("Xem thống kê tổng hợp")
+            UC_Export("Xuất báo cáo dữ liệu")
+        end
+        subgraph G10["10. Cài đặt hệ thống"]
+            UC_Settings("Cài đặt cá nhân")
+            UC_CompanyConfig("Cấu hình công ty")
+            UC_HRConfig("Cấu hình quy định nhân sự")
+        end
+    end
 
-rectangle "🏢 Hệ thống Quản lý Nhân sự HRMS" {
+    %% Relationships
+    Employee --> UC_Login
+    Employee --> UC_OTP
+    Employee --> UC_ViewProfile
+    Employee --> UC_FaceReg
+    Employee --> UC_CheckIn
+    Employee --> UC_History
+    Employee --> UC_Adjust
+    Employee --> UC_Leave
+    Employee --> UC_OT
+    Employee --> UC_ViewEval
+    Employee --> UC_ViewRW
+    Employee --> UC_Report
+    Employee --> UC_Ticket
+    Employee --> UC_Settings
 
-    rectangle "1. Tài khoản & Xác thực" {
-        usecase "Đăng nhập / Đăng xuất" as UC_Login
-        usecase "Quên mật khẩu qua OTP" as UC_OTP
-        usecase "Quản lý tài khoản" as UC_AccMgmt
-        usecase "Phân quyền & Vai trò" as UC_RBAC
-    }
+    Leader --> UC_LeaveL1
+    Leader --> UC_OTL1
+    Leader --> UC_CreateEval
+    Leader --> UC_ProposeRW
+    Leader --> UC_ReviewReport
 
-    rectangle "2. Hồ sơ & Hợp đồng" {
-        usecase "Xem hồ sơ cá nhân" as UC_ViewProfile
-        usecase "Tạo hồ sơ nhân viên mới" as UC_CreateProfile
-        usecase "Cập nhật hồ sơ nhân viên" as UC_EditProfile
-        usecase "Quản lý hợp đồng lao động" as UC_Contract
-        usecase "Cảnh báo HĐ sắp hết hạn" as UC_ContractWarn
-    }
+    Manager --> UC_LeaveL1
+    Manager --> UC_OTL1
+    Manager --> UC_CreateEval
+    Manager --> UC_ProposeRW
+    Manager --> UC_ReviewReport
+    Manager --> UC_Stats
 
-    rectangle "3. Chấm công & Khuôn mặt" {
-        usecase "Đăng ký / Cập nhật khuôn mặt" as UC_FaceReg
-        usecase "Duyệt yêu cầu đổi khuôn mặt" as UC_FaceApprove
-        usecase "Chấm công vào/ra bằng FaceID" as UC_CheckIn
-        usecase "Xem lịch sử chấm công" as UC_History
-        usecase "Yêu cầu điều chỉnh giờ công" as UC_Adjust
-        usecase "Duyệt điều chỉnh giờ công" as UC_AdjApprove
-    }
+    HR --> UC_CreateProfile
+    HR --> UC_EditProfile
+    HR --> UC_Contract
+    HR --> UC_ContractWarn
+    HR --> UC_FaceApprove
+    HR --> UC_AdjApprove
+    HR --> UC_LeaveL2
+    HR --> UC_OTL2
+    HR --> UC_AckEval
+    HR --> UC_ApproveRW
+    HR --> UC_HandleTicket
+    HR --> UC_Stats
+    HR --> UC_Export
+    HR --> UC_HRConfig
+    HR --> UC_AccMgmt
 
-    rectangle "4. Nghỉ phép" {
-        usecase "Nộp đơn nghỉ phép" as UC_Leave
-        usecase "Phê duyệt nghỉ phép L1" as UC_LeaveL1
-        usecase "Phê duyệt nghỉ phép L2" as UC_LeaveL2
-    }
+    Admin --> UC_AccMgmt
+    Admin --> UC_RBAC
+    Admin --> UC_CompanyConfig
+    Admin --> UC_Stats
+    Admin --> UC_HandleTicket
 
-    rectangle "5. Tăng ca" {
-        usecase "Đăng ký tăng ca" as UC_OT
-        usecase "Phê duyệt tăng ca L1" as UC_OTL1
-        usecase "Phê duyệt tăng ca L2" as UC_OTL2
-    }
-
-    rectangle "6. Đánh giá hiệu suất" {
-        usecase "Xem phiếu đánh giá" as UC_ViewEval
-        usecase "Lập phiếu đánh giá" as UC_CreateEval
-        usecase "Xác nhận đánh giá" as UC_AckEval
-    }
-
-    rectangle "7. Khen thưởng & Kỷ luật" {
-        usecase "Xem quyết định thưởng/phạt" as UC_ViewRW
-        usecase "Đề xuất khen thưởng/xử phạt" as UC_ProposeRW
-        usecase "Duyệt quyết định thưởng/phạt" as UC_ApproveRW
-    }
-
-    rectangle "8. Báo cáo & Hỗ trợ" {
-        usecase "Gửi báo cáo công việc" as UC_Report
-        usecase "Phản hồi báo cáo" as UC_ReviewReport
-        usecase "Gửi ticket hỗ trợ/khiếu nại" as UC_Ticket
-        usecase "Xử lý ticket" as UC_HandleTicket
-    }
-
-    rectangle "9. Thống kê" {
-        usecase "Xem thống kê tổng hợp" as UC_Stats
-        usecase "Xuất báo cáo dữ liệu" as UC_Export
-    }
-
-    rectangle "10. Cài đặt hệ thống" {
-        usecase "Cài đặt cá nhân" as UC_Settings
-        usecase "Cấu hình công ty" as UC_CompanyConfig
-        usecase "Cấu hình quy định nhân sự" as UC_HRConfig
-    }
-}
-
-Employee --> UC_Login
-Employee --> UC_OTP
-Employee --> UC_ViewProfile
-Employee --> UC_FaceReg
-Employee --> UC_CheckIn
-Employee --> UC_History
-Employee --> UC_Adjust
-Employee --> UC_Leave
-Employee --> UC_OT
-Employee --> UC_ViewEval
-Employee --> UC_ViewRW
-Employee --> UC_Report
-Employee --> UC_Ticket
-Employee --> UC_Settings
-
-Leader --> UC_LeaveL1
-Leader --> UC_OTL1
-Leader --> UC_CreateEval
-Leader --> UC_ProposeRW
-Leader --> UC_ReviewReport
-
-Manager --> UC_LeaveL1
-Manager --> UC_OTL1
-Manager --> UC_CreateEval
-Manager --> UC_ProposeRW
-Manager --> UC_ReviewReport
-Manager --> UC_Stats
-
-HR --> UC_CreateProfile
-HR --> UC_EditProfile
-HR --> UC_Contract
-HR --> UC_ContractWarn
-HR --> UC_FaceApprove
-HR --> UC_AdjApprove
-HR --> UC_LeaveL2
-HR --> UC_OTL2
-HR --> UC_AckEval
-HR --> UC_ApproveRW
-HR --> UC_HandleTicket
-HR --> UC_Stats
-HR --> UC_Export
-HR --> UC_HRConfig
-HR --> UC_AccMgmt
-
-Admin --> UC_AccMgmt
-Admin --> UC_RBAC
-Admin --> UC_CompanyConfig
-Admin --> UC_Stats
-Admin --> UC_HandleTicket
-
-FaceAPI --> UC_FaceReg
-FaceAPI --> UC_CheckIn
-SMTP --> UC_OTP
-@enduml
+    FaceAPI --> UC_FaceReg
+    FaceAPI --> UC_CheckIn
+    SMTP --> UC_OTP
 ```
 
 ---
@@ -183,44 +172,40 @@ SMTP --> UC_OTP
 
 ### UC-1. Tài khoản & Xác thực
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    User(["🧑‍💼 Employee/Leader/Manager"])
+    HR(["👩‍💻 HR"])
+    Admin(["🛠️ Admin"])
+    SMTP["📧 Gmail SMTP"]
 
-actor "Employee/Leader/Manager" as User
-actor HR
-actor Admin
-actor "Gmail SMTP" as SMTP <<system>>
+    subgraph G["Phân hệ Tài khoản & Xác thực"]
+        direction TB
+        UC1("UC1.1: Đăng nhập hệ thống")
+        UC2("UC1.2: Đăng xuất")
+        UC3("UC1.3: Quên mật khẩu")
+        UC3a("UC1.3a: Gửi OTP qua Email")
+        UC3b("UC1.3b: Xác thực OTP & Đổi mật khẩu")
+        UC4("UC1.4: Khóa / Mở khóa tài khoản")
+        UC5("UC1.5: Reset mật khẩu cho NV")
+        UC6("UC1.6: Gán vai trò cho tài khoản")
+        UC7("UC1.7: Tạo tài khoản mới")
+    end
 
-rectangle "Phân hệ Tài khoản & Xác thực" {
-    usecase "UC1.1: Đăng nhập hệ thống" as UC1
-    usecase "UC1.2: Đăng xuất" as UC2
-    usecase "UC1.3: Quên mật khẩu" as UC3
-    usecase "UC1.3a: Gửi OTP qua Email" as UC3a
-    usecase "UC1.3b: Xác thực OTP & Đổi mật khẩu" as UC3b
-    usecase "UC1.4: Khóa / Mở khóa tài khoản" as UC4
-    usecase "UC1.5: Reset mật khẩu cho NV" as UC5
-    usecase "UC1.6: Gán vai trò cho tài khoản" as UC6
-    usecase "UC1.7: Tạo tài khoản mới" as UC7
-}
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    UC3 -. "<<include>>" .-> UC3a
+    UC3 -. "<<include>>" .-> UC3b
+    UC3a --> SMTP
 
-User --> UC1
-User --> UC2
-User --> UC3
-UC3 ..> UC3a : <<include>>
-UC3 ..> UC3b : <<include>>
-UC3a --> SMTP
+    HR --> UC4
+    HR --> UC5
 
-HR --> UC4
-HR --> UC5
-
-Admin --> UC4
-Admin --> UC5
-Admin --> UC6
-Admin --> UC7
-@enduml
+    Admin --> UC4
+    Admin --> UC5
+    Admin --> UC6
+    Admin --> UC7
 ```
 
 **Mô tả chi tiết:**
@@ -239,39 +224,35 @@ Admin --> UC7
 
 ### UC-2. Hồ sơ Nhân sự
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor HR
+    subgraph G["Phân hệ Hồ sơ Nhân sự"]
+        direction TB
+        UC1("UC2.1: Xem hồ sơ cá nhân")
+        UC2("UC2.2: Tạo hồ sơ nhân viên mới")
+        UC2a("UC2.2a: Tạo username từ MSNV")
+        UC2b("UC2.2b: Đặt mật khẩu mặc định")
+        UC2c("UC2.2c: Gửi email thông tin tài khoản")
+        UC3("UC2.3: Cập nhật thông tin cá nhân")
+        UC4("UC2.4: Cập nhật thông tin công việc")
+        UC5("UC2.5: Quản lý tài liệu đính kèm")
+        UC6("UC2.6: Xem danh sách nhân viên")
+    end
 
-rectangle "Phân hệ Hồ sơ Nhân sự" {
-    usecase "UC2.1: Xem hồ sơ cá nhân" as UC1
-    usecase "UC2.2: Tạo hồ sơ nhân viên mới" as UC2
-    usecase "UC2.2a: Tạo username từ MSNV" as UC2a
-    usecase "UC2.2b: Đặt mật khẩu mặc định" as UC2b
-    usecase "UC2.2c: Gửi email thông tin tài khoản" as UC2c
-    usecase "UC2.3: Cập nhật thông tin cá nhân" as UC3
-    usecase "UC2.4: Cập nhật thông tin công việc" as UC4
-    usecase "UC2.5: Quản lý tài liệu đính kèm" as UC5
-    usecase "UC2.6: Xem danh sách nhân viên" as UC6
-}
+    Employee --> UC1
 
-Employee --> UC1
-
-HR --> UC1
-HR --> UC2
-UC2 ..> UC2a : <<include>>
-UC2 ..> UC2b : <<include>>
-UC2 ..> UC2c : <<include>>
-HR --> UC3
-HR --> UC4
-HR --> UC5
-HR --> UC6
-@enduml
+    HR --> UC1
+    HR --> UC2
+    UC2 -. "<<include>>" .-> UC2a
+    UC2 -. "<<include>>" .-> UC2b
+    UC2 -. "<<include>>" .-> UC2c
+    HR --> UC3
+    HR --> UC4
+    HR --> UC5
+    HR --> UC6
 ```
 
 **Mô tả chi tiết:**
@@ -292,38 +273,34 @@ HR --> UC6
 
 ### UC-3. Hợp đồng Lao động
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor HR
+    subgraph G["Phân hệ Hợp đồng Lao động"]
+        direction TB
+        UC1("UC3.1: Xem hợp đồng của tôi")
+        UC2("UC3.2: Tạo hợp đồng mới")
+        UC3("UC3.3: Chỉnh sửa hợp đồng")
+        UC4("UC3.4: Gia hạn hợp đồng")
+        UC5("UC3.5: Cảnh báo HĐ sắp hết hạn")
+        UC5a("UC3.5a: Thông báo 30 ngày")
+        UC5b("UC3.5b: Thông báo 15 ngày")
+        UC5c("UC3.5c: Thông báo KHẨN 7 ngày")
+        UC6("UC3.6: Tự động hết hiệu lực")
+    end
 
-rectangle "Phân hệ Hợp đồng Lao động" {
-    usecase "UC3.1: Xem hợp đồng của tôi" as UC1
-    usecase "UC3.2: Tạo hợp đồng mới" as UC2
-    usecase "UC3.3: Chỉnh sửa hợp đồng" as UC3
-    usecase "UC3.4: Gia hạn hợp đồng" as UC4
-    usecase "UC3.5: Cảnh báo HĐ sắp hết hạn" as UC5
-    usecase "UC3.5a: Thông báo 30 ngày" as UC5a
-    usecase "UC3.5b: Thông báo 15 ngày" as UC5b
-    usecase "UC3.5c: Thông báo KHẨN 7 ngày" as UC5c
-    usecase "UC3.6: Tự động hết hiệu lực" as UC6
-}
+    Employee --> UC1
 
-Employee --> UC1
-
-HR --> UC2
-HR --> UC3
-HR --> UC4
-HR --> UC5
-UC5 ..> UC5a : <<include>>
-UC5 ..> UC5b : <<include>>
-UC5 ..> UC5c : <<include>>
-UC5 ..> UC6 : <<extend>>
-@enduml
+    HR --> UC2
+    HR --> UC3
+    HR --> UC4
+    HR --> UC5
+    UC5 -. "<<include>>" .-> UC5a
+    UC5 -. "<<include>>" .-> UC5b
+    UC5 -. "<<include>>" .-> UC5c
+    UC5 -. "<<extend>>" .-> UC6
 ```
 
 **Mô tả chi tiết:**
@@ -341,51 +318,47 @@ UC5 ..> UC6 : <<extend>>
 
 ### UC-4. Chấm công & Nhận diện Khuôn mặt
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
+    FaceAPI["🌐 Remote Face API"]
 
-actor "Nhân viên" as Employee
-actor HR
-actor "Remote Face API" as FaceAPI <<system>>
+    subgraph G["Phân hệ Chấm công"]
+        direction TB
+        UC1("UC4.1: Đăng ký khuôn mặt lần đầu")
+        UC2("UC4.2: Cập nhật khuôn mặt")
+        UC2a("UC4.2a: Tự động duyệt (lần đầu)")
+        UC2b("UC4.2b: Chờ HR duyệt (đã có mặt)")
+        UC3("UC4.3: Duyệt yêu cầu đổi khuôn mặt")
+        UC4("UC4.4: Chấm công vào (Check-in)")
+        UC5("UC4.5: Chấm công ra (Check-out)")
+        UC4a("UC4.4a: Nhận diện khuôn mặt")
+        UC4b("UC4.4b: Xác định trạng thái đúng giờ/trễ")
+        UC6("UC4.6: Xem lịch sử chấm công")
+        UC7("UC4.7: Yêu cầu điều chỉnh giờ công")
+        UC8("UC4.8: Duyệt yêu cầu điều chỉnh")
+        UC9("UC4.9: Theo dõi trạng thái khuôn mặt")
+    end
 
-rectangle "Phân hệ Chấm công" {
-    usecase "UC4.1: Đăng ký khuôn mặt lần đầu" as UC1
-    usecase "UC4.2: Cập nhật khuôn mặt" as UC2
-    usecase "UC4.2a: Tự động duyệt (lần đầu)" as UC2a
-    usecase "UC4.2b: Chờ HR duyệt (đã có mặt)" as UC2b
-    usecase "UC4.3: Duyệt yêu cầu đổi khuôn mặt" as UC3
-    usecase "UC4.4: Chấm công vào (Check-in)" as UC4
-    usecase "UC4.5: Chấm công ra (Check-out)" as UC5
-    usecase "UC4.4a: Nhận diện khuôn mặt" as UC4a
-    usecase "UC4.4b: Xác định trạng thái đúng giờ/trễ" as UC4b
-    usecase "UC4.6: Xem lịch sử chấm công" as UC6
-    usecase "UC4.7: Yêu cầu điều chỉnh giờ công" as UC7
-    usecase "UC4.8: Duyệt yêu cầu điều chỉnh" as UC8
-    usecase "UC4.9: Theo dõi trạng thái khuôn mặt" as UC9
-}
+    Employee --> UC1
+    Employee --> UC2
+    UC1 -. "<<include>>" .-> UC2a
+    UC2 -. "<<extend>>" .-> UC2b
+    Employee --> UC4
+    Employee --> UC5
+    UC4 -. "<<include>>" .-> UC4a
+    UC4 -. "<<include>>" .-> UC4b
+    UC5 -. "<<include>>" .-> UC4a
+    Employee --> UC6
+    Employee --> UC7
+    Employee --> UC9
 
-Employee --> UC1
-Employee --> UC2
-UC1 ..> UC2a : <<include>>
-UC2 ..> UC2b : <<extend>>
-Employee --> UC4
-Employee --> UC5
-UC4 ..> UC4a : <<include>>
-UC4 ..> UC4b : <<include>>
-UC5 ..> UC4a : <<include>>
-Employee --> UC6
-Employee --> UC7
-Employee --> UC9
+    HR --> UC3
+    HR --> UC8
 
-HR --> UC3
-HR --> UC8
-
-UC4a --> FaceAPI
-UC2a --> FaceAPI
-@enduml
+    UC4a --> FaceAPI
+    UC2a --> FaceAPI
 ```
 
 **Mô tả chi tiết:**
@@ -406,42 +379,38 @@ UC2a --> FaceAPI
 
 ### UC-5. Nghỉ phép
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor HR
+    subgraph G["Phân hệ Nghỉ phép"]
+        direction TB
+        UC1("UC5.1: Nộp đơn xin nghỉ phép")
+        UC1a("UC5.1a: Kiểm tra quỹ phép")
+        UC2("UC5.2: Xem đơn nghỉ phép của tôi")
+        UC3("UC5.3: Phê duyệt cấp L1")
+        UC4("UC5.4: Phê duyệt cấp L2")
+        UC4a("UC5.4a: Trừ quỹ phép")
+        UC5("UC5.5: Từ chối đơn nghỉ phép")
+        UC6("UC5.6: Xem quỹ phép còn lại")
+    end
 
-rectangle "Phân hệ Nghỉ phép" {
-    usecase "UC5.1: Nộp đơn xin nghỉ phép" as UC1
-    usecase "UC5.1a: Kiểm tra quỹ phép" as UC1a
-    usecase "UC5.2: Xem đơn nghỉ phép của tôi" as UC2
-    usecase "UC5.3: Phê duyệt cấp L1" as UC3
-    usecase "UC5.4: Phê duyệt cấp L2" as UC4
-    usecase "UC5.4a: Trừ quỹ phép" as UC4a
-    usecase "UC5.5: Từ chối đơn nghỉ phép" as UC5
-    usecase "UC5.6: Xem quỹ phép còn lại" as UC6
-}
+    Employee --> UC1
+    UC1 -. "<<include>>" .-> UC1a
+    Employee --> UC2
+    Employee --> UC6
 
-Employee --> UC1
-UC1 ..> UC1a : <<include>>
-Employee --> UC2
-Employee --> UC6
+    Leader --> UC3
+    Leader --> UC5
+    Manager --> UC3
+    Manager --> UC5
 
-Leader --> UC3
-Leader --> UC5
-Manager --> UC3
-Manager --> UC5
-
-HR --> UC4
-UC4 ..> UC4a : <<include>>
-HR --> UC5
-@enduml
+    HR --> UC4
+    UC4 -. "<<include>>" .-> UC4a
+    HR --> UC5
 ```
 
 **Mô tả chi tiết:**
@@ -459,38 +428,34 @@ HR --> UC5
 
 ### UC-6. Tăng ca (OT)
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor HR
+    subgraph G["Phân hệ Tăng ca"]
+        direction TB
+        UC1("UC6.1: Đăng ký tăng ca")
+        UC2("UC6.2: Xem đơn tăng ca của tôi")
+        UC3("UC6.3: Phê duyệt OT cấp L1")
+        UC4("UC6.4: Phê duyệt OT cấp L2")
+        UC4a("UC6.4a: Bỏ qua L2 nếu NV là HR")
+        UC5("UC6.5: Từ chối đơn tăng ca")
+    end
 
-rectangle "Phân hệ Tăng ca" {
-    usecase "UC6.1: Đăng ký tăng ca" as UC1
-    usecase "UC6.2: Xem đơn tăng ca của tôi" as UC2
-    usecase "UC6.3: Phê duyệt OT cấp L1" as UC3
-    usecase "UC6.4: Phê duyệt OT cấp L2" as UC4
-    usecase "UC6.4a: Bỏ qua L2 nếu NV là HR" as UC4a
-    usecase "UC6.5: Từ chối đơn tăng ca" as UC5
-}
+    Employee --> UC1
+    Employee --> UC2
 
-Employee --> UC1
-Employee --> UC2
+    Leader --> UC3
+    Leader --> UC5
+    Manager --> UC3
+    Manager --> UC5
 
-Leader --> UC3
-Leader --> UC5
-Manager --> UC3
-Manager --> UC5
-
-HR --> UC4
-UC4 ..> UC4a : <<extend>>
-HR --> UC5
-@enduml
+    HR --> UC4
+    UC4 -. "<<extend>>" .-> UC4a
+    HR --> UC5
 ```
 
 **Mô tả chi tiết:**
@@ -507,37 +472,33 @@ HR --> UC5
 
 ### UC-7. Đánh giá Hiệu suất
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor HR
+    subgraph G["Phân hệ Đánh giá"]
+        direction TB
+        UC1("UC7.1: Xem phiếu đánh giá của tôi")
+        UC2("UC7.2: Lập phiếu đánh giá (nháp)")
+        UC2a("UC7.2a: Tính điểm & xếp loại tự động")
+        UC3("UC7.3: Gửi phiếu đánh giá")
+        UC3a("UC7.3a: Khóa chỉnh sửa vĩnh viễn")
+        UC4("UC7.4: Xác nhận phiếu đánh giá")
+    end
 
-rectangle "Phân hệ Đánh giá" {
-    usecase "UC7.1: Xem phiếu đánh giá của tôi" as UC1
-    usecase "UC7.2: Lập phiếu đánh giá (nháp)" as UC2
-    usecase "UC7.2a: Tính điểm & xếp loại tự động" as UC2a
-    usecase "UC7.3: Gửi phiếu đánh giá" as UC3
-    usecase "UC7.3a: Khóa chỉnh sửa vĩnh viễn" as UC3a
-    usecase "UC7.4: Xác nhận phiếu đánh giá" as UC4
-}
+    Employee --> UC1
 
-Employee --> UC1
+    Leader --> UC2
+    Manager --> UC2
+    UC2 -. "<<include>>" .-> UC2a
+    Leader --> UC3
+    Manager --> UC3
+    UC3 -. "<<include>>" .-> UC3a
 
-Leader --> UC2
-Manager --> UC2
-UC2 ..> UC2a : <<include>>
-Leader --> UC3
-Manager --> UC3
-UC3 ..> UC3a : <<include>>
-
-HR --> UC4
-@enduml
+    HR --> UC4
 ```
 
 **Mô tả chi tiết:**
@@ -553,40 +514,36 @@ HR --> UC4
 
 ### UC-8. Khen thưởng & Kỷ luật
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor HR
+    subgraph G["Phân hệ Khen thưởng & Kỷ luật"]
+        direction TB
+        UC1("UC8.1: Xem quyết định thưởng/phạt")
+        UC2("UC8.2: Đề xuất khen thưởng")
+        UC3("UC8.3: Đề xuất xử phạt")
+        UC4("UC8.4: Phê duyệt cấp L1")
+        UC5("UC8.5: Phê duyệt cấp L2")
+        UC6("UC8.6: Từ chối đề xuất")
+    end
 
-rectangle "Phân hệ Khen thưởng & Kỷ luật" {
-    usecase "UC8.1: Xem quyết định thưởng/phạt" as UC1
-    usecase "UC8.2: Đề xuất khen thưởng" as UC2
-    usecase "UC8.3: Đề xuất xử phạt" as UC3
-    usecase "UC8.4: Phê duyệt cấp L1" as UC4
-    usecase "UC8.5: Phê duyệt cấp L2" as UC5
-    usecase "UC8.6: Từ chối đề xuất" as UC6
-}
+    Employee --> UC1
 
-Employee --> UC1
+    Leader --> UC2
+    Leader --> UC3
+    Manager --> UC2
+    Manager --> UC3
+    HR --> UC2
+    HR --> UC3
 
-Leader --> UC2
-Leader --> UC3
-Manager --> UC2
-Manager --> UC3
-HR --> UC2
-HR --> UC3
+    Manager --> UC4
 
-Manager --> UC4
-
-HR --> UC5
-HR --> UC6
-@enduml
+    HR --> UC5
+    HR --> UC6
 ```
 
 **Mô tả chi tiết:**
@@ -604,41 +561,37 @@ HR --> UC6
 
 ### UC-9. Báo cáo Công việc & Helpdesk Ticket
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
+    Admin(["🛠️ Admin"])
 
-actor "Nhân viên" as Employee
-actor "Trưởng nhóm" as Leader
-actor "Quản lý" as Manager
-actor HR
-actor Admin
+    subgraph G["Phân hệ Báo cáo & Hỗ trợ"]
+        direction TB
+        UC1("UC9.1: Gửi báo cáo công việc")
+        UC2("UC9.2: Xem & Phản hồi báo cáo")
+        UC2a("UC9.2a: Yêu cầu cập nhật lại")
+        UC2b("UC9.2b: Xác nhận tiếp nhận")
+        UC2c("UC9.2c: Khóa sửa/xóa báo cáo")
+        UC3("UC9.3: Gửi ticket hỗ trợ/khiếu nại")
+        UC4("UC9.4: Xử lý ticket (tiếp nhận → giải quyết)")
+    end
 
-rectangle "Phân hệ Báo cáo & Hỗ trợ" {
-    usecase "UC9.1: Gửi báo cáo công việc" as UC1
-    usecase "UC9.2: Xem & Phản hồi báo cáo" as UC2
-    usecase "UC9.2a: Yêu cầu cập nhật lại" as UC2a
-    usecase "UC9.2b: Xác nhận tiếp nhận" as UC2b
-    usecase "UC9.2c: Khóa sửa/xóa báo cáo" as UC2c
-    usecase "UC9.3: Gửi ticket hỗ trợ/khiếu nại" as UC3
-    usecase "UC9.4: Xử lý ticket (tiếp nhận → giải quyết)" as UC4
-}
+    Employee --> UC1
+    Employee --> UC3
 
-Employee --> UC1
-Employee --> UC3
+    Leader --> UC1
 
-Leader --> UC1
+    Manager --> UC2
+    UC2 -. "<<extend>>" .-> UC2a
+    UC2 -. "<<extend>>" .-> UC2b
+    UC2b -. "<<include>>" .-> UC2c
 
-Manager --> UC2
-UC2 ..> UC2a : <<extend>>
-UC2 ..> UC2b : <<extend>>
-UC2b ..> UC2c : <<include>>
-
-HR --> UC4
-Admin --> UC4
-@enduml
+    HR --> UC4
+    Admin --> UC4
 ```
 
 **Mô tả chi tiết:**
@@ -656,37 +609,33 @@ Admin --> UC4
 
 ### UC-10. Thống kê & Cài đặt
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+```mermaid
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
+    Admin(["🛠️ Admin"])
 
-actor "Nhân viên" as Employee
-actor "Quản lý" as Manager
-actor HR
-actor Admin
+    subgraph G["Phân hệ Thống kê & Cài đặt"]
+        direction TB
+        UC1("UC10.1: Xem thống kê nhóm trực thuộc")
+        UC2("UC10.2: Xem thống kê toàn công ty")
+        UC3("UC10.3: Xuất báo cáo dữ liệu")
+        UC4("UC10.4: Cài đặt cá nhân")
+        UC5("UC10.5: Cấu hình thông tin công ty")
+        UC6("UC10.6: Cấu hình quy định nhân sự")
+    end
 
-rectangle "Phân hệ Thống kê & Cài đặt" {
-    usecase "UC10.1: Xem thống kê nhóm trực thuộc" as UC1
-    usecase "UC10.2: Xem thống kê toàn công ty" as UC2
-    usecase "UC10.3: Xuất báo cáo dữ liệu" as UC3
-    usecase "UC10.4: Cài đặt cá nhân" as UC4
-    usecase "UC10.5: Cấu hình thông tin công ty" as UC5
-    usecase "UC10.6: Cấu hình quy định nhân sự" as UC6
-}
+    Employee --> UC4
 
-Employee --> UC4
+    Manager --> UC1
 
-Manager --> UC1
+    HR --> UC2
+    HR --> UC3
+    HR --> UC6
 
-HR --> UC2
-HR --> UC3
-HR --> UC6
-
-Admin --> UC2
-Admin --> UC5
-@enduml
+    Admin --> UC2
+    Admin --> UC5
 ```
 
 **Mô tả chi tiết:**

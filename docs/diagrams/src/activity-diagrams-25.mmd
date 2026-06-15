@@ -1,0 +1,6 @@
+flowchart TD
+  A([Nhân viên mở Chấm công]) --> B[attendance_view]
+  B --> C[_history_rows: record tháng hiện tại<br/>+ map AdjustmentRequest]
+  C --> D[Hiển thị bảng lịch sử + trạng thái từng ngày]
+  D --> E{Record có thể điều chỉnh?}
+  E -- Có --> F[Hiện nút Yêu cầu điều chỉnh]

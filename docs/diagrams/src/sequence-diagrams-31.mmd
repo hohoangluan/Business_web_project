@@ -1,0 +1,18 @@
+sequenceDiagram
+  actor MG as Người dùng · Quản lý/Leader
+  participant GD as Giao diện<br/>Trang duyệt nghỉ phép
+  participant HT as Hệ Thống<br/>leave_approve_action · approve_leave_request
+  participant DB as Cơ sở dữ liệu<br/>LeaveRequest
+  MG->>GD: Bấm Duyệt
+  GD->>HT: POST pk (can_manage_requests)
+  alt Tự duyệt
+    HT-->>GD: Chặn
+  else PENDING + đúng supervisor
+    alt NV là HR
+      HT->>DB: status=APPROVED (skip L2)
+    else
+      HT->>DB: status=LEADER_APPROVED
+    end
+  end
+  HT-->>GD: Kết quả
+  GD-->>MG: Redirect leave_approval

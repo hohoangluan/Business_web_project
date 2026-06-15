@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang nghỉ phép
+  participant HT as Hệ Thống<br/>leave_view · get_user_leave_stats
+  participant DB as Cơ sở dữ liệu<br/>LeaveRequest · ContractInfo
+  ND->>GD: Mở /leave/
+  GD->>HT: GET
+  HT->>DB: annual_leave_days (HĐ active)
+  HT->>DB: used = Sum(days) đơn APPROVED năm nay
+  DB-->>HT: số liệu
+  HT-->>GD: remaining = max(total−used, 0) · pending_count
+  GD-->>ND: Hiển thị quỹ phép

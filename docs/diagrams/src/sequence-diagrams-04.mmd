@@ -1,0 +1,15 @@
+sequenceDiagram
+  actor AD as Người dùng · Admin
+  participant GD as Giao diện<br/>Quản lý người dùng
+  participant HT as Hệ Thống<br/>toggle_user_active_view
+  participant DB as Cơ sở dữ liệu<br/>User
+  AD->>GD: Bấm Khóa/Mở user
+  GD->>HT: POST user_id (is_admin_user)
+  HT->>DB: get_object_or_404(user_id)
+  alt Target = chính mình
+    HT-->>GD: Lỗi không khóa chính mình
+  else
+    HT->>DB: is_active = NOT is_active · save
+    HT-->>GD: Thông báo khóa/mở
+  end
+  GD-->>AD: Redirect user_list

@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor AP as Người dùng · Quản lý/HR
+  participant GD as Giao diện<br/>Trang duyệt OT
+  participant HT as Hệ Thống<br/>overtime_reject_action · reject_overtime_request
+  participant DB as Cơ sở dữ liệu<br/>OvertimeRequest
+  participant EX as Mở rộng<br/>Notification
+  AP->>GD: Nhập lý do · Từ chối
+  GD->>HT: POST pk + lý do
+  HT->>DB: kiểm đúng cấp · status=REJECTED · lý do
+  HT->>EX: notification
+  HT-->>GD: Kết quả
+  GD-->>AP: Redirect overtime_approval

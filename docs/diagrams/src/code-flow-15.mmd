@@ -1,0 +1,17 @@
+flowchart TD
+    A[HR truy cập /contract/hr/expiring/] --> B[get_expiring_contracts]
+    B --> C{Lọc HĐ active có end_date}
+    C --> D[Parse DD/MM/YYYY → date]
+    D --> E{"0 ≤ days_left ≤ 30?"}
+    E -->|Yes| F[Thêm vào danh sách]
+    F --> G{"days_left ≤ 7?"}
+    G -->|Yes| H["urgency = 'near'"]
+    G -->|No| I["urgency = 'far'"]
+    H --> J[Sắp xếp theo days_left tăng dần]
+    I --> J
+    J --> K[Render danh sách cho HR]
+
+    K --> L{HR gửi nhắc nhở}
+    L -->|1 người| M[get_recipients_for_contract]
+    L -->|Tất cả| N[Loop: send_renewal_reminder_email]
+    M --> O[Email: nhân viên + manager + leader + tất cả HR]

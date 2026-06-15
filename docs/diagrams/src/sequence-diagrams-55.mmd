@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor HR as Người dùng · HR
+  participant GD as Giao diện<br/>Trang thống kê
+  participant HT as Hệ Thống<br/>statistics_view
+  participant DB as Cơ sở dữ liệu<br/>toàn bộ dữ liệu
+  HR->>GD: Mở /statistics/ (Admin bị chặn)
+  GD->>HT: GET
+  HT->>HT: is_hr → phạm vi toàn công ty
+  HT->>DB: tổng hợp theo phòng ban
+  DB-->>HT: số liệu
+  HT-->>GD: Dashboard tổng
+  GD-->>HR: Hiển thị

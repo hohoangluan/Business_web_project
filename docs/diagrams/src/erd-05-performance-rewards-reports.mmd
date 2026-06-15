@@ -1,0 +1,73 @@
+---
+title: ERD — Performance, Rewards & Reports (Đánh giá, Thưởng phạt, Báo cáo/Ticket)
+---
+erDiagram
+    auth_user {
+        integer id PK
+        varchar(150) username
+    }
+    performance_evaluationcategory {
+        bigint id PK
+        varchar(100) name
+        text description
+        timestamptz created_at
+    }
+    performance_evaluation {
+        bigint id PK
+        integer employee_id FK
+        integer reviewer_id FK
+        integer acknowledged_by_id FK
+        bigint category_id FK
+        date evaluation_date
+        varchar(5) rating
+        smallint score
+        varchar(20) status
+        text content
+        text hr_note
+        timestamptz created_at
+    }
+    rewards_discipline_rewardpenalty {
+        bigint id PK
+        integer employee_id FK
+        integer proposer_id FK
+        integer leader_approved_by_id FK
+        integer approved_by_id FK
+        varchar(10) record_type
+        integer amount
+        varchar(255) reason_title
+        varchar(20) status
+        date application_date
+        varchar(100) evidence_file
+        timestamptz created_at
+    }
+    reports_interactions_report {
+        bigint id PK
+        integer author_id FK
+        integer recipient_id FK
+        varchar(255) title
+        varchar(20) status
+        boolean is_viewed
+        timestamptz created_at
+    }
+    reports_interactions_ticket {
+        bigint id PK
+        integer author_id FK
+        integer assigned_to_id FK
+        varchar(20) ticket_type
+        varchar(255) title
+        varchar(20) priority
+        varchar(20) status
+        timestamptz created_at
+    }
+
+    performance_evaluationcategory ||--o{ performance_evaluation : ""
+    auth_user ||--o{ performance_evaluation : "employee"
+    auth_user ||--o{ performance_evaluation : "reviewer"
+    auth_user ||--o{ performance_evaluation : "acknowledged_by"
+    auth_user ||--o{ rewards_discipline_rewardpenalty : "employee"
+    auth_user ||--o{ rewards_discipline_rewardpenalty : "proposer"
+    auth_user ||--o{ rewards_discipline_rewardpenalty : "leader/approved_by"
+    auth_user ||--o{ reports_interactions_report : "author"
+    auth_user ||--o{ reports_interactions_report : "recipient"
+    auth_user ||--o{ reports_interactions_ticket : "author"
+    auth_user ||--o{ reports_interactions_ticket : "assigned_to"

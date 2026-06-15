@@ -1,0 +1,8 @@
+flowchart TD
+  A([Admin chọn Reset mật khẩu]) --> B[POST · reset_user_password_view]
+  B --> C{is_admin_user?}
+  C -- Không --> Z([Chặn])
+  C -- Có --> D[set_password DEFAULT_RESET_PASSWORD<br/>Password@123]
+  D --> E[save]
+  E --> F[Báo mật khẩu mặc định mới]
+  F --> Y([Redirect user_list])

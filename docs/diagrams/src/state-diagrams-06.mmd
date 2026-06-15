@@ -1,0 +1,14 @@
+stateDiagram-v2
+  [*] --> Pending: Leader lập (cần Manager L1)
+  [*] --> LeaderApproved: Manager/HR lập (bỏ L1)
+  Pending --> LeaderApproved: Manager duyệt L1
+  Pending --> Rejected: L1 từ chối
+  LeaderApproved --> Approved: HR duyệt L2 (≠ người lập)
+  LeaderApproved --> Rejected: L2 từ chối
+  Approved --> [*]
+  Rejected --> [*]
+  note right of LeaderApproved
+    HR lập vẫn dừng ở đây chờ L2.
+    Người duyệt L2 phải là HR khác
+    (tự duyệt phiếu của mình bị chặn).
+  end note

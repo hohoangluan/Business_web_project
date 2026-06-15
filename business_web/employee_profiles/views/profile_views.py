@@ -4,6 +4,7 @@ Views cho hồ sơ cá nhân và quản lý hồ sơ nhân sự (HR/Admin).
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -63,26 +64,33 @@ def profile_view(request):
         phone_number = request.POST.get('phone_number', '').strip()
         date_of_birth = request.POST.get('date_of_birth', '').strip()
 
-        if email_is_used_by_other_user(email, request.user):
+        # Chỉ kiểm tra trùng khi email THỰC SỰ thay đổi.
+        email_changed = email != (request.user.email or '')
+        if email_changed and email_is_used_by_other_user(email, request.user):
             messages.error(request, 'Email nay da duoc su dung.')
             return redirect('profile')
 
-        profile.full_name = full_name
-        request.user.email = email
-        request.user.save(update_fields=['email'])
-        profile.save()
-        
-        personal_info = ensure_personal_info(request.user)
-        if phone_number:
-            personal_info.phone_number = phone_number
-        if date_of_birth:
-            personal_info.date_of_birth = date_of_birth
-        personal_info.save()
+        # Lưu mọi thay đổi trong 1 transaction → all-or-nothing,
+        # không lưu nửa vời nếu một bước lỗi giữa chừng.
+        with transaction.atomic():
+            profile.full_name = full_name
+            if email_changed:
+                request.user.email = email
+                request.user.save(update_fields=['email'])
+            profile.save()
 
-        # Lưu các thông tin mở rộng khác từ POST
-        save_personal_info_from_data(request.user, request.POST)
-        save_emergency_contact_from_data(request.user, request.POST)
-        save_education_info_from_data(request.user, request.POST)
+            personal_info = ensure_personal_info(request.user)
+            if phone_number:
+                personal_info.phone_number = phone_number
+            if date_of_birth:
+                personal_info.date_of_birth = date_of_birth
+            personal_info.save()
+
+            # Lưu các thông tin mở rộng khác từ POST
+            save_personal_info_from_data(request.user, request.POST)
+            save_emergency_contact_from_data(request.user, request.POST)
+            save_education_info_from_data(request.user, request.POST)
+
         messages.success(request, 'Cập nhật hồ sơ thành công!')
         return redirect('profile')
 
@@ -221,10 +229,8 @@ def hr_create_profile_view(request):
             errors.append('Ngày làm việc chính thức không được để trống.')
         if not work_status:
             errors.append('Trạng thái làm việc không được để trống.')
-        if not manager_user:
-            errors.append('Cần gán quản lý trực tiếp.')
-        if not leader_user:
-            errors.append('Cần gán leader phụ trách.')
+        # manager_user / leader_user là tùy chọn: có thể để trống 1 hoặc cả 2.
+        # Định tuyến phê duyệt khi thiếu quản lý xử lý ở leaves/overtime services.
         if not contract_number:
             errors.append('Số hợp đồng không được để trống.')
         if not contract_type:

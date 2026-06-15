@@ -1,0 +1,9 @@
+flowchart TD
+  A([Nhân viên ở Hồ sơ]) --> B{Đã chọn tệp?}
+  B -- Không --> C[Báo: vui lòng chọn tệp]
+  C --> Y([Redirect profile])
+  B -- Có --> D[Validate tệp]
+  D -- Lỗi --> E[Báo lỗi validate] --> Y
+  D -- OK --> F[EmployeeDocument.create<br/>user + file]
+  F --> G[Báo: tải lên thành công]
+  G --> Y

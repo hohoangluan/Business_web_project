@@ -1,0 +1,15 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Camera chấm công
+  participant HT as Hệ Thống<br/>face_check_view
+  participant DB as Cơ sở dữ liệu<br/>AttendanceRecord
+  ND->>GD: Gửi ảnh (lần 2, verify OK)
+  GD->>HT: POST ảnh
+  HT->>HT: decide_next_action
+  alt check_out
+    HT->>DB: record_check_out (giờ ra)
+    HT-->>GD: 200 giờ ra
+  else done
+    HT-->>GD: 200 no-op (đã đủ vào/ra)
+  end
+  GD-->>ND: Hiển thị kết quả

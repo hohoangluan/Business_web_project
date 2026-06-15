@@ -1,0 +1,17 @@
+stateDiagram-v2
+  [*] --> SapHieuLuc: tạo HĐ · start_date > hôm nay
+  [*] --> KhongThoiHan: end_date trống
+  [*] --> CoHieuLuc: start ≤ hôm nay ≤ end
+  SapHieuLuc --> CoHieuLuc: tới ngày bắt đầu
+  CoHieuLuc --> SapHetHan: days_left ≤ 30 (cảnh báo)
+  SapHetHan --> HetHan: quá end_date
+  CoHieuLuc --> HetHan: quá end_date
+  SapHetHan --> Archived: gia hạn · adjust_contract
+  CoHieuLuc --> Archived: tạo phiên bản mới · adjust_contract
+  KhongThoiHan --> Archived: tạo phiên bản mới · adjust_contract
+  HetHan --> Archived: expire_overdue_contracts · is_active=False
+  Archived --> [*]
+  note right of Archived
+    is_active=False
+    bản cũ giữ làm lịch sử
+  end note

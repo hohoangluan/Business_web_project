@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor HR as Người dùng · HR/Admin
+  participant GD as Giao diện<br/>Hồ sơ nhân viên
+  participant HT as Hệ Thống<br/>hr_assign_role_view
+  participant DB as Cơ sở dữ liệu<br/>UserProfile
+  HR->>GD: Chọn vai trò / quyền
+  GD->>HT: POST user_id + role
+  HT->>DB: profile.role = new_role (hoặc None)
+  HT->>DB: save
+  HT-->>GD: Cập nhật vai trò
+  GD-->>HR: Redirect (RBAC hiệu lực)
+  note over HT,DB: assign_permissions_view → profile.permissions.set(...)

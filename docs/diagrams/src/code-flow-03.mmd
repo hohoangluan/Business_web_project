@@ -1,0 +1,53 @@
+sequenceDiagram
+    participant U as User (Browser)
+    participant V as forgot_password_view
+    participant R as reset_password_after_otp_view
+    participant S as forgot_password_service
+    participant Email as Gmail SMTP
+    participant DB as Database
+
+    U->>V: GET /forgot-password/
+    V-->>U: Render form (step=username)
+
+    U->>V: POST step=username (username)
+    V->>DB: User.objects.filter(username=username).first()
+    alt Không nhập / không tìm thấy / chưa có email
+        V-->>U: Render step=username + error tương ứng
+    else User hợp lệ
+        V->>S: create_otp_for_user(user)
+        S->>DB: Xóa OtpCode cũ + Create OtpCode (code 6 số)
+        S->>Email: send_otp_email(email, code)
+        alt Gửi email OK
+            V-->>U: Render step=code (masked_email)
+        else Gửi lỗi
+            V-->>U: Render step=username + error gửi mail
+        end
+    end
+
+    opt step=resend ("Gửi lại mã")
+        V->>S: create_otp_for_user + send_otp_email
+        V-->>U: Render step=code
+    end
+
+    U->>V: POST step=code (verification_code)
+    V->>S: verify_otp(user, code)
+    S->>DB: OtpCode.objects.get(user)
+    alt OTP đúng & chưa hết hạn (<=120s)
+        S->>DB: Delete OtpCode (consume)
+        V->>V: session["otp_verified_username"] = username
+        V-->>U: Redirect → reset_password_after_otp
+    else Sai / hết hạn (hết hạn → xóa record)
+        V-->>U: Render step=code + error
+    end
+
+    U->>R: GET /reset-password/ (sau OTP)
+    R->>R: Guard: session["otp_verified_username"] tồn tại?
+    alt Không có session
+        R-->>U: Redirect → forgot_password
+    else Có
+        R-->>U: Render ResetPasswordForm
+        U->>R: POST (new_password1, new_password2)
+        R->>DB: reset_user_password → user.set_password + save
+        R->>R: del session["otp_verified_username"]
+        R-->>U: Redirect → /login/
+    end

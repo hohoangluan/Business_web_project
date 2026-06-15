@@ -7,7 +7,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from accounts.services import is_admin_user, is_hr_user
+from accounts.services import is_hr_user
 from attendance.models import FaceChangeRequest
 from attendance.services.face.face_change_service import (
     approve_face_change,
@@ -53,7 +53,7 @@ def face_change_reject_action(request, req_id):
 
 @login_required
 def face_change_image_view(request, req_id):
-    """Stream ảnh phiếu đổi mặt — chỉ chủ mặt hoặc HR/Admin. Không phơi URL Cloudinary."""
+    """Stream ảnh phiếu đổi mặt — chỉ chủ mặt hoặc HR. Không phơi URL Cloudinary."""
     try:
         req = FaceChangeRequest.objects.get(id=req_id)
     except FaceChangeRequest.DoesNotExist:
@@ -61,7 +61,6 @@ def face_change_image_view(request, req_id):
     allowed = (
         request.user == req.user
         or is_hr_user(request.user)
-        or is_admin_user(request.user)
     )
     if not allowed or not req.image:
         raise Http404

@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang nghỉ phép
+  participant HT as Hệ Thống<br/>leave_view · leaves.services
+  participant DB as Cơ sở dữ liệu<br/>LeaveRequest · ContractInfo
+  ND->>GD: Mở /leave/
+  GD->>HT: GET
+  HT->>DB: get_user_leave_stats (approved · annual_leave_days)
+  HT->>DB: get_user_leave_requests (đơn của user)
+  DB-->>HT: dữ liệu
+  HT-->>GD: Quỹ phép + bảng đơn
+  GD-->>ND: Hiển thị

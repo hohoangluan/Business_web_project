@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang tăng ca
+  participant HT as Hệ Thống<br/>overtime_view · overtime.services
+  participant DB as Cơ sở dữ liệu<br/>OvertimeRequest
+  ND->>GD: Mở /overtime/
+  GD->>HT: GET
+  HT->>DB: stats (total_hours · total_pay · pending_count)
+  HT->>DB: danh sách đơn của user
+  DB-->>HT: dữ liệu
+  HT-->>GD: Form + bảng đơn OT
+  GD-->>ND: Hiển thị

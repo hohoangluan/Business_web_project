@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant U as Employee (Browser)
+    participant V as upload_image_base64_view
+    participant CS as submit_face_change
+    participant FS as apply_face_enrollment
+    participant API as Remote Face API
+    participant DB as Database
+
+    U->>V: POST /attendance/upload-image/ (multipart field "image")
+    V->>V: Validate file tồn tại + MIME (jpeg/png/gif/webp/bmp)
+    V->>CS: submit_face_change(owner, submitted_by, image_file, ip)
+    CS->>CS: Tinh sha256(bytes), kiem tra owner da co employee_face chua
+
+    alt submitted_by là HR/Admin (trusted) HOẶC lần đầu (chưa có face)
+        CS->>FS: apply_face_enrollment(owner, bytes)
+        FS->>API: POST /register (employee_id=str(user.id), slot_id)
+        API-->>FS: OK (lỗi → raise FaceApiError)
+        FS->>DB: update_or_create EmployeeFace (chỉ slot_id, KHÔNG lưu ảnh)
+        CS->>DB: FaceChangeRequest(status=APPROVED, auto-duyệt, không lưu ảnh)
+        CS-->>V: ('applied', face)
+        V-->>U: "Lưu ảnh thành công"
+    else Self-service & đã có face → chờ HR duyệt
+        CS->>DB: Xóa FaceChangeRequest PENDING cũ
+        CS->>DB: Create FaceChangeRequest(status=PENDING, image lưu Cloudinary, sha256, ip)
+        CS-->>V: ('pending', req)
+        V-->>U: "Đã gửi yêu cầu cập nhật, chờ HR duyệt"
+    end

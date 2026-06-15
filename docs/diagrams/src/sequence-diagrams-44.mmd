@@ -1,0 +1,14 @@
+sequenceDiagram
+  actor ND as Người dùng · Leader/Manager/HR
+  participant GD as Giao diện<br/>Trang khen thưởng/xử phạt
+  participant HT as Hệ Thống<br/>rewards_penalties_view
+  participant DB as Cơ sở dữ liệu<br/>RewardPenalty
+  ND->>GD: Mở trang (employee/Admin bị chặn)
+  GD->>HT: GET
+  alt HR
+    HT->>DB: chọn nhân viên (loại Admin)
+  end
+  HT->>DB: records của nhân viên · tính tổng
+  DB-->>HT: phiếu + trạng thái
+  HT-->>GD: Danh sách + tổng thưởng/phạt/net
+  GD-->>ND: Hiển thị

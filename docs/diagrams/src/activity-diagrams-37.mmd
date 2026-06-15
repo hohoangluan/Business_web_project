@@ -1,0 +1,13 @@
+flowchart TD
+  A([Quản lý/Leader duyệt]) --> B{can_manage_requests?}
+  B -- Không --> Z([Chặn])
+  B -- Có --> C[approve_overtime_request pk]
+  C --> D{Tự duyệt?}
+  D -- Có --> E[Chặn]
+  D -- Không --> F{PENDING + supervisor trực tiếp?}
+  F -- Không --> G[Chặn]
+  F -- Có --> H{NV là HR?}
+  H -- Có --> I[status=APPROVED · bỏ qua L2]
+  H -- Không --> J[status=LEADER_APPROVED · chờ HR]
+  I --> Y([Redirect approval])
+  J --> Y

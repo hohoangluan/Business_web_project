@@ -84,7 +84,7 @@ def rewards_penalties_view(request):
     net_prefix = "+" if net_income >= 0 else "-"
     net_income_formatted = f"{net_prefix} {abs(net_income):,}đ".replace(',', '.')
 
-    # 4. Kiểm tra quyền đề xuất tạo phiếu mới (chỉ Leader / Manager / HR / Admin)
+    # 4. Kiểm tra quyền đề xuất tạo phiếu mới (chỉ Leader / Manager / HR — Admin đã bị chặn ở bước 0)
     can_propose = can_manage_requests(request.user)
 
     form = None
@@ -123,15 +123,14 @@ def rewards_penalties_approval_view(request):
     """Trang phê duyệt thưởng/phạt — duyệt 2 cấp.
 
     Manager xử lý cấp 1 (phiếu Leader lập, status=pending);
-    HR/Admin xử lý cấp 2 (status=leader_approved).
+    HR xử lý cấp 2 (status=leader_approved).
     """
     ensure_profile(request.user)
 
-    # 1. Bảo mật: Manager (L1) hoặc HR/Admin (L2) mới được duyệt.
+    # 1. Bảo mật: Manager (L1) hoặc HR (L2) mới được duyệt. Admin không phê duyệt nhân sự.
     is_approver = (
         user_has_role(request.user, Role.MANAGER)
         or is_hr_user(request.user)
-        or is_admin_user(request.user)
     )
     if not is_approver:
         messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt Thưởng / Phạt.')

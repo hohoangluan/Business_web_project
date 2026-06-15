@@ -16,7 +16,6 @@ from accounts.models import Role
 from accounts.services import (
     ensure_profile, ensure_work_info,
     get_user_role_name, user_has_role,
-    has_admin_business_access,
     get_user_display_name, get_department_label,
     get_manager_display_name, get_leader_display_name,
 )
@@ -44,7 +43,7 @@ def get_statistics_scope(user):
     ensure_profile(user)
     work_info = ensure_work_info(user)
 
-    if has_admin_business_access(user) or user_has_role(user, Role.HR):
+    if user_has_role(user, Role.HR):
         return {
             'scope_name': 'company', 'scope_label': 'Toàn công ty',
             'locked_department': '', 'locked_leader': '', 'error_message': '',

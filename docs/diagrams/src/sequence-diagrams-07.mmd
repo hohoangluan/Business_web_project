@@ -1,0 +1,16 @@
+sequenceDiagram
+  actor AD as Người dùng · Admin
+  participant GD as Giao diện<br/>Form tạo tài khoản
+  participant HT as Hệ Thống<br/>admin_create_account_view
+  participant DB as Cơ sở dữ liệu<br/>User
+  AD->>GD: Nhập username + password
+  GD->>HT: POST dữ liệu
+  HT->>HT: validate (trùng / khớp / validate_password)
+  alt Lỗi
+    HT-->>GD: Hiển thị lỗi
+    GD-->>AD: Giữ form
+  else OK
+    HT->>DB: create_user + ensure_profile
+    HT-->>GD: Tạo thành công
+    GD-->>AD: Redirect user_list
+  end

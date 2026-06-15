@@ -2,7 +2,7 @@
 
 Self-service đổi mặt → tạo FaceChangeRequest `pending`, KHÔNG đổi enrollment
 đang dùng để nhận diện. HR duyệt mới đẩy lên service từ xa và cập nhật
-EmployeeFace. Đường tin cậy (HR/Admin upload) thì áp dụng ngay.
+EmployeeFace. Đường tin cậy (HR upload) thì áp dụng ngay.
 """
 import hashlib
 
@@ -10,14 +10,14 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 
-from accounts.services.permission.role_service import is_admin_user, is_hr_user
+from accounts.services.permission.role_service import is_hr_user
 from attendance.models import FaceChangeRequest
 from attendance.services.face import face_api_client, face_service
 
 
 def _is_trusted(actor) -> bool:
-    """HR/Admin được enroll trực tiếp, không cần qua bước duyệt."""
-    return is_hr_user(actor) or is_admin_user(actor)
+    """HR được enroll trực tiếp, không cần qua bước duyệt (Admin không xử lý nhân sự)."""
+    return is_hr_user(actor)
 
 
 def submit_face_change(owner, submitted_by, image_file, ip_address=None):

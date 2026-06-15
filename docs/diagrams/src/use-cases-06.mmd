@@ -1,0 +1,31 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Leader(["👨‍💼 Trưởng nhóm"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
+
+    subgraph G["Phân hệ Nghỉ phép"]
+        direction TB
+        UC1("UC5.1: Nộp đơn xin nghỉ phép")
+        UC1a("UC5.1a: Kiểm tra quỹ phép")
+        UC2("UC5.2: Xem đơn nghỉ phép của tôi")
+        UC3("UC5.3: Phê duyệt cấp L1")
+        UC4("UC5.4: Phê duyệt cấp L2")
+        UC4a("UC5.4a: Trừ quỹ phép")
+        UC5("UC5.5: Từ chối đơn nghỉ phép")
+        UC6("UC5.6: Xem quỹ phép còn lại")
+    end
+
+    Employee --> UC1
+    UC1 -. "<<include>>" .-> UC1a
+    Employee --> UC2
+    Employee --> UC6
+
+    Leader --> UC3
+    Leader --> UC5
+    Manager --> UC3
+    Manager --> UC5
+
+    HR --> UC4
+    UC4 -. "<<include>>" .-> UC4a
+    HR --> UC5

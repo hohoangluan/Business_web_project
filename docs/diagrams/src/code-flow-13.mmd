@@ -1,0 +1,8 @@
+flowchart LR
+    A[Service action] -->|create_notification| B[Notification record]
+    B --> C[context_processor]
+    C --> D[Every template render]
+    D --> E[Bell icon: unread_count]
+    E -->|Click| F["/notifications/ page"]
+    F -->|Auto| G[Mark all as read]
+    H[POST /notifications/mark-read/] -->|Manual| G

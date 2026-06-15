@@ -1,0 +1,11 @@
+sequenceDiagram
+  actor HR as Người dùng · HR
+  participant GD as Giao diện<br/>Trang HR xác nhận
+  participant HT as Hệ Thống<br/>evaluation_hr_acknowledge_action · acknowledge_evaluation
+  participant DB as Cơ sở dữ liệu<br/>Evaluation
+  HR->>GD: Nhập hr_note · Xác nhận
+  GD->>HT: POST pk (can_acknowledge)
+  HT->>DB: kiểm status=submitted
+  HT->>DB: status=acknowledged · acknowledged_by/at
+  HT-->>GD: Kết quả
+  GD-->>HR: Redirect evaluation_hr_approval

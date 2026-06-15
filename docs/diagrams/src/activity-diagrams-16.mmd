@@ -1,0 +1,9 @@
+flowchart TD
+  A([HR Điều chỉnh hợp đồng]) --> B[POST form thay đổi]
+  B --> C{validate ngày}
+  C -- Lỗi --> D[Hiển thị lỗi] --> B
+  C -- OK --> E[adjust_contract]
+  E --> F[old.is_active = False · archive]
+  F --> G[Tạo bản mới copy-forward + thay đổi<br/>is_active=True]
+  G --> H[Báo: đã tạo phiên bản mới]
+  H --> Y([Redirect contract_history])

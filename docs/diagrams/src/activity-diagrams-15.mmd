@@ -1,0 +1,11 @@
+flowchart TD
+  A([HR mở Điều chỉnh/Tạo HĐ]) --> B[POST form HĐ]
+  B --> C{Admin?}
+  C -- Có --> Z([Chặn])
+  C -- Không · HR --> D{validate_contract_date_order<br/>ký ≤ bắt đầu ≤ hết hạn}
+  D -- Lỗi --> E[Hiển thị lỗi form] --> B
+  D -- OK --> F{Có HĐ active cũ?}
+  F -- Không --> G[Tạo ContractInfo đầu tiên<br/>is_active=True]
+  F -- Có --> H[adjust_contract: archive cũ + tạo mới]
+  G --> Y([Redirect contract_history])
+  H --> Y

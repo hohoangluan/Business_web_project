@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor HR as Người dùng · HR
+  participant GD as Giao diện<br/>Trang duyệt đổi mặt
+  participant HT as Hệ Thống<br/>face_change action · face_change_service
+  participant DB as Cơ sở dữ liệu<br/>FaceChangeRequest · EmployeeFace
+  participant EX as Mở rộng<br/>Face API
+  HR->>GD: Bấm Duyệt / Từ chối
+  GD->>HT: POST req_id (is_hr_user)
+  alt Duyệt
+    HT->>DB: kiểm status == PENDING
+    HT->>EX: apply enrollment
+    HT->>DB: status=APPROVED · xóa ảnh tạm
+  else Từ chối
+    HT->>DB: status=REJECTED · giữ ảnh minh chứng
+  end
+  HT-->>GD: Kết quả
+  GD-->>HR: Redirect face_change_review

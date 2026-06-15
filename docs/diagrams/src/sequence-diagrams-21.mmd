@@ -1,0 +1,11 @@
+sequenceDiagram
+  actor ND as Người dùng · Nhân viên
+  participant GD as Giao diện<br/>Trang đổi khuôn mặt
+  participant HT as Hệ Thống<br/>upload_image_base64_view · submit_face_change
+  participant DB as Cơ sở dữ liệu<br/>FaceChangeRequest
+  ND->>GD: Gửi ảnh mới (đã có mặt)
+  GD->>HT: POST ảnh (self-service)
+  HT->>DB: xóa PENDING cũ
+  HT->>DB: tạo FaceChangeRequest PENDING (lưu ảnh)
+  HT-->>GD: outcome=pending
+  GD-->>ND: Chờ HR duyệt · chưa đổi mặt nhận diện

@@ -1,0 +1,6 @@
+flowchart TD
+  A([Người có quyền mở Thống kê]) --> B{Hành động xuất}
+  B -- Excel --> C[statistics_export_excel_view<br/>ghi header + rows]
+  C --> D[Trả file .xlsx · content-type xlsx]
+  B -- In --> E[statistics_print_view<br/>render bản in]
+  E --> F[Trang in · HTTP 200]

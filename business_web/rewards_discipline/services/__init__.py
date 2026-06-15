@@ -3,7 +3,7 @@
 Luồng:
   - Leader lập phiếu  → PENDING (chờ Manager duyệt L1) → LEADER_APPROVED
                         → HR duyệt L2 → APPROVED.
-  - Manager/HR/Admin lập → LEADER_APPROVED ngay (bỏ L1) → HR duyệt L2 → APPROVED.
+  - Manager/HR lập → LEADER_APPROVED ngay (bỏ L1) → HR duyệt L2 → APPROVED.
   - Từ chối ở bất kỳ cấp → REJECTED.
 """
 from django.utils import timezone
@@ -11,7 +11,6 @@ from django.utils import timezone
 from accounts.models import Role
 from accounts.services import (
     create_notification,
-    is_admin_user,
     is_hr_user,
     user_has_role,
 )
@@ -26,15 +25,15 @@ def initial_status_for(proposer):
     """Trạng thái khởi tạo theo vai trò người lập phiếu."""
     if user_has_role(proposer, Role.LEADER):
         return RewardPenalty.PENDING          # cần Manager duyệt L1
-    return RewardPenalty.LEADER_APPROVED      # Manager/HR/Admin lập → thẳng L2
+    return RewardPenalty.LEADER_APPROVED      # Manager/HR lập → thẳng L2
 
 
 def _is_l1_approver(user):
-    return user_has_role(user, Role.MANAGER) or is_admin_user(user)
+    return user_has_role(user, Role.MANAGER)
 
 
 def _is_l2_approver(user):
-    return is_hr_user(user) or is_admin_user(user)
+    return is_hr_user(user)
 
 
 def approve_reward_penalty(approver, record_id):
@@ -97,7 +96,7 @@ def reject_reward_penalty(approver, record_id):
 
 
 def get_pending_for_approver(user):
-    """Hàng đợi duyệt theo vai trò: Manager→L1 (pending); HR/Admin→L2 (leader_approved)."""
+    """Hàng đợi duyệt theo vai trò: Manager→L1 (pending); HR→L2 (leader_approved)."""
     qs = RewardPenalty.objects.select_related('employee', 'proposer')
     if _is_l2_approver(user):
         return qs.filter(status=RewardPenalty.LEADER_APPROVED).order_by('-created_at')

@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> Pending: NV nộp đơn · có leader/manager
+  [*] --> LeaderApproved: NV nộp đơn · trống cả 2 (bỏ L1, thẳng HR L2)
+  [*] --> Approved: NV nộp đơn · trống cả 2 & là HR (tự duyệt)
+  Pending --> LeaderApproved: L1 · supervisor trực tiếp duyệt
+  Pending --> Approved: NV là HR · L1 hoàn tất (bỏ qua L2)
+  Pending --> Rejected: L1 từ chối
+  Pending --> Cancelled: NV tự hủy (chỉ khi còn Pending)
+  LeaderApproved --> Approved: L2 · HR duyệt cuối
+  LeaderApproved --> Rejected: L2 từ chối
+  Approved --> [*]
+  Rejected --> [*]
+  Cancelled --> [*]

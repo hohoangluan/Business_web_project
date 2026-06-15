@@ -42,6 +42,29 @@ def _get_direct_report_user_ids(supervisor):
     )
 
 
+def _has_supervisor(user):
+    """Nhân viên có ít nhất 1 leader hoặc manager phụ trách không."""
+    try:
+        wi = user.work_info
+    except Exception:
+        return False
+    return bool(wi.leader_user_id or wi.manager_user_id)
+
+
+def _resolve_initial_status(user):
+    """Trạng thái khởi tạo đơn theo cấu hình quản lý của nhân viên.
+
+    - Có ≥1 leader/manager        → PENDING (duyệt L1 bình thường, rồi HR L2).
+    - Trống cả 2, nhân viên thường → LEADER_APPROVED (bỏ L1, chuyển thẳng HR L2).
+    - Trống cả 2, nhân viên HR      → APPROVED (tự duyệt: không có L1, HR không cần L2).
+    """
+    if _has_supervisor(user):
+        return LeaveRequest.PENDING
+    if _is_hr_role(user):
+        return LeaveRequest.APPROVED
+    return LeaveRequest.LEADER_APPROVED
+
+
 # ===========================================================================
 #  EMPLOYEE: tạo / hủy / xem đơn
 # ===========================================================================
@@ -50,10 +73,18 @@ def create_leave_request(user, form):
     """Tạo đơn nghỉ phép mới. Tự tính số ngày từ start_date/end_date."""
     obj = form.save(commit=False)
     obj.user = user
-    obj.status = LeaveRequest.PENDING
+    obj.status = _resolve_initial_status(user)
     # Tính số ngày (bao gồm cả ngày đầu và ngày cuối)
     obj.days = Decimal(str((obj.end_date - obj.start_date).days + 1))
     obj.save()
+    if obj.status == LeaveRequest.APPROVED:
+        # Trống cả leader/manager và bản thân là HR → không có cấp duyệt nào.
+        create_notification(
+            user,
+            'Đơn nghỉ phép đã được duyệt',
+            'Đơn xin nghỉ phép của bạn đã được tự động phê duyệt '
+            '(không có quản lý phụ trách).',
+        )
     return obj
 
 

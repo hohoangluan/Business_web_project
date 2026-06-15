@@ -60,29 +60,51 @@ nằm trong service để dễ test và tái sử dụng. Bạn sẽ thấy patt
 
 ## 2. Bức tranh tổng thể: các mảnh ghép của hệ thống
 
-```
-                          ┌───────────────────────────────────────────────┐
-   Trình duyệt            │                 SERVER (Django)               │
-  (HTML/CSS/JS,           │                                               │
-   webcam, JS thuần)      │   urls.py → View → Service → Model (ORM)      │
-        │   ▲             │                                  │            │
-        │   │  HTML/JSON  │                                  ▼            │
-   HTTP │   │             │                            ┌───────────┐      │
-        ▼   │             │                            │ Database  │      │
-  ┌──────────────┐        │                            │ Postgres/ │      │
-  │  Người dùng  │────────┤                            │ SQLite    │      │
-  └──────────────┘        │                            └───────────┘      │
-                          │        │            │              │          │
-                          └────────┼────────────┼──────────────┼──────────┘
-                                   ▼            ▼              ▼
-                          ┌──────────────┐ ┌─────────┐ ┌──────────────────┐
-                          │ Gmail SMTP   │ │Cloudinary│ │ Remote Face API  │
-                          │ (gửi email)  │ │ (lưu file)│ │ (nhận diện mặt) │
-                          └──────────────┘ └─────────┘ └──────────────────┘
+```mermaid
+flowchart LR
+    User(["🧑‍💻 Người dùng\n(Trình duyệt: HTML/CSS/JS)"])
+    
+    subgraph Server_Django["SERVER (Django)"]
+        direction TB
+        URL["urls.py (Routing)"]
+        View["View (Điều phối)"]
+        Service["Service (Nghiệp vụ)"]
+        ORM["Model (ORM)"]
+        DB[("Database\n(Postgres/SQLite)")]
+        
+        URL --> View
+        View --> Service
+        Service --> ORM
+        ORM --> DB
+    end
+    
+    SMTP["📧 Gmail SMTP\n(Gửi email)"]
+    Cloudinary["☁️ Cloudinary\n(Lưu file)"]
+    FaceAPI["🌐 Remote Face API\n(Nhận diện mặt)"]
+    
+    User -- "HTTP Request\n(GET/POST)" --> URL
+    View -- "HTTP Response\n(HTML/JSON)" --> User
+    
+    Service --> SMTP
+    Service --> Cloudinary
+    Service --> FaceAPI
 ```
 
-Django **không** tự làm nhận diện khuôn mặt, **không** tự gửi email, **không** tự lưu file ảnh lâu dài.
-Nó **điều phối** và gọi các dịch vụ chuyên biệt bên ngoài. Hiểu điều này là chìa khóa hiểu project.
+**Giải thích chi tiết quy trình (Luồng đi của dữ liệu):**
+
+1. **Người dùng (Trình duyệt):** Thao tác trên giao diện (nhấn nút, điền form, chụp ảnh khuôn mặt) và trình duyệt sẽ đóng gói dữ liệu thành một **HTTP Request (GET/POST)** gửi lên Server.
+2. **urls.py (Routing):** Đóng vai trò như "người gác cổng" hoặc tổng đài viên. Dựa vào đường dẫn (ví dụ `/login/`), nó sẽ chỉ đường cho Request đi đến đúng hàm xử lý bên trong View.
+3. **View (Điều phối):** Tiếp nhận Request từ `urls.py`. Nó KHÔNG xử lý nghiệp vụ hay tính toán gì cả. Nó chỉ làm nhiệm vụ lấy dữ liệu từ Request (ví dụ lấy ID nhân viên) rồi chuyển giao cho tầng **Service** xử lý. Cuối cùng, View sẽ nhận kết quả từ Service để gói lại thành **HTTP Response (HTML hoặc JSON)** và trả ngược về cho Trình duyệt.
+4. **Service (Nghiệp vụ):** Đây là "bộ não" thực sự của ứng dụng. Mọi tính toán phức tạp, quy tắc kinh doanh (ai được duyệt phép, check in muộn bị phạt thế nào...) đều nằm ở đây.
+   - Nếu cần lưu/lấy dữ liệu, Service sẽ ra lệnh cho **ORM**.
+   - Nếu cần xử lý tính năng bên ngoài, chính **Service** sẽ trực tiếp giao tiếp qua API với:
+     - **Gmail SMTP** để gửi email OTP/cảnh báo.
+     - **Cloudinary** để đẩy file/ảnh lên cloud.
+     - **Remote Face API** để kiểm tra khuôn mặt.
+5. **Model (ORM):** Đóng vai trò như "người phiên dịch". Nó dịch các lệnh Python (từ Service) thành câu lệnh SQL để nói chuyện với **Database**. Model là tầng duy nhất được phép giao tiếp trực tiếp với Database.
+6. **Database (Postgres/SQLite):** Nơi lưu trữ thực tế mọi dữ liệu bền vững của hệ thống.
+
+Django **không** tự làm nhận diện khuôn mặt, **không** tự gửi email, **không** tự lưu file ảnh lâu dài. Nó phân tách rõ ràng lớp **Service** để **điều phối** và gọi các dịch vụ chuyên biệt bên ngoài. Hiểu kiến trúc phân tầng này là chìa khóa để hiểu project.
 
 Cấu hình tất cả những kết nối trên nằm trong **một file duy nhất**: [business_web/business_web/settings.py](business_web/business_web/settings.py).
 
@@ -579,9 +601,7 @@ def classify_status(check_in_time, check_out_time, shift_start, shift_end):
 Giờ ca lấy ở đâu? `get_shift_times(user)` (trong `contracts/services`) đọc **hợp đồng đang hiệu lực** của user;
 nếu HĐ không ghi giờ ca thì **fallback** về mặc định công ty `WORK_START_TIME=08:30`, `WORK_END_TIME=17:30` (settings).
 
-Tinh tế hơn: nếu nhân viên có **tăng ca đã duyệt** hôm đó, `effective_shift_end` dời giờ tan kỳ vọng tới giờ OT
-(`max(shift_end, ot_end)`) — nên về sau giờ chuẩn nhưng trong khung OT **không** bị tính về sớm. Hàm này gọi sang
-`overtime.services.get_approved_overtime_end` → đây là ví dụ một app (attendance) **đọc dữ liệu app khác** (overtime).
+Tinh tế hơn: nếu nhân viên có **tăng ca đã duyệt** hôm đó, `effective_shift_end` dời giờ tan kỳ vọng tới giờ OT (`max(shift_end, ot_end)`). Nghĩa là dù đã qua giờ làm việc chuẩn (ví dụ 17:30), nhưng nếu họ về trước khi kết thúc ca OT (ví dụ 19:00), hệ thống **vẫn sẽ đánh dấu là về sớm (early_leave)**. Điều này giúp nhân sự kiểm soát được việc nhân viên đăng ký tăng ca nhưng lại bỏ về giữa chừng! Hàm này gọi sang `overtime.services.get_approved_overtime_end` → đây là ví dụ một app (attendance) **đọc dữ liệu app khác** (overtime).
 
 #### Bước 6 — Trả JSON, JS hiện toast
 View đóng gói `{success, action, time, status, confidence}` thành `JsonResponse(status=200)`.

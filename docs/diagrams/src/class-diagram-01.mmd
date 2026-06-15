@@ -1,0 +1,347 @@
+classDiagram
+    direction TB
+
+    %% ===== Django Auth =====
+    class User {
+        +int id
+        +str username
+        +str email
+        +str password
+        +bool is_active
+        +bool is_superuser
+        +datetime last_login
+    }
+
+    %% ===== accounts =====
+    class Role {
+        +int id
+        +str name [admin|hr|manager|leader|employee]
+        +str description
+        +get_name_display()
+    }
+
+    class CustomPermission {
+        +int id
+        +str codename [unique]
+        +str name
+        +str description
+    }
+
+    class UserProfile {
+        +int id
+        +User user [OneToOne]
+        +Role role [FK, nullable]
+        +M2M~CustomPermission~ permissions
+        +str full_name
+        +str employee_id [unique]
+        +is_admin: bool [property]
+        +has_custom_permission(codename): bool
+        +get_role_name(): str
+    }
+
+    class OtpCode {
+        +int id
+        +User user [FK]
+        +str code [6 digits]
+        +datetime created_at
+        +int OTP_EXPIRY_SECONDS = 120
+        +is_expired(): bool
+    }
+
+    class Notification {
+        +int id
+        +User user [FK]
+        +str title
+        +str message
+        +str link [nullable]
+        +bool is_read
+        +datetime created_at
+    }
+
+    %% ===== employee_profiles =====
+    class PersonalInfo {
+        +int id
+        +User user [OneToOne]
+        +str phone_number
+        +str date_of_birth
+        +str gender
+        +str marital_status
+        +str nationality
+        +str id_card_number
+        +str id_card_issue_place
+        +str id_card_issue_date
+        +str permanent_address
+        +str temporary_address
+        +employee_id: str [property]
+    }
+
+    class EmployeeWorkInfo {
+        +int id
+        +User user [OneToOne]
+        +str employee_type
+        +str department
+        +str position
+        +str workplace
+        +str probation_start
+        +str official_start_date
+        +str work_status [working|probation|paused|resigned]
+        +User manager_user [FK, nullable]
+        +User leader_user [FK, nullable]
+    }
+
+    class EducationAndSkills {
+        +int id
+        +User user [OneToOne]
+        +str education_level
+        +str degree
+        +str major
+        +str certificates
+        +str foreign_languages
+        +str professional_skills
+    }
+
+    class EmergencyContact {
+        +int id
+        +User user [OneToOne]
+        +str contact_name
+        +str contact_phone
+        +str relation
+        +str contact_address
+    }
+
+    class EmployeeDocument {
+        +int id
+        +User user [FK]
+        +str title
+        +str document_type
+        +FileField file
+        +datetime uploaded_at
+    }
+
+    %% ===== contracts =====
+    class ContractInfo {
+        +int id
+        +User user [FK]
+        +bool is_active
+        +datetime created_at
+        +str contract_number
+        +str contract_type
+        +str contract_signed_date
+        +str contract_start_date
+        +str contract_end_date
+        +int contract_annual_leave_days [nullable]
+        +str contract_standard_shift
+        +TimeField shift_start_time [nullable]
+        +TimeField shift_end_time [nullable]
+        +str contract_attachment_reference
+    }
+
+    %% ===== attendance =====
+    class AttendanceRecord {
+        +int id
+        +User user [FK]
+        +DateField record_date
+        +TimeField check_in_time [nullable]
+        +TimeField check_out_time [nullable]
+        +str status [on_time|late|absent]
+    }
+
+    class EmployeeFace {
+        +int id
+        +User user [OneToOne]
+        +int slot_id = 1
+        +datetime updated_at
+        +datetime created_at
+    }
+
+    class AttendanceAdjustmentRequest {
+        +int id
+        +AttendanceRecord record [OneToOne]
+        +User submitted_by [FK]
+        +str reason [forgot|technical|business_trip|other]
+        +str reason_detail
+        +TimeField claimed_check_in_time [nullable]
+        +TimeField claimed_check_out_time [nullable]
+        +FileField evidence [nullable]
+        +str status [pending|approved|rejected]
+        +datetime submitted_at
+        +datetime reviewed_at [nullable]
+        +User reviewed_by [FK, nullable]
+        +str hr_note
+    }
+
+    class FaceChangeRequest {
+        +int id
+        +User user [FK]
+        +User submitted_by [FK]
+        +ImageField image [nullable]
+        +str image_sha256
+        +str ip_address [nullable]
+        +str status [pending|approved|rejected]
+        +User reviewed_by [FK, nullable]
+        +datetime reviewed_at [nullable]
+        +str hr_note
+        +datetime created_at
+        +is_cross_user: bool [property]
+    }
+
+    class WorkScheduleConfig {
+        +int id
+        +TimeField shift_start = 08:30
+        +TimeField shift_end = 17:30
+        +int late_grace_minutes = 5
+        +get_solo(): WorkScheduleConfig [classmethod]
+    }
+
+    %% ===== leaves =====
+    class LeaveRequest {
+        +int id
+        +User user [FK]
+        +str leave_type [annual|sick|personal|maternity|business|other]
+        +DateField start_date
+        +DateField end_date
+        +Decimal days
+        +str reason
+        +str status [pending|leader_approved|approved|rejected]
+        +User leader_approved_by [FK, nullable]
+        +datetime leader_approved_at [nullable]
+        +User approved_by [FK, nullable]
+        +str rejected_reason
+        +FileField attachment [nullable]
+        +datetime created_at
+        +date_range_display: str [property]
+        +leave_type_display: str [property]
+        +is_waiting: bool [property]
+    }
+
+    %% ===== overtime =====
+    class OvertimeRequest {
+        +int id
+        +User user [FK]
+        +DateField overtime_date
+        +TimeField start_time
+        +TimeField end_time
+        +Decimal hours
+        +str reason
+        +str status [pending|leader_approved|approved|rejected]
+        +User leader_approved_by [FK, nullable]
+        +datetime leader_approved_at [nullable]
+        +User approved_by [FK, nullable]
+        +str rejected_reason
+        +FileField attachment [nullable]
+        +datetime created_at
+        +time_range_display: str [property]
+        +is_waiting: bool [property]
+        +status_display_vi: str [property]
+    }
+
+    %% ===== performance =====
+    class EvaluationCategory {
+        +int id
+        +str name [unique]
+        +str description
+        +datetime created_at
+    }
+
+    class Evaluation {
+        +int id
+        +User employee [FK]
+        +User reviewer [FK]
+        +EvaluationCategory category [FK, nullable]
+        +str status [draft|submitted|acknowledged]
+        +str rating [A|B|C|D]
+        +int score [nullable]
+        +DateField evaluation_date
+        +str content
+        +str evidence_reference
+        +User acknowledged_by [FK, nullable]
+        +datetime acknowledged_at [nullable]
+        +str hr_note
+        +datetime created_at
+        +save() auto-calculates rating from score
+    }
+
+    %% ===== rewards_discipline =====
+    class RewardPenalty {
+        +int id
+        +User employee [FK]
+        +str record_type [reward|penalty]
+        +int amount
+        +str reason_title
+        +str reason_detail
+        +User proposer [FK, nullable]
+        +str status [pending|leader_approved|approved|rejected]
+        +User leader_approved_by [FK, nullable]
+        +datetime leader_approved_at [nullable]
+        +User approved_by [FK, nullable]
+        +DateField application_date
+        +FileField evidence_file [nullable]
+        +datetime created_at
+        +evidence_filename: str [property]
+    }
+
+    %% ===== reports_interactions =====
+    class Report {
+        +int id
+        +User author [FK]
+        +User recipient [FK, nullable]
+        +str title
+        +str content
+        +FileField file_attachment [nullable]
+        +bool is_viewed
+        +datetime viewed_at [nullable]
+        +str status [submitted|needs_update|acknowledged]
+        +str manager_note
+        +datetime created_at
+        +datetime updated_at
+        +can_edit_or_delete: bool [property]
+        +filename: str [property]
+    }
+
+    class Ticket {
+        +int id
+        +User author [FK]
+        +str ticket_type [support|complaint]
+        +str priority [low|medium|high]
+        +str title
+        +str content
+        +FileField evidence_file [nullable]
+        +str status [new|processing|resolved|closed|rejected]
+        +User assigned_to [FK, nullable]
+        +str rejection_reason [nullable]
+        +datetime created_at
+        +datetime updated_at
+    }
+
+    %% ===== Relationships =====
+    User "1" -- "1" UserProfile
+    User "1" -- "1" PersonalInfo
+    User "1" -- "1" EmployeeWorkInfo
+    User "1" -- "1" EducationAndSkills
+    User "1" -- "1" EmergencyContact
+    User "1" -- "1" EmployeeFace
+    User "1" -- "*" EmployeeDocument
+    User "1" -- "*" ContractInfo
+    User "1" -- "*" AttendanceRecord
+    User "1" -- "*" LeaveRequest
+    User "1" -- "*" OvertimeRequest
+    User "1" -- "*" OtpCode
+    User "1" -- "*" Notification
+    User "1" -- "*" FaceChangeRequest
+    User "1" -- "*" RewardPenalty
+    User "1" -- "*" Report : author
+    User "1" -- "*" Report : recipient
+    User "1" -- "*" Ticket : author
+    User "1" -- "*" Ticket : assigned_to
+
+    UserProfile "*" -- "0..1" Role
+    UserProfile "*" -- "*" CustomPermission
+
+    EmployeeWorkInfo "*" -- "0..1" User : manager_user
+    EmployeeWorkInfo "*" -- "0..1" User : leader_user
+
+    AttendanceRecord "1" -- "0..1" AttendanceAdjustmentRequest
+
+    Evaluation "*" -- "0..1" EvaluationCategory
+    Evaluation "*" -- "1" User : employee
+    Evaluation "*" -- "1" User : reviewer

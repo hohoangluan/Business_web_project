@@ -1,0 +1,13 @@
+flowchart TD
+  A([Admin ở trang Quản lý tài khoản]) --> B[POST · toggle_user_active_view]
+  B --> C{is_admin_user?}
+  C -- Không --> Z([403 / chặn])
+  C -- Có --> D{Tài khoản đích<br/>= chính mình?}
+  D -- Có --> E[Báo: không thể khóa chính mình]
+  D -- Không --> F[is_active = NOT is_active · save]
+  F --> G{Kết quả}
+  G -- Mở --> H[Báo: đã mở khóa]
+  G -- Khóa --> I[Báo: đã khóa]
+  E --> Y([Redirect user_list])
+  H --> Y
+  I --> Y

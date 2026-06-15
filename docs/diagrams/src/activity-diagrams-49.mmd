@@ -1,0 +1,10 @@
+flowchart TD
+  A([Người duyệt chọn Từ chối]) --> B[reject pk]
+  B --> C{Đúng cấp?<br/>PENDING→L1 · LEADER_APPROVED→L2}
+  C -- Không --> D[Chặn]
+  C -- Có --> E{status ∈ pending / leader_approved?}
+  E -- Không --> F[Báo: không hợp lệ]
+  E -- Có --> G[status=REJECTED]
+  G --> Y([Redirect approval])
+  D --> Y
+  F --> Y

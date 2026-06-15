@@ -1,0 +1,26 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    Manager(["👔 Quản lý"])
+    HR(["👩‍💻 HR"])
+    Admin(["🛠️ Admin"])
+
+    subgraph G["Phân hệ Thống kê & Cài đặt"]
+        direction TB
+        UC1("UC10.1: Xem thống kê nhóm trực thuộc")
+        UC2("UC10.2: Xem thống kê toàn công ty")
+        UC3("UC10.3: Xuất báo cáo dữ liệu")
+        UC4("UC10.4: Cài đặt cá nhân")
+        UC5("UC10.5: Cấu hình thông tin công ty")
+        UC6("UC10.6: Cấu hình quy định nhân sự")
+    end
+
+    Employee --> UC4
+
+    Manager --> UC1
+
+    HR --> UC2
+    HR --> UC3
+    HR --> UC6
+
+    Admin --> UC2
+    Admin --> UC5

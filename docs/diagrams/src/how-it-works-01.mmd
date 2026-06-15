@@ -1,0 +1,27 @@
+flowchart LR
+    User(["🧑‍💻 Người dùng\n(Trình duyệt: HTML/CSS/JS)"])
+    
+    subgraph Server_Django["SERVER (Django)"]
+        direction TB
+        URL["urls.py (Routing)"]
+        View["View (Điều phối)"]
+        Service["Service (Nghiệp vụ)"]
+        ORM["Model (ORM)"]
+        DB[("Database\n(Postgres/SQLite)")]
+        
+        URL --> View
+        View --> Service
+        Service --> ORM
+        ORM --> DB
+    end
+    
+    SMTP["📧 Gmail SMTP\n(Gửi email)"]
+    Cloudinary["☁️ Cloudinary\n(Lưu file)"]
+    FaceAPI["🌐 Remote Face API\n(Nhận diện mặt)"]
+    
+    User -- "HTTP Request\n(GET/POST)" --> URL
+    View -- "HTTP Response\n(HTML/JSON)" --> User
+    
+    Service --> SMTP
+    Service --> Cloudinary
+    Service --> FaceAPI

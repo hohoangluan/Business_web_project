@@ -1,0 +1,14 @@
+{
+  "theme": "default",
+  "themeVariables": {
+    "fontFamily": "Segoe UI, Arial, sans-serif",
+    "fontSize": "16px",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#333333",
+    "lineColor": "#444444"
+  },
+  "flowchart": { "useMaxWidth": false, "htmlLabels": true, "curve": "basis" },
+  "er": { "useMaxWidth": false, "fontSize": 15, "entityPadding": 14, "layoutDirection": "TB" },
+  "class": { "useMaxWidth": false },
+  "sequence": { "useMaxWidth": false, "actorMargin": 60, "width": 160 }
+}

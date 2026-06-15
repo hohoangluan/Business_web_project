@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor RC as Người dùng · Người nhận (quản lý)
+  participant GD as Giao diện<br/>Chi tiết báo cáo
+  participant HT as Hệ Thống<br/>report_detail_view
+  participant DB as Cơ sở dữ liệu<br/>Report
+  RC->>GD: Mở chi tiết (is_author/recipient)
+  GD->>HT: GET
+  opt is_recipient & chưa viewed
+    HT->>DB: is_viewed=True · viewed_at
+  end
+  RC->>GD: Chọn hành động
+  GD->>HT: POST
+  alt needs_update
+    HT->>DB: status=NEEDS_UPDATE · manager_note
+  else acknowledge
+    HT->>DB: status=ACKNOWLEDGED (khóa sửa/xóa)
+  end
+  HT-->>GD: Kết quả
+  GD-->>RC: Redirect report_detail

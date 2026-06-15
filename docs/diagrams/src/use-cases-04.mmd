@@ -1,0 +1,27 @@
+flowchart LR
+    Employee(["🧑‍💼 Nhân viên"])
+    HR(["👩‍💻 HR"])
+
+    subgraph G["Phân hệ Hợp đồng Lao động"]
+        direction TB
+        UC1("UC3.1: Xem hợp đồng của tôi")
+        UC2("UC3.2: Tạo hợp đồng mới")
+        UC3("UC3.3: Chỉnh sửa hợp đồng")
+        UC4("UC3.4: Gia hạn hợp đồng")
+        UC5("UC3.5: Cảnh báo HĐ sắp hết hạn")
+        UC5a("UC3.5a: Thông báo 30 ngày")
+        UC5b("UC3.5b: Thông báo 15 ngày")
+        UC5c("UC3.5c: Thông báo KHẨN 7 ngày")
+        UC6("UC3.6: Tự động hết hiệu lực")
+    end
+
+    Employee --> UC1
+
+    HR --> UC2
+    HR --> UC3
+    HR --> UC4
+    HR --> UC5
+    UC5 -. "<<include>>" .-> UC5a
+    UC5 -. "<<include>>" .-> UC5b
+    UC5 -. "<<include>>" .-> UC5c
+    UC5 -. "<<extend>>" .-> UC6

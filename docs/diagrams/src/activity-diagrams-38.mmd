@@ -1,0 +1,7 @@
+flowchart TD
+  A([HR duyệt bước 2]) --> B[approve_overtime_request pk]
+  B --> C{status==LEADER_APPROVED & là HR?}
+  C -- Không --> D[Chặn]
+  C -- Có --> E[status=APPROVED · approved_by=HR<br/>tạo notification]
+  E --> Y([Redirect approval])
+  D --> Y

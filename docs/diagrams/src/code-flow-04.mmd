@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant EMP as Employee
+    participant LM as Leader/Manager
+    participant HR as HR
+
+    EMP->>EMP: Tạo đơn → status = pending
+
+    Note over LM: Bước 1: Leader/Manager duyệt
+    LM->>LM: Kiểm tra _is_direct_supervisor(approver, employee)
+    alt Duyệt
+        alt Employee có role HR
+            LM->>EMP: status = approved (hoàn tất, bỏ bước 2)
+        else Employee không phải HR
+            LM->>HR: status = leader_approved (chờ HR)
+        end
+    else Từ chối
+        LM->>EMP: status = rejected
+    end
+
+    Note over HR: Bước 2: HR duyệt cuối
+    HR->>HR: Kiểm tra _is_hr_role(approver)
+    alt Duyệt
+        HR->>EMP: status = approved + tạo Notification
+    else Từ chối
+        HR->>EMP: status = rejected + tạo Notification
+    end

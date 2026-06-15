@@ -1,0 +1,12 @@
+sequenceDiagram
+  actor PR as Người dùng · Người lập phiếu
+  participant GD as Giao diện<br/>Form xử phạt
+  participant HT as Hệ Thống<br/>rewards_penalties_view · initial_status_for
+  participant DB as Cơ sở dữ liệu<br/>RewardPenalty
+  PR->>GD: Nhập penalty + amount
+  GD->>HT: POST create
+  HT->>HT: validate amount ≥ 0 (PositiveInteger)
+  HT->>HT: initial_status_for(proposer)
+  HT->>DB: lưu phiếu · PENDING (Leader) / LEADER_APPROVED (Manager/HR)
+  HT-->>GD: Đã gửi tới HR
+  GD-->>PR: Hiển thị kết quả

@@ -1,143 +1,121 @@
-# 🏗️ HRMS — Kiến Trúc Hệ Thống & Sơ Đồ Triển Khai
+# Deployment Architecture — Business Web Project
 
-> Hệ thống Quản lý Nhân sự (HRMS) — SE104, UIT.
-> File này phản ánh **kiến trúc deploy thực tế lên Internet** (Render PaaS), đối chiếu trực tiếp với
-> `render.yaml`, `business_web/build.sh`, `business_web/business_web/settings.py`,
-> `business_web/requirements.txt`, `business_web/attendance/services/face/face_api_client.py`.
+> **Cập nhật:** 2026-06-03 — trích xuất 100% từ cấu hình `render.yaml` và `build.sh` hiện tại.
 
 ---
 
-## 1. Tổng Quan Stack Triển Khai
+## 1. Tổng quan Kiến trúc Deployment
 
-| Thành phần | Công nghệ | Ghi chú |
-|------------|-----------|---------|
-| **Hosting** | Render Web Service (`plan: free`) | `rootDir=business_web`, healthcheck `/` |
-| **App server** | gunicorn → `business_web.wsgi:application` | WSGI |
-| **Framework** | Django 4.2 (Python) — MTV, 10 apps | |
-| **Static** | WhiteNoise | `collectstatic` lúc build, serve trực tiếp từ web service |
-| **Database (prod)** | **Render PostgreSQL** (`plan: free`) | qua `dj-database-url` + `psycopg2-binary`, `conn_max_age=600` |
-| **Database (dev)** | SQLite3 | fallback khi không có `DATABASE_URL` |
-| **Media** | Cloudinary (`RawMediaCloudinaryStorage`) | `USE_CLOUDINARY=True`; evidence + attachment (ảnh/PDF) |
-| **Email** | Gmail SMTP `smtp.gmail.com:587` TLS | OTP reset mật khẩu, gửi tài khoản |
-| **Face AI** | HuggingFace Space — FastAPI + DeepFace `Facenet512` + FAISS | Django chỉ gọi HTTP, không nạp model local |
-| **TLS/HTTPS** | Render terminate SSL ở proxy | `SECURE_PROXY_SSL_HEADER`, `SECURE_SSL_REDIRECT`, HSTS khi `DEBUG=False` |
+Dự án được triển khai trên nền tảng **Render** dưới dạng *Blueprint* (Infrastructure as Code). Kiến trúc bao gồm hai thành phần chính:
+1. **Web Service (Django)**: Xử lý logic nghiệp vụ, giao tiếp với bên ngoài.
+2. **PostgreSQL Database**: Lưu trữ dữ liệu hệ thống (PostgreSQL).
 
-> [!NOTE]
-> **Ảnh khuôn mặt** (`EmployeeFace.face_base64`, `FaceChangeRequest.image_base64`) lưu **Base64 trong PostgreSQL**,
-> KHÔNG lên Cloudinary. Cloudinary chỉ giữ file `FileField` (minh chứng điều chỉnh công, đơn nghỉ/OT, báo cáo, thưởng/phạt...).
+Ngoài ra, hệ thống tích hợp với các dịch vụ bên thứ 3:
+- **Cloudinary**: Lưu trữ và CDN cho media/static files (ảnh chân dung, minh chứng, đính kèm).
+- **HuggingFace Spaces**: Nhận diện khuôn mặt (Remote API).
+- **Gmail SMTP**: Gửi email thông báo (quên mật khẩu, nhắc nhở hợp đồng).
 
 ---
 
-## 2. System Architecture Diagram (Component View)
+## 2. Sơ đồ Kiến trúc Deployment
 
 ```mermaid
-flowchart TB
-    subgraph Client["🌐 Client — Web Browser"]
-        UI["HTML · CSS tự viết · JS thuần<br/>Font Awesome · Chart.js<br/>Webcam capture (FaceID)"]
-    end
-
-    subgraph Web["☁️ Render Web Service (gunicorn + WSGI)"]
+flowchart TD
+    Client(["Trình duyệt (Browser)"])
+    
+    subgraph "Render (Cloud Hosting)"
         direction TB
-        MW["Middleware<br/>Security · WhiteNoise · Session · CSRF · Auth"]
-
-        subgraph Pres["Presentation Layer"]
-            V["Views + Forms + URLconf"]
-            T["Django Templates"]
+        LoadBalancer[Render Load Balancer]
+        
+        subgraph "Web Service (Python 3)"
+            Gunicorn[Gunicorn WSGI Server]
+            Django[Django App]
+            WhiteNoise[WhiteNoise - Static Files]
         end
-        subgraph Logic["Business Logic Layer"]
-            S["services/  (auth, permission/RBAC,<br/>face, attendance, approvals, stats)"]
+        
+        subgraph "Database Service"
+            Postgres[(PostgreSQL DB)]
         end
-        subgraph Data["Data Layer"]
-            M["models/ + Django ORM"]
-        end
-
-        subgraph Apps["10 Django Apps"]
-            A1["accounts · employee_profiles · contracts"]
-            A2["attendance · leaves · overtime"]
-            A3["performance · rewards_discipline<br/>reports_interactions · stats_reports"]
-        end
-
-        FC["face_api_client.py<br/>(HTTP wrapper)"]
-        CMD["mgmt commands<br/>close_open_attendance ·<br/>send_contract_renewal_reminders"]
-        ST["staticfiles (WhiteNoise)"]
+    end
+    
+    subgraph "External Services"
+        Cloudinary[(Cloudinary CDN)]
+        HF[HuggingFace Spaces API]
+        Gmail[Gmail SMTP Server]
     end
 
-    PG[("🐘 Render PostgreSQL")]
-    CLD["🖼️ Cloudinary<br/>(media: evidence, attachments)"]
-    SMTP["📧 Gmail SMTP"]
-    FACE["🤖 HuggingFace Space<br/>FastAPI · DeepFace Facenet512 · FAISS"]
-
-    UI -->|HTTPS| MW --> Pres --> Logic --> Data
-    Logic --> Apps
-    M -->|ORM| PG
-    Logic -->|FileField upload| CLD
-    Logic -->|OTP / account mail| SMTP
-    Logic --> FC -->|"POST /register /recognize"| FACE
-    UI -. static .-> ST
-    CMD --> M
+    Client <-->|HTTPS| LoadBalancer
+    Client <-->|HTTPS| Cloudinary
+    
+    LoadBalancer <--> Gunicorn
+    Gunicorn <--> Django
+    Gunicorn <--> WhiteNoise
+    
+    Django <-->|SQL/psycopg2| Postgres
+    Django <-->|Media Upload API| Cloudinary
+    Django <-->|REST API| HF
+    Django -->|SMTP 587/465| Gmail
 ```
 
 ---
 
-## 3. Deployment Diagram
+## 3. Render Blueprint (`render.yaml`)
 
-```mermaid
-flowchart TB
-    User["👤 User<br/>Browser + Webcam"]
+Dự án sử dụng cơ chế Blueprint của Render để tự động hóa toàn bộ quá trình cấp phát và kết nối Web Service với Database.
 
-    subgraph Render["☁️ Render Platform"]
-        direction TB
-        LB["HTTPS / TLS termination<br/>(proxy → X-Forwarded-Proto)"]
-        subgraph WS["Web Service · plan free<br/>rootDir=business_web"]
-            G["gunicorn → business_web.wsgi:application"]
-            WN["WhiteNoise (static)"]
-            APP["Django 4.2 · 10 apps"]
-        end
-        DB[("PostgreSQL · plan free<br/>business-web-db<br/>DATABASE_URL")]
-    end
+### 3.1 Cấu hình Web Service
+- **Type**: Web Service (`type: web`)
+- **Name**: `business-web`
+- **Runtime**: Python (`runtime: python`)
+- **Plan**: Free (`plan: free`)
+- **Root Directory**: `business_web`
+- **Build Command**: `./build.sh`
+- **Start Command**: `gunicorn business_web.wsgi:application`
+- **Health Check**: `/`
 
-    CLD["🖼️ Cloudinary<br/>media storage"]
-    GM["📧 Gmail SMTP<br/>smtp.gmail.com:587 TLS"]
-    HF["🤖 HuggingFace Space<br/>kluan-...hf.space<br/>FastAPI face API"]
-    DEV["💻 Local / Windows<br/>Task Scheduler →<br/>batch mgmt commands<br/>(⚠ không chạy trên Render free)"]
+### 3.2 Cấu hình Database
+- **Name**: `business-web-db`
+- **Plan**: Free (`plan: free`)
 
-    User -->|HTTPS 443| LB --> G --> APP
-    WN --> G
-    APP -->|"psycopg2 :5432"| DB
-    APP -->|HTTPS API| CLD
-    APP -->|SMTP 587| GM
-    APP -->|"HTTPS /register /recognize /health"| HF
-    DEV -.->|"manage.py … (thủ công)"| DB
+---
 
-    subgraph Build["Build pipeline (build.sh mỗi deploy)"]
-        B1["pip install → collectstatic → migrate → ensure_superuser"]
-    end
-    Build -.-> WS
+## 4. Quá trình Build & Khởi động
+
+### 4.1 Build Script (`build.sh`)
+Tự động chạy mỗi khi có thay đổi được push lên Git repository:
+1. Cài đặt thư viện: `pip install -r requirements.txt`
+2. Gom static files: `python manage.py collectstatic --no-input` (sử dụng WhiteNoise để phục vụ static files).
+3. Cập nhật schema DB: `python manage.py migrate`
+4. Tạo tài khoản Superuser từ biến môi trường (Idempotent): `python manage.py ensure_superuser` (thay vì phải mở Render Shell).
+
+### 4.2 Start Command
+Sử dụng **Gunicorn** làm production WSGI server để phục vụ ứng dụng:
+```bash
+gunicorn business_web.wsgi:application
 ```
 
 ---
 
-## 4. Biến Môi Trường (Render → `settings.py`)
+## 5. Cấu hình Môi trường (Environment Variables)
 
-| Env var | Vai trò | Nguồn |
-|---------|---------|-------|
-| `SECRET_KEY` | Django secret | Render auto-generate |
-| `DEBUG` | `False` trên prod | render.yaml |
-| `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` | host hợp lệ | render.yaml (+ `RENDER_EXTERNAL_HOSTNAME` auto) |
-| `DATABASE_URL` | chuỗi kết nối Postgres | `fromDatabase` business-web-db |
-| `USE_CLOUDINARY` + `CLOUDINARY_*` | bật media trên Cloudinary | render.yaml (secret `sync:false`) |
-| `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | Gmail SMTP | secret `sync:false` |
-| `FACE_API_BASE_URL` | endpoint face service | render.yaml |
-| `FACE_API_TIMEOUT_SEC` | timeout HTTP (default 30) | settings |
+Các biến môi trường được cấu hình tại Render để kiểm soát ứng dụng:
 
----
+| Biến môi trường | Mục đích | Nguồn cung cấp / Cấu hình |
+|---|---|---|
+| `SECRET_KEY` | Bảo mật session/CSRF của Django | `generateValue: true` (Render tự sinh) |
+| `DEBUG` | Chế độ chạy | `False` (bắt buộc trên production) |
+| `ALLOWED_HOSTS` | Domain được phép truy cập | `business-web.onrender.com` |
+| `CSRF_TRUSTED_ORIGINS` | Domain tin cậy cho CSRF | `https://business-web.onrender.com` |
+| `DATABASE_URL` | Chuỗi kết nối đến PostgreSQL | `fromDatabase` (tự động lấy từ db `business-web-db`) |
+| `USE_CLOUDINARY` | Bật tính năng lưu trữ Cloudinary | `True` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary config | Nhập tay trên Dashboard (`sync: false`) |
+| `CLOUDINARY_API_KEY` | Cloudinary config | Nhập tay trên Dashboard (`sync: false`) |
+| `CLOUDINARY_API_SECRET`| Cloudinary config | Nhập tay trên Dashboard (`sync: false`) |
+| `EMAIL_HOST_USER` | Email gửi thông báo | Nhập tay trên Dashboard (`sync: false`) |
+| `EMAIL_HOST_PASSWORD`| App Password của Email | Nhập tay trên Dashboard (`sync: false`) |
+| `FACE_API_BASE_URL` | Endpoint của Face API (HuggingFace) | `https://kluan-facial-recognition-for-attendance-tracking.hf.space` |
+| `DJANGO_SUPERUSER_USERNAME` | Username cho lệnh `ensure_superuser` | (Tùy chọn) Không lưu trong source |
+| `DJANGO_SUPERUSER_EMAIL` | Email cho lệnh `ensure_superuser` | (Tùy chọn) |
+| `DJANGO_SUPERUSER_PASSWORD` | Mật khẩu cho lệnh `ensure_superuser` | (Tùy chọn) |
 
-## 5. ⚠️ Khoảng Trống Triển Khai (Deployment Gaps)
-
-1. **Batch job không tự chạy trên prod.** `close_open_attendance` và `send_contract_renewal_reminders`
-   là management command, lập lịch qua `setup_task_scheduler.py` (Windows Task Scheduler) — **chỉ chạy ở
-   máy local**. Render free **không có cron job**. Trên prod cần: Render Cron Job (paid), hoặc external
-   scheduler (GitHub Actions, cron-job.org) gọi một endpoint trigger, hoặc Celery beat + worker.
-2. **Face service cold-start.** HuggingFace Space free ngủ khi không dùng → request đầu chậm; cần
-   `FACE_API_TIMEOUT_SEC` đủ lớn và fallback khi `503 service_down`.
-3. **Free tier sleep.** Render free web service ngủ sau ~15 phút không traffic → request đầu chậm.
+*(Ghi chú: Các biến `sync: false` được loại trừ khỏi render.yaml để tránh lộ thông tin nhạy cảm, admin phải vào Dashboard của Render để bổ sung bằng tay sau khi deploy)*.

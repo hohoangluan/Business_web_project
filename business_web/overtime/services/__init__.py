@@ -60,6 +60,29 @@ def _get_direct_report_user_ids(supervisor):
     )
 
 
+def _has_supervisor(user):
+    """Nhân viên có ít nhất 1 leader hoặc manager phụ trách không."""
+    try:
+        wi = user.work_info
+    except Exception:
+        return False
+    return bool(wi.leader_user_id or wi.manager_user_id)
+
+
+def _resolve_initial_status(user):
+    """Trạng thái khởi tạo đơn theo cấu hình quản lý của nhân viên.
+
+    - Có ≥1 leader/manager        → PENDING (duyệt L1 bình thường, rồi HR L2).
+    - Trống cả 2, nhân viên thường → LEADER_APPROVED (bỏ L1, chuyển thẳng HR L2).
+    - Trống cả 2, nhân viên HR      → APPROVED (tự duyệt: không có L1, HR không cần L2).
+    """
+    if _has_supervisor(user):
+        return OvertimeRequest.PENDING
+    if _is_hr_role(user):
+        return OvertimeRequest.APPROVED
+    return OvertimeRequest.LEADER_APPROVED
+
+
 # ===========================================================================
 #  EMPLOYEE: tạo / hủy / xem đơn
 # ===========================================================================
@@ -68,8 +91,16 @@ def create_overtime_request(user, form):
     """Tạo đơn tăng ca mới từ một form đã validated."""
     obj = form.save(commit=False)
     obj.user = user
-    obj.status = OvertimeRequest.PENDING
+    obj.status = _resolve_initial_status(user)
     obj.save()
+    if obj.status == OvertimeRequest.APPROVED:
+        # Trống cả leader/manager và bản thân là HR → không có cấp duyệt nào.
+        create_notification(
+            user,
+            'Đơn tăng ca đã được duyệt',
+            'Đơn tăng ca của bạn đã được tự động phê duyệt '
+            '(không có quản lý phụ trách).',
+        )
     return obj
 
 

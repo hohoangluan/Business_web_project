@@ -1,0 +1,9 @@
+flowchart TD
+  A([Mở Khen thưởng & Xử phạt]) --> B{Employee hoặc Admin?}
+  B -- Có --> Z([Chặn truy cập])
+  B -- Không · Leader/Manager/HR --> C{Là HR?}
+  C -- HR --> D[Chọn nhân viên · loại tài khoản Admin]
+  C -- Quản lý --> E[Xem phiếu trong phạm vi]
+  D --> F[records của nhân viên<br/>tính tổng thưởng/phạt/net]
+  E --> F
+  F --> G[Hiển thị danh sách + trạng thái + tổng]

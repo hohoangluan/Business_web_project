@@ -1,0 +1,65 @@
+---
+title: ERD — Module Attendance (Chấm công)
+---
+erDiagram
+    auth_user {
+        integer id PK
+        varchar(150) username
+    }
+    attendance_attendancerecord {
+        bigint id PK
+        integer user_id FK
+        date record_date
+        time check_in_time
+        time check_out_time
+        varchar(20) status
+    }
+    attendance_attendanceadjustmentrequest {
+        bigint id PK
+        bigint record_id FK
+        integer submitted_by_id FK
+        integer reviewed_by_id FK
+        varchar(20) reason
+        text reason_detail
+        time claimed_check_in_time
+        time claimed_check_out_time
+        varchar(100) evidence
+        varchar(20) status
+        text hr_note
+        timestamptz submitted_at
+        timestamptz reviewed_at
+    }
+    attendance_employeeface {
+        bigint id PK
+        integer user_id FK
+        smallint slot_id
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    attendance_facechangerequest {
+        bigint id PK
+        integer user_id FK
+        integer submitted_by_id FK
+        integer reviewed_by_id FK
+        varchar(64) image_sha256
+        varchar(100) image
+        inet ip_address
+        varchar(20) status
+        text hr_note
+        timestamptz created_at
+    }
+    attendance_workscheduleconfig {
+        bigint id PK
+        time shift_start
+        time shift_end
+        integer late_grace_minutes
+    }
+
+    auth_user ||--o{ attendance_attendancerecord : ""
+    attendance_attendancerecord ||--|| attendance_attendanceadjustmentrequest : "1-1"
+    auth_user ||--o{ attendance_attendanceadjustmentrequest : "submitted_by"
+    auth_user ||--o{ attendance_attendanceadjustmentrequest : "reviewed_by"
+    auth_user ||--|| attendance_employeeface : "1-1"
+    auth_user ||--o{ attendance_facechangerequest : "user"
+    auth_user ||--o{ attendance_facechangerequest : "submitted_by"
+    auth_user ||--o{ attendance_facechangerequest : "reviewed_by"
