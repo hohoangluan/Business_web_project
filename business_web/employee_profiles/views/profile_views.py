@@ -17,7 +17,7 @@ from accounts.services import (
     ensure_personal_info, ensure_emergency_contact, ensure_education_info,
     is_admin_user, is_hr_user, can_manage_work_info, create_notification,
 )
-from employee_profiles.forms import EmployeeProfileForm
+from employee_profiles.forms import EmployeeProfileForm, PersonalEditForm
 from employee_profiles.services import (
     get_manager_user_queryset, get_leader_user_queryset,
     build_hr_create_profile_context,
@@ -59,40 +59,44 @@ def profile_view(request):
     ensure_education_info(request.user)
 
     if request.method == 'POST':
-        full_name = request.POST.get('full_name', '').strip()
-        email = request.POST.get('email', '').strip()
-        phone_number = request.POST.get('phone_number', '').strip()
-        date_of_birth = request.POST.get('date_of_birth', '').strip()
+        form = PersonalEditForm(request.POST, instance_user=request.user)
 
-        # Chỉ kiểm tra trùng khi email THỰC SỰ thay đổi.
-        email_changed = email != (request.user.email or '')
-        if email_changed and email_is_used_by_other_user(email, request.user):
-            messages.error(request, 'Email nay da duoc su dung.')
+        if form.is_valid():
+            full_name = form.cleaned_data['full_name']
+            email = form.cleaned_data['email']
+            phone_number = form.cleaned_data['phone_number']
+            date_of_birth = form.cleaned_data['date_of_birth']
+            email_changed = email != (request.user.email or '')
+
+            # Lưu mọi thay đổi trong 1 transaction → all-or-nothing,
+            # không lưu nửa vời nếu một bước lỗi giữa chừng.
+            with transaction.atomic():
+                profile.full_name = full_name
+                if email_changed:
+                    request.user.email = email
+                    request.user.save(update_fields=['email'])
+                profile.save()
+
+                personal_info = ensure_personal_info(request.user)
+                if phone_number:
+                    personal_info.phone_number = phone_number
+                if date_of_birth:
+                    personal_info.date_of_birth = date_of_birth
+                personal_info.save()
+
+                # Lưu các thông tin mở rộng khác từ POST
+                save_personal_info_from_data(request.user, request.POST)
+                save_emergency_contact_from_data(request.user, request.POST)
+                save_education_info_from_data(request.user, request.POST)
+
+            messages.success(request, 'Cập nhật hồ sơ thành công!')
             return redirect('profile')
 
-        # Lưu mọi thay đổi trong 1 transaction → all-or-nothing,
-        # không lưu nửa vời nếu một bước lỗi giữa chừng.
-        with transaction.atomic():
-            profile.full_name = full_name
-            if email_changed:
-                request.user.email = email
-                request.user.save(update_fields=['email'])
-            profile.save()
-
-            personal_info = ensure_personal_info(request.user)
-            if phone_number:
-                personal_info.phone_number = phone_number
-            if date_of_birth:
-                personal_info.date_of_birth = date_of_birth
-            personal_info.save()
-
-            # Lưu các thông tin mở rộng khác từ POST
-            save_personal_info_from_data(request.user, request.POST)
-            save_emergency_contact_from_data(request.user, request.POST)
-            save_education_info_from_data(request.user, request.POST)
-
-        messages.success(request, 'Cập nhật hồ sơ thành công!')
-        return redirect('profile')
+        # Form không hợp lệ → hiển thị lỗi từng field thay vì redirect âm thầm.
+        return render(request, 'employee_profiles/profile.html', {
+            'form': form,
+            'active_page': 'profile',
+        })
 
     return render(request, 'employee_profiles/profile.html', {
         'active_page': 'profile',

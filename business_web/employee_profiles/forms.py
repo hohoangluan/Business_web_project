@@ -6,9 +6,13 @@ Form chỉnh sửa hồ sơ nhân viên. Dùng bởi HR/Admin tại edit_work_in
 ==============================================================================
 """
 
+from datetime import date
+
 from django import forms
 from django.contrib.auth.models import User
 from accounts.models import UserProfile, Role
+from common.validators import validate_phone_number
+from contracts.services import parse_ddmmyyyy
 from employee_profiles.models import EmployeeWorkInfo
 
 class UserChoiceField(forms.ModelChoiceField):
@@ -156,3 +160,49 @@ class EmployeeProfileForm(forms.Form):
     def clean(self):
         """Thông tin cá nhân có thể để trống; ràng buộc đặc thù xử lý ở từng field."""
         return super().clean()
+
+
+class PersonalEditForm(forms.Form):
+    """
+    Form tự chỉnh hồ sơ cá nhân của nhân viên (trang profile_view).
+    Validate các field cơ bản để hiển thị lỗi từng field thay vì
+    redirect âm thầm khi dữ liệu không hợp lệ (Bug #20/#21/#22).
+    """
+
+    full_name = forms.CharField(max_length=255, required=False)
+    email = forms.EmailField(required=False)
+    phone_number = forms.CharField(max_length=20, required=False)
+    date_of_birth = forms.CharField(max_length=10, required=False)
+
+    def __init__(self, *args, instance_user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance_user = instance_user
+
+    def clean_email(self):
+        value = (self.cleaned_data.get('email') or '').strip()
+        if not value:
+            return ''
+        qs = User.objects.filter(email__iexact=value)
+        if self.instance_user:
+            qs = qs.exclude(pk=self.instance_user.pk)
+        if qs.exists():
+            # Giữ thông điệp không dấu để khớp với test cũ (test_ep_prof_06_duplicate_email)
+            # so sánh chuỗi thường (lowercase ASCII).
+            raise forms.ValidationError('Email nay da duoc su dung.')
+        return value
+
+    def clean_phone_number(self):
+        # validate_phone_number raises django.core.exceptions.ValidationError,
+        # which Django forms treat the same as forms.ValidationError.
+        return validate_phone_number(self.cleaned_data.get('phone_number'))
+
+    def clean_date_of_birth(self):
+        value = (self.cleaned_data.get('date_of_birth') or '').strip()
+        if not value:
+            return ''
+        parsed = parse_ddmmyyyy(value)
+        if not parsed:
+            raise forms.ValidationError('Vui lòng nhập ngày sinh đúng định dạng DD/MM/YYYY.')
+        if parsed > date.today():
+            raise forms.ValidationError('Vui lòng nhập ngày sinh không ở tương lai.')
+        return value
