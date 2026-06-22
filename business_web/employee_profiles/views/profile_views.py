@@ -206,6 +206,8 @@ def hr_create_profile_view(request):
         contract_end_date = request.POST.get('contract_end_date', '').strip()
         contract_annual_leave_days_raw = request.POST.get('contract_annual_leave_days', '').strip()
         contract_standard_shift = request.POST.get('contract_standard_shift', '').strip()
+        shift_start_time = request.POST.get('shift_start_time', '').strip()
+        shift_end_time = request.POST.get('shift_end_time', '').strip()
         contract_attachment_reference = request.POST.get('contract_attachment_reference', '').strip()
         work_status = request.POST.get('work_status', '').strip()
         manager_user_id = request.POST.get('manager_user', '').strip()
@@ -260,6 +262,19 @@ def hr_create_profile_view(request):
                 errors.append('Số ngày nghỉ phép/năm phải là số nguyên.')
         if not contract_standard_shift:
             errors.append('Ca làm tiêu chuẩn không được để trống.')
+
+        # Ràng buộc giờ ca: nếu điền cả 2 thì giờ kết thúc phải sau giờ bắt đầu.
+        from datetime import datetime
+
+        def _parse_time(v):
+            try:
+                return datetime.strptime(v, '%H:%M').time()
+            except ValueError:
+                return None
+
+        s_start, s_end = _parse_time(shift_start_time), _parse_time(shift_end_time)
+        if s_start and s_end and s_end <= s_start:
+            errors.append('Giờ kết thúc ca phải sau giờ bắt đầu ca.')
 
         # Ràng buộc thứ tự ngày HĐ (BĐ ≥ ký, hết hạn ≥ BĐ).
         from contracts.services import validate_contract_date_order
@@ -330,6 +345,8 @@ def hr_create_profile_view(request):
                 'contract_end_date': contract_end_date,
                 'contract_annual_leave_days': contract_annual_leave_days,
                 'contract_standard_shift': contract_standard_shift,
+                'shift_start_time': shift_start_time,
+                'shift_end_time': shift_end_time,
                 'contract_attachment_reference': contract_attachment_reference,
             })
 

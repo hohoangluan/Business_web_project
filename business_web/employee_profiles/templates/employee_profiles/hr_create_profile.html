@@ -329,6 +329,14 @@
                         <input type="text" name="contract_standard_shift" placeholder="VD: 08:30 - 17:30 (Thứ 2 đến Thứ 6)" value="{{ form_data.contract_standard_shift|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
+                        <label>Giờ bắt đầu ca</label>
+                        <input type="time" name="shift_start_time" value="{{ form_data.shift_start_time|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Giờ kết thúc ca</label>
+                        <input type="time" name="shift_end_time" value="{{ form_data.shift_end_time|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
                         <label>File tham chiếu hợp đồng</label>
                         <input type="text" name="contract_attachment_reference" placeholder="VD: HD_NV001.pdf hoặc link lưu trữ" value="{{ form_data.contract_attachment_reference|default:'' }}">
                     </div>
