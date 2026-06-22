@@ -350,6 +350,23 @@ def hr_create_profile_view(request):
                 'contract_attachment_reference': contract_attachment_reference,
             })
 
+            # Tài liệu minh chứng (CCCD, bằng cấp, hợp đồng đã ký...) đính kèm khi tạo hồ sơ.
+            for evidence_file in request.FILES.getlist('evidence_files'):
+                try:
+                    validate_upload(evidence_file)
+                except ValidationError as exc:
+                    messages.warning(
+                        request,
+                        f'Bỏ qua "{evidence_file.name}": {" ".join(exc.messages)}'
+                    )
+                    continue
+                EmployeeDocument.objects.create(
+                    user=user,
+                    title=evidence_file.name,
+                    document_type='Minh chứng hồ sơ',
+                    file=evidence_file,
+                )
+
             display_name = full_name or employee_id
             messages.success(
                 request,

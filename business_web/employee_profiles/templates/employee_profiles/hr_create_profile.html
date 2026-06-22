@@ -163,7 +163,7 @@
         <a href="{% url 'dashboard' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
     </div>
 
-    <form method="post" novalidate>
+    <form method="post" novalidate enctype="multipart/form-data">
         {% csrf_token %}
         <div class="hrc-card">
 
@@ -339,6 +339,24 @@
                     <div class="hrc-field">
                         <label>File tham chiếu hợp đồng</label>
                         <input type="text" name="contract_attachment_reference" placeholder="VD: HD_NV001.pdf hoặc link lưu trữ" value="{{ form_data.contract_attachment_reference|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3b: Tài liệu minh chứng -->
+            <div class="hrc-section">
+                <div class="hrc-section-head">
+                    <div class="hrc-sec-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-camera"></i></div>
+                    <div>
+                        <div class="hrc-sec-title">Tài liệu minh chứng</div>
+                        <div class="hrc-sec-desc">Tải lên hoặc chụp ảnh minh chứng (CCCD, bằng cấp, hợp đồng đã ký...)</div>
+                    </div>
+                </div>
+
+                <div class="hrc-grid">
+                    <div class="hrc-field" style="grid-column: 1 / -1;">
+                        <label>Tài liệu minh chứng (CCCD, bằng cấp, hợp đồng đã ký...)</label>
+                        <input type="file" name="evidence_files" multiple accept="image/*,.pdf" capture="environment">
                     </div>
                 </div>
             </div>
