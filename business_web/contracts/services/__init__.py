@@ -26,7 +26,7 @@ def parse_ddmmyyyy_date(raw_value):
 def validate_contract_date_order(signed, start, end):
     """Kiểm tra thứ tự ngày hợp đồng (chuỗi DD/MM/YYYY).
 
-    Quy tắc: ngày bắt đầu ≥ ngày ký; ngày hết hạn ≥ ngày bắt đầu (nếu có).
+    Quy tắc: ngày bắt đầu ≥ ngày ký; ngày hết hạn phải SAU ngày bắt đầu (nếu có).
     Trả về list thông báo lỗi (rỗng = hợp lệ). Bỏ qua ngày trống/sai định dạng
     (validation định dạng do nơi gọi xử lý riêng).
     """
@@ -36,8 +36,8 @@ def validate_contract_date_order(signed, start, end):
     d_end = parse_ddmmyyyy(end)
     if d_signed and d_start and d_start < d_signed:
         errors.append('Ngày bắt đầu hợp đồng phải từ ngày ký trở đi.')
-    if d_start and d_end and d_end < d_start:
-        errors.append('Ngày hết hạn hợp đồng phải từ ngày bắt đầu trở đi.')
+    if d_start and d_end and d_end <= d_start:
+        errors.append('Ngày hết hạn hợp đồng phải sau ngày bắt đầu.')
     return errors
 
 

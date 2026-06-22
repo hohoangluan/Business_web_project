@@ -14,7 +14,7 @@ class TestContractDateOrderService(TestCase):
 
     def test_end_before_start_rejected(self):
         errs = validate_contract_date_order('01/01/2026', '05/01/2026', '02/01/2026')
-        self.assertTrue(any('từ ngày bắt đầu' in e for e in errs))
+        self.assertTrue(any('sau ngày bắt đầu' in e for e in errs))
 
     def test_valid_order_ok(self):
         errs = validate_contract_date_order('01/01/2026', '05/01/2026', '05/01/2027')
@@ -23,6 +23,10 @@ class TestContractDateOrderService(TestCase):
     def test_open_ended_end_date_ok(self):
         errs = validate_contract_date_order('01/01/2026', '05/01/2026', '')
         self.assertEqual(errs, [])
+
+    def test_end_equal_start_rejected(self):
+        errs = validate_contract_date_order('01/01/2026', '01/01/2026', '01/01/2026')
+        self.assertTrue(any('hết hạn' in e for e in errs))
 
 
 class TestContractDateOrderCreateView(TestCase):

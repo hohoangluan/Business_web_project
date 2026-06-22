@@ -71,7 +71,7 @@ class ContractAdjustForm(forms.Form):
             for err in order_errors:
                 if 'phải từ ngày ký' in err:
                     self.add_error('contract_start_date', err)
-                elif 'từ ngày bắt đầu' in err:
+                elif 'sau ngày bắt đầu' in err:
                     self.add_error('contract_end_date', err)
 
         # Giờ ca: nếu điền cả 2 thì giờ kết thúc phải sau giờ bắt đầu (đồng bộ chấm công).
