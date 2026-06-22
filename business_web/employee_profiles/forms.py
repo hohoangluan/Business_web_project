@@ -23,9 +23,6 @@ EDUCATION_LEVEL_CHOICES = [
     ('Đại học', 'Đại học'),
     ('Thạc sĩ', 'Thạc sĩ'),
     ('Tiến sĩ', 'Tiến sĩ'),
-    # Giữ tương thích với dữ liệu cũ đã lưu trước khi có dropdown cố định
-    # (vd. test EP-EDIT-01/02 lưu 'Master') để không phá hỏng giá trị hợp lệ đã có.
-    ('Master', 'Master'),
 ]
 
 MAJOR_SUGGESTIONS = [

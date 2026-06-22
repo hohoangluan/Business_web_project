@@ -55,7 +55,7 @@ class TestEditWorkInfoView(TestCase):
             'contract_standard_shift': 'Morning',
             'gender': 'Female',
             'contact_name': 'Husband',
-            'education_level': 'Master'
+            'education_level': 'Thạc sĩ'
         })
         
         self.assertRedirects(response, reverse('hr_view_profile', args=[self.normal_user.pk]), msg_prefix=response.content.decode('utf-8'))
@@ -73,7 +73,7 @@ class TestEditWorkInfoView(TestCase):
         self.assertNotEqual(self.contract_info.contract_number, 'HD-999')
         self.assertEqual(self.personal_info.gender, 'Female')
         self.assertEqual(self.emergency_contact.contact_name, 'Husband')
-        self.assertEqual(self.education.education_level, 'Master')
+        self.assertEqual(self.education.education_level, 'Thạc sĩ')
 
     def test_ep_edit_03_non_hr_access(self):
         """EP-EDIT-03: Non-HR/Admin -> bị chặn"""
