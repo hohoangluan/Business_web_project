@@ -41,6 +41,16 @@ def validate_contract_date_order(signed, start, end):
     return errors
 
 
+def validate_work_date_order(probation_start, official_start):
+    """Ngày thử việc phải ≤ ngày chính thức (chuỗi DD/MM/YYYY)."""
+    errors = []
+    d_prob = parse_ddmmyyyy(probation_start)
+    d_off = parse_ddmmyyyy(official_start)
+    if d_prob and d_off and d_prob > d_off:
+        errors.append('Ngày thử việc phải trước hoặc bằng ngày chính thức.')
+    return errors
+
+
 def has_complete_contract_info(contract_info):
     """Kiểm tra đã có đủ thông tin hợp đồng tối thiểu để hiển thị chưa."""
     return any([

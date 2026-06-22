@@ -185,7 +185,16 @@ class EmployeeProfileForm(forms.Form):
 
     def clean(self):
         """Thông tin cá nhân có thể để trống; ràng buộc đặc thù xử lý ở từng field."""
-        return super().clean()
+        cleaned_data = super().clean()
+
+        from contracts.services import validate_work_date_order
+        for err in validate_work_date_order(
+            cleaned_data.get('probation_start'),
+            cleaned_data.get('official_start_date'),
+        ):
+            self.add_error('official_start_date', err)
+
+        return cleaned_data
 
 
 class PersonalEditForm(forms.Form):

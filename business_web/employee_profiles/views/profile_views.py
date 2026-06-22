@@ -267,6 +267,10 @@ def hr_create_profile_view(request):
             contract_signed_date, contract_start_date, contract_end_date,
         ))
 
+        # Ràng buộc ngày thử việc ≤ ngày chính thức.
+        from contracts.services import validate_work_date_order
+        errors.extend(validate_work_date_order(probation_start, official_start_date))
+
         if errors:
             for e in errors:
                 messages.error(request, e)
