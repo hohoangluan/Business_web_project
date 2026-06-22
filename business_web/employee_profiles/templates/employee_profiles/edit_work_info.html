@@ -232,6 +232,9 @@
             <div class="form-group">
                 <label class="form-label">Chuyên ngành</label>
                 {{ form.major }}
+                <datalist id="major-suggestions">
+                    {% for m in major_suggestions %}<option value="{{ m }}">{% endfor %}
+                </datalist>
             </div>
 
             <div class="form-group">

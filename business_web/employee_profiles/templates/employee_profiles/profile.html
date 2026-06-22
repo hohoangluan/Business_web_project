@@ -460,7 +460,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Trình độ học vấn</label>
-                            <input type="text" name="education_level" class="form-control" value="{{ request.user.education_and_skills.education_level }}">
+                            <select name="education_level" class="form-control">
+                                {% for value, label in education_level_choices %}
+                                <option value="{{ value }}" {% if value == request.user.education_and_skills.education_level %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Bằng cấp</label>
@@ -468,7 +472,10 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Chuyên ngành</label>
-                            <input type="text" name="major" class="form-control" value="{{ request.user.education_and_skills.major }}">
+                            <input type="text" name="major" class="form-control" list="major-suggestions" placeholder="Gõ để tìm chuyên ngành..." value="{{ request.user.education_and_skills.major }}">
+                            <datalist id="major-suggestions">
+                                {% for m in major_suggestions %}<option value="{{ m }}">{% endfor %}
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Chứng chỉ</label>

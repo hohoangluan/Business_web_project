@@ -17,7 +17,9 @@ from accounts.services import (
     ensure_personal_info, ensure_emergency_contact, ensure_education_info,
     is_admin_user, is_hr_user, can_manage_work_info, create_notification,
 )
-from employee_profiles.forms import EmployeeProfileForm, PersonalEditForm
+from employee_profiles.forms import (
+    EmployeeProfileForm, PersonalEditForm, MAJOR_SUGGESTIONS, EDUCATION_LEVEL_CHOICES,
+)
 from employee_profiles.services import (
     get_manager_user_queryset, get_leader_user_queryset,
     build_hr_create_profile_context,
@@ -96,10 +98,14 @@ def profile_view(request):
         return render(request, 'employee_profiles/profile.html', {
             'form': form,
             'active_page': 'profile',
+            'major_suggestions': MAJOR_SUGGESTIONS,
+            'education_level_choices': EDUCATION_LEVEL_CHOICES,
         })
 
     return render(request, 'employee_profiles/profile.html', {
         'active_page': 'profile',
+        'major_suggestions': MAJOR_SUGGESTIONS,
+        'education_level_choices': EDUCATION_LEVEL_CHOICES,
     })
 
 
@@ -452,6 +458,7 @@ def edit_work_info_view(request, user_id):
         'target_user': target_user,
         'active_page': 'users',
         'can_manage_system_users': editor_is_admin,
+        'major_suggestions': MAJOR_SUGGESTIONS,
     })
 
 

@@ -15,6 +15,26 @@ from common.validators import validate_phone_number
 from contracts.services import parse_ddmmyyyy
 from employee_profiles.models import EmployeeWorkInfo
 
+EDUCATION_LEVEL_CHOICES = [
+    ('', '-- Chọn trình độ --'),
+    ('THPT', 'THPT'),
+    ('Trung cấp', 'Trung cấp'),
+    ('Cao đẳng', 'Cao đẳng'),
+    ('Đại học', 'Đại học'),
+    ('Thạc sĩ', 'Thạc sĩ'),
+    ('Tiến sĩ', 'Tiến sĩ'),
+    # Giữ tương thích với dữ liệu cũ đã lưu trước khi có dropdown cố định
+    # (vd. test EP-EDIT-01/02 lưu 'Master') để không phá hỏng giá trị hợp lệ đã có.
+    ('Master', 'Master'),
+]
+
+MAJOR_SUGGESTIONS = [
+    'Công nghệ thông tin', 'Kế toán', 'Quản trị kinh doanh', 'Marketing',
+    'Tài chính - Ngân hàng', 'Kỹ thuật phần mềm', 'Khoa học máy tính',
+    'Ngôn ngữ Anh', 'Luật', 'Nhân sự', 'Cơ khí', 'Điện - Điện tử',
+]
+
+
 class UserChoiceField(forms.ModelChoiceField):
     """Hiển thị tên thân thiện trong dropdown chọn manager/leader."""
 
@@ -70,9 +90,18 @@ class EmployeeProfileForm(forms.Form):
     contact_address = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Địa chỉ người liên hệ'}))
 
     # ----- Học vấn và Năng lực (EducationAndSkills) -----
-    education_level = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: Đại học, Cao đẳng'}))
+    education_level = forms.ChoiceField(
+        required=False, choices=EDUCATION_LEVEL_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
     degree = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: Cử nhân, Kỹ sư'}))
-    major = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Chuyên ngành'}))
+    major = forms.CharField(
+        max_length=255, required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 'list': 'major-suggestions',
+            'placeholder': 'Gõ để tìm chuyên ngành...',
+        }),
+    )
     certificates = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Các chứng chỉ'}))
     foreign_languages = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Ngoại ngữ'}))
     professional_skills = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Kỹ năng chuyên môn'}))
