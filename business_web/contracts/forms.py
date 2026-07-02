@@ -3,6 +3,8 @@ import re
 
 from django import forms
 
+from accounts.models import CompanyConfiguration
+
 from contracts.services import normalize_date_string, validate_contract_date_order
 
 WEEKDAY_CHOICES = [
@@ -16,6 +18,28 @@ WEEKDAY_CHOICES = [
     ('Chủ nhật', 'Chủ nhật'),
 ]
 
+CONTRACT_TYPE_FALLBACK = [
+    ('', '-- Chọn loại hợp đồng --'),
+    ('Thử việc', 'Thử việc'),
+    ('Xác định thời hạn', 'Xác định thời hạn'),
+    ('Không xác định thời hạn', 'Không xác định thời hạn'),
+    ('Thời vụ', 'Thời vụ'),
+]
+
+
+def configured_contract_type_choices(selected_value=None):
+    """Build contract type choices from Admin company config."""
+
+    try:
+        choices = CompanyConfiguration.get_solo().choices_for('contract_types', '-- Chọn loại hợp đồng --')
+    except Exception:
+        choices = list(CONTRACT_TYPE_FALLBACK)
+
+    selected_value = (selected_value or '').strip()
+    values = {value for value, _ in choices}
+    if selected_value and selected_value not in values:
+        choices.append((selected_value, selected_value))
+    return choices
 class ContractAdjustForm(forms.Form):
     """Form điều chỉnh hợp đồng — chỉ field HĐ. Mỗi lần lưu = 1 phiên bản mới."""
 
@@ -25,7 +49,7 @@ class ContractAdjustForm(forms.Form):
     )
     contract_type = forms.ChoiceField(
         required=False,
-        choices=[('', '-- Chọn loại hợp đồng --'), ('Thử việc', 'Thử việc'), ('Xác định thời hạn', 'Xác định thời hạn'), ('Không xác định thời hạn', 'Không xác định thời hạn'), ('Thời vụ', 'Thời vụ')],
+        choices=CONTRACT_TYPE_FALLBACK,
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     contract_signed_date = forms.CharField(
@@ -73,6 +97,10 @@ class ContractAdjustForm(forms.Form):
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.doc,.docx,image/*'}),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        selected_value = self.data.get('contract_type') if self.is_bound else self.initial.get('contract_type')
+        self.fields['contract_type'].choices = configured_contract_type_choices(selected_value)
     def clean(self):
         cleaned_data = super().clean()
 

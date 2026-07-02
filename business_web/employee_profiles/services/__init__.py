@@ -14,7 +14,7 @@ from accounts.services import (
     ensure_personal_info, ensure_emergency_contact, ensure_education_info
 )
 from employee_profiles.forms import (
-    DEPARTMENT_CHOICES, EMPLOYEE_TYPE_CHOICES, GENDER_CHOICES,
+    DEPARTMENT_CHOICES, EMPLOYEE_TYPE_CHOICES, GENDER_CHOICES, configured_company_choices,
     MARITAL_STATUS_CHOICES, NATIONALITY_CHOICES, POSITION_CHOICES, WORKPLACE_CHOICES,
 )
 
@@ -35,20 +35,36 @@ def get_leader_user_queryset():
 
 def build_hr_create_profile_context(form_data=None):
     """Context chung cho trang tạo hồ sơ (GET/POST dùng chung)."""
+    data = form_data or {}
+    contract_type_fallback = [
+        ('', '-- Chọn loại hợp đồng --'),
+        ('Thử việc', 'Thử việc'),
+        ('Xác định thời hạn', 'Xác định thời hạn'),
+        ('Không xác định thời hạn', 'Không xác định thời hạn'),
+        ('Thời vụ', 'Thời vụ'),
+    ]
     return {
         'active_page': 'hr_profiles',
-        'form_data': form_data or {},
+        'form_data': data,
         'manager_choices': get_manager_user_queryset(),
         'leader_choices': get_leader_user_queryset(),
-        'department_choices': DEPARTMENT_CHOICES,
-        'position_choices': POSITION_CHOICES,
+        'department_choices': configured_company_choices(
+            'departments', DEPARTMENT_CHOICES, '-- Chọn phòng ban --', data.get('department')
+        ),
+        'position_choices': configured_company_choices(
+            'positions', POSITION_CHOICES, '-- Chọn chức vụ --', data.get('position')
+        ),
         'employee_type_choices': EMPLOYEE_TYPE_CHOICES,
-        'workplace_choices': WORKPLACE_CHOICES,
+        'workplace_choices': configured_company_choices(
+            'workplaces', WORKPLACE_CHOICES, '-- Chọn nơi làm việc --', data.get('workplace')
+        ),
+        'contract_type_choices': configured_company_choices(
+            'contract_types', contract_type_fallback, '-- Chọn loại hợp đồng --', data.get('contract_type')
+        ),
         'gender_choices': GENDER_CHOICES,
         'marital_status_choices': MARITAL_STATUS_CHOICES,
         'nationality_choices': NATIONALITY_CHOICES,
     }
-
 
 def save_work_info_from_data(user, data):
     """Lưu thông tin công việc từ dict data vào EmployeeWorkInfo."""

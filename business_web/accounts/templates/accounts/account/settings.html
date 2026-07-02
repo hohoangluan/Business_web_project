@@ -66,6 +66,132 @@
         background: #f8fafc; transition: border-color 0.2s;
     }
     .st-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .company-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+    .company-config-grid .full { grid-column: 1 / -1; }
+    .company-config-source { display: none; }
+    .config-card {
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+        min-width: 0;
+    }
+    .config-card-head {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid #eef2f7;
+        background: #f8fafc;
+    }
+    .config-card-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        flex: 0 0 auto;
+    }
+    .config-card-title { font-weight: 750; color: var(--text-main); font-size: 0.98rem; }
+    .config-card-sub { color: var(--text-muted); font-size: 0.78rem; margin-top: 0.15rem; }
+    .config-card-body { padding: 1rem 1.1rem 1.1rem; }
+    .config-items { display: flex; flex-wrap: wrap; gap: 0.55rem; min-height: 42px; }
+    .config-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        max-width: 100%;
+        border: 1px solid #dbe4ef;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #243044;
+        padding: 0.42rem 0.45rem 0.42rem 0.72rem;
+        font-size: 0.86rem;
+        font-weight: 650;
+    }
+    .config-pill span { overflow-wrap: anywhere; }
+    .config-remove {
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #475569;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .config-remove:hover { background: #fee2e2; color: #b91c1c; }
+    .config-add-row { display: flex; gap: 0.55rem; margin-top: 0.85rem; }
+    .config-add-row input {
+        min-width: 0;
+        flex: 1;
+        border: 1px solid #cbd5e1;
+        border-radius: 7px;
+        padding: 0.58rem 0.72rem;
+        background: #fff;
+        font-family: 'Inter', sans-serif;
+    }
+    .config-add-row input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.10); }
+    .config-add-btn {
+        border: none;
+        border-radius: 7px;
+        padding: 0 0.8rem;
+        background: #0f172a;
+        color: #fff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .config-rule-list { display: grid; gap: 0.65rem; }
+    .config-rule {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.65rem;
+        align-items: center;
+        border: 1px solid #dbe4ef;
+        border-radius: 8px;
+        background: #fbfdff;
+        padding: 0.65rem;
+    }
+    .config-rule-index {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: #e0f2fe;
+        color: #0369a1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+    .config-rule input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: var(--text-main);
+        font: inherit;
+        font-weight: 600;
+        min-width: 0;
+    }
+    .config-rule input:focus { outline: none; }
+    .st-help { color: var(--text-muted); font-size: 0.78rem; margin-top: 0.35rem; }
+    .st-error { color:#dc2626; font-size:0.8rem; margin-top:0.65rem; }
+    @media (max-width: 860px) {
+        .settings-container { flex-direction: column; }
+        .settings-sidebar { width: 100%; }
+        .company-config-grid { grid-template-columns: 1fr; }
+        .company-config-grid .full { grid-column: auto; }
+        .config-add-row { flex-direction: column; }
+        .config-add-btn { justify-content: center; min-height: 38px; }
+    }
     
     .st-btn-save {
         background: var(--gradient-blue); color: #fff;
@@ -190,23 +316,134 @@
             {% if is_admin %}
             <div id="tab-company" class="st-panel">
                 <div class="st-panel-header">
-                    <div class="st-panel-title">Hồ sơ Doanh nghiệp</div>
-                    <div class="st-panel-desc">Thông tin sẽ đính kèm trên mẫu báo cáo, hợp đồng.</div>
-                </div>
-                
-                <div class="st-form-group">
-                    <label class="st-label">Tên Doanh nghiệp Đăng ký</label>
-                    <input type="text" class="st-input" value="Công ty TNHH Kính Râm Bay">
-                </div>
-                
-                <div class="st-form-group">
-                    <label class="st-label">Email Tổng đài hệ thống</label>
-                    <input type="email" class="st-input" value="noreply@kinhrambay.vn">
+                    <div class="st-panel-title">Cấu hình Công ty</div>
+                    <div class="st-panel-desc">Admin quản lý danh mục tổ chức và cơ chế thưởng/phạt dùng trong hệ thống.</div>
                 </div>
 
-                <button type="button" class="st-btn-save" disabled
-                        style="background: var(--gradient-blue); opacity:0.6; cursor:not-allowed;"
-                        title="Tính năng đang phát triển">Lưu Cấu hình (đang phát triển)</button>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="form_section" value="company_configuration">
+
+                    <div class="company-config-grid">
+                        <div class="config-card" data-config-card data-source="{{ company_form.workplaces.id_for_label }}" data-mode="chips" data-placeholder="Thêm nơi làm việc">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#2563eb;"><i class="fa-solid fa-location-dot"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.workplaces.label }}</div>
+                                    <div class="config-card-sub">Chi nhánh, văn phòng, remote hoặc hybrid.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.workplaces }}
+                                <div class="config-items" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm nơi làm việc">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.workplaces.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="config-card" data-config-card data-source="{{ company_form.contract_types.id_for_label }}" data-mode="chips" data-placeholder="Thêm loại hợp đồng">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#0891b2;"><i class="fa-solid fa-file-contract"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.contract_types.label }}</div>
+                                    <div class="config-card-sub">Các lựa chọn xuất hiện khi tạo hoặc điều chỉnh hợp đồng.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.contract_types }}
+                                <div class="config-items" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm loại hợp đồng">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.contract_types.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="config-card" data-config-card data-source="{{ company_form.departments.id_for_label }}" data-mode="chips" data-placeholder="Thêm phòng ban">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#16a34a;"><i class="fa-solid fa-sitemap"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.departments.label }}</div>
+                                    <div class="config-card-sub">Danh mục phòng ban dùng trong hồ sơ nhân viên.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.departments }}
+                                <div class="config-items" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm phòng ban">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.departments.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="config-card" data-config-card data-source="{{ company_form.positions.id_for_label }}" data-mode="chips" data-placeholder="Thêm chức vụ">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#7c3aed;"><i class="fa-solid fa-id-badge"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.positions.label }}</div>
+                                    <div class="config-card-sub">Chức vụ/chức danh gắn với thông tin công việc.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.positions }}
+                                <div class="config-items" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm chức vụ">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.positions.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="config-card full" data-config-card data-source="{{ company_form.reward_policy.id_for_label }}" data-mode="rules" data-placeholder="Thêm quy tắc khen thưởng">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#059669;"><i class="fa-solid fa-award"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.reward_policy.label }}</div>
+                                    <div class="config-card-sub">Mỗi card là một quy tắc hoặc nguyên tắc áp dụng thưởng.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.reward_policy }}
+                                <div class="config-rule-list" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm quy tắc khen thưởng">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.reward_policy.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="config-card full" data-config-card data-source="{{ company_form.penalty_policy.id_for_label }}" data-mode="rules" data-placeholder="Thêm quy tắc xử phạt">
+                            <div class="config-card-head">
+                                <div class="config-card-icon" style="background:#dc2626;"><i class="fa-solid fa-gavel"></i></div>
+                                <div>
+                                    <div class="config-card-title">{{ company_form.penalty_policy.label }}</div>
+                                    <div class="config-card-sub">Các nguyên tắc xử phạt được lưu thành từng rule riêng.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                {{ company_form.penalty_policy }}
+                                <div class="config-rule-list" data-config-items></div>
+                                <div class="config-add-row">
+                                    <input type="text" data-config-input placeholder="Thêm quy tắc xử phạt">
+                                    <button type="button" class="config-add-btn" data-config-add><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                {% for err in company_form.penalty_policy.errors %}<div class="st-error">{{ err }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="st-btn-save" style="background: var(--gradient-blue);">
+                        <i class="fa-solid fa-floppy-disk"></i> Lưu cấu hình công ty
+                    </button>
+                </form>
             </div>
             {% endif %}
 
@@ -300,6 +537,116 @@
         document.getElementById(tabId).classList.add('active');
     }
 
+    (function () {
+        function splitLines(value) {
+            const seen = new Set();
+            return (value || '').split(/\r?\n/).map(v => v.trim()).filter(v => {
+                const key = v.toLocaleLowerCase();
+                if (!v || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+
+        function syncSource(source, items) {
+            source.value = items.map(v => v.trim()).filter(Boolean).join('\n');
+        }
+
+        function initConfigCard(card) {
+            const source = document.getElementById(card.dataset.source);
+            const container = card.querySelector('[data-config-items]');
+            const input = card.querySelector('[data-config-input]');
+            const addBtn = card.querySelector('[data-config-add]');
+            const mode = card.dataset.mode || 'chips';
+            if (!source || !container || !input || !addBtn) return;
+
+            let items = splitLines(source.value);
+
+            function render() {
+                container.innerHTML = '';
+                if (mode === 'rules') {
+                    items.forEach((item, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'config-rule';
+
+                        const order = document.createElement('div');
+                        order.className = 'config-rule-index';
+                        order.textContent = String(index + 1).padStart(2, '0');
+
+                        const editor = document.createElement('input');
+                        editor.type = 'text';
+                        editor.value = item;
+                        editor.addEventListener('input', () => {
+                            items[index] = editor.value;
+                            syncSource(source, items);
+                        });
+                        editor.addEventListener('blur', () => {
+                            items = splitLines(source.value);
+                            render();
+                        });
+
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'config-remove';
+                        remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        remove.addEventListener('click', () => {
+                            items.splice(index, 1);
+                            syncSource(source, items);
+                            render();
+                        });
+
+                        row.append(order, editor, remove);
+                        container.appendChild(row);
+                    });
+                } else {
+                    items.forEach((item, index) => {
+                        const pill = document.createElement('div');
+                        pill.className = 'config-pill';
+
+                        const label = document.createElement('span');
+                        label.textContent = item;
+
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'config-remove';
+                        remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        remove.addEventListener('click', () => {
+                            items.splice(index, 1);
+                            syncSource(source, items);
+                            render();
+                        });
+
+                        pill.append(label, remove);
+                        container.appendChild(pill);
+                    });
+                }
+                syncSource(source, items);
+            }
+
+            function addItem() {
+                const value = input.value.trim();
+                if (!value) return;
+                const exists = items.some(item => item.toLocaleLowerCase() === value.toLocaleLowerCase());
+                if (!exists) items.push(value);
+                input.value = '';
+                syncSource(source, items);
+                render();
+                input.focus();
+            }
+
+            addBtn.addEventListener('click', addItem);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addItem();
+                }
+            });
+
+            render();
+        }
+
+        document.querySelectorAll('[data-config-card]').forEach(initConfigCard);
+    })();
     (function () {
         const openBtn  = document.getElementById('open-register-camera-btn');
         if (!openBtn) return;

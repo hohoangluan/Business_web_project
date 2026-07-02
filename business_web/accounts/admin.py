@@ -2,7 +2,7 @@
 Admin config cho accounts: Role, CustomPermission, UserProfile.
 """
 from django.contrib import admin
-from .models import CustomPermission, Role, UserProfile
+from .models import CompanyConfiguration, CustomPermission, Role, UserProfile
 
 
 @admin.register(Role)
@@ -32,3 +32,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     def get_phone_number(self, obj):
         return obj.user.personal_info.phone_number if hasattr(obj.user, 'personal_info') else ''
     get_phone_number.short_description = 'Phone Number'
+
+
+@admin.register(CompanyConfiguration)
+class CompanyConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'updated_at')
