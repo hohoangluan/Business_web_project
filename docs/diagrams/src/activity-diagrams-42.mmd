@@ -1,5 +1,0 @@
-flowchart TD
-  A([create_evaluation · status=submitted]) --> B[Phiếu vào hàng chờ HR<br/>get_pending_evaluations_for_hr]
-  B --> C[Hiển thị ở trang HR xác nhận]
-  C --> D([Chờ HR xác nhận])
-  N[/Ghi chú: Lập = Gửi · cùng create_evaluation<br/>không có bước draft riêng/] -.-> A

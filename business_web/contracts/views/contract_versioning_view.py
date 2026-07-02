@@ -9,6 +9,8 @@ from accounts.services import (
     is_admin_user, can_manage_work_info,
 )
 from contracts.forms import ContractAdjustForm
+from common.file_validation import validate_upload
+from employee_profiles.models import EmployeeDocument
 from contracts.services import adjust_contract, get_contract_history
 
 
@@ -25,9 +27,27 @@ def hr_adjust_contract_view(request, user_id):
     contract = ensure_contract_info(target_user)
 
     if request.method == 'POST':
-        form = ContractAdjustForm(request.POST)
+        form = ContractAdjustForm(request.POST, request.FILES)
         if form.is_valid():
-            adjust_contract(target_user, form.cleaned_data)
+            data = form.cleaned_data.copy()
+            upload = data.pop('contract_attachment_file', None)
+            shift_start_day = data.pop('shift_start_day', '')
+            shift_end_day = data.pop('shift_end_day', '')
+            if data.get('shift_start_time') and data.get('shift_end_time') and shift_start_day and shift_end_day:
+                data['contract_standard_shift'] = (
+                    f"{data['shift_start_time'].strftime('%H:%M')} - {data['shift_end_time'].strftime('%H:%M')} "
+                    f"({shift_start_day} đến {shift_end_day})"
+                )
+            if upload:
+                validate_upload(upload)
+                EmployeeDocument.objects.create(
+                    user=target_user,
+                    title=upload.name,
+                    document_type='Hợp đồng lao động',
+                    file=upload,
+                )
+                data['contract_attachment_reference'] = upload.name
+            adjust_contract(target_user, data)
             messages.success(request, f'Đã tạo phiên bản hợp đồng mới cho "{target_user.username}".')
             return redirect('contract_history', user_id=target_user.pk)
     else:

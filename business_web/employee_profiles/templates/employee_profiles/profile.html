@@ -346,19 +346,23 @@
                         <!-- Thông tin cá nhân cơ bản -->
                         <div class="form-group">
                             <label class="form-label">Họ và tên</label>
-                            <input type="text" name="full_name" class="form-control" value="{{ request.user.profile.full_name }}" placeholder="Nhập họ và tên">
+                            <input type="text" name="full_name" class="form-control" value="{% if form %}{{ form.full_name.value|default_if_none:'' }}{% else %}{{ request.user.profile.full_name }}{% endif %}" placeholder="Nhập họ và tên">
+                            {% if form %}<div class="form-error text-danger">{{ form.full_name.errors }}</div>{% endif %}
                         </div>
                         <div class="form-group">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" value="{{ request.user.email }}" placeholder="Nhập email">
+                            <input type="email" name="email" class="form-control" value="{% if form %}{{ form.email.value|default_if_none:'' }}{% else %}{{ request.user.email }}{% endif %}" placeholder="Nhập email">
+                            {% if form %}<div class="form-error text-danger">{{ form.email.errors }}</div>{% endif %}
                         </div>
                         <div class="form-group">
                             <label class="form-label">Số điện thoại</label>
-                            <input type="text" name="phone_number" class="form-control" value="{{ request.user.profile.phone_number }}" placeholder="Nhập số điện thoại">
+                            <input type="text" name="phone_number" class="form-control" value="{% if form %}{{ form.phone_number.value|default_if_none:'' }}{% else %}{{ request.user.profile.phone_number }}{% endif %}" placeholder="Nhập số điện thoại">
+                            {% if form %}<div class="form-error text-danger">{{ form.phone_number.errors }}</div>{% endif %}
                         </div>
                         <div class="form-group">
                             <label class="form-label">Ngày sinh (DD/MM/YYYY)</label>
-                            <input type="text" name="date_of_birth" class="form-control" value="{{ request.user.profile.date_of_birth }}" placeholder="VD: 15/06/1990">
+                            <input type="text" name="date_of_birth" class="form-control" value="{% if form %}{{ form.date_of_birth.value|default_if_none:'' }}{% else %}{{ request.user.profile.date_of_birth }}{% endif %}" placeholder="VD: 15/06/1990">
+                            {% if form %}<div class="form-error text-danger">{{ form.date_of_birth.errors }}</div>{% endif %}
                         </div>
 
                         <!-- Thông tin cá nhân mở rộng -->
@@ -456,7 +460,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Trình độ học vấn</label>
-                            <input type="text" name="education_level" class="form-control" value="{{ request.user.education_and_skills.education_level }}">
+                            <select name="education_level" class="form-control">
+                                {% for value, label in education_level_choices %}
+                                <option value="{{ value }}" {% if value == request.user.education_and_skills.education_level %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Bằng cấp</label>
@@ -464,7 +472,10 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Chuyên ngành</label>
-                            <input type="text" name="major" class="form-control" value="{{ request.user.education_and_skills.major }}">
+                            <input type="text" name="major" class="form-control" list="major-suggestions" placeholder="Gõ để tìm chuyên ngành..." value="{{ request.user.education_and_skills.major }}">
+                            <datalist id="major-suggestions">
+                                {% for m in major_suggestions %}<option value="{{ m }}">{% endfor %}
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Chứng chỉ</label>

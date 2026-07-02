@@ -18,7 +18,7 @@
     <div class="card-header">
         <h3><i class="fa-solid fa-pen-to-square" style="color:var(--primary);"></i>&nbsp; Cập nhật hồ sơ nhân sự</h3>
     </div>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1rem;">
@@ -232,6 +232,9 @@
             <div class="form-group">
                 <label class="form-label">Chuyên ngành</label>
                 {{ form.major }}
+                <datalist id="major-suggestions">
+                    {% for m in major_suggestions %}<option value="{{ m }}">{% endfor %}
+                </datalist>
             </div>
 
             <div class="form-group">
@@ -247,6 +250,62 @@
             <div class="form-group">
                 <label class="form-label">Kỹ năng chuyên môn</label>
                 {{ form.professional_skills }}
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border-light); margin: 1.25rem 0;">
+
+            <h4 style="margin-bottom: 1rem;">Tài liệu minh chứng</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Tên tệp</label>
+                    <input type="text" name="document_title" class="form-control" placeholder="VD: CCCD, Hợp đồng đã ký">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Loại</label>
+                    <input type="text" name="document_type" class="form-control" placeholder="VD: CCCD, Hợp đồng, Bằng cấp">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Upload tệp minh chứng</label>
+                <input type="file" name="document_file" class="form-control" accept="image/*,.pdf">
+                <button type="submit" name="profile_action" value="upload_document" class="btn btn-outline" style="margin-top:0.75rem;">
+                    <i class="fa-solid fa-upload"></i> Tải lên
+                </button>
+            </div>
+
+            <div class="table-wrapper" style="margin-top:1rem;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tên tệp</th>
+                            <th>Loại</th>
+                            <th>Ngày tải lên</th>
+                            <th style="text-align:right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.title }}</td>
+                            <td>{{ doc.document_type|default:"—" }}</td>
+                            <td>{{ doc.uploaded_at|date:"d/m/Y H:i" }}</td>
+                            <td style="text-align:right;">
+                                {% if doc.file %}
+                                <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline">
+                                    <i class="fa-solid fa-download"></i> Tải xuống
+                                </a>
+                                {% endif %}
+                                <button type="submit" name="delete_document_id" value="{{ doc.id }}" class="btn btn-sm btn-outline" onclick="return confirm('Xóa tệp này?');">
+                                    <i class="fa-solid fa-trash"></i> Xóa
+                                </button>
+
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Chưa có tài liệu minh chứng.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
 
             {% if form.errors %}

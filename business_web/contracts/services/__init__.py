@@ -7,6 +7,7 @@ from contracts.services.renewal_service import (
     THRESHOLD_FAR,
     THRESHOLD_NEAR,
     parse_ddmmyyyy,
+    normalize_date_string,
     expire_overdue_contracts,
     get_days_until_expiry,
     get_expiring_contracts,
@@ -26,7 +27,7 @@ def parse_ddmmyyyy_date(raw_value):
 def validate_contract_date_order(signed, start, end):
     """Kiểm tra thứ tự ngày hợp đồng (chuỗi DD/MM/YYYY).
 
-    Quy tắc: ngày bắt đầu ≥ ngày ký; ngày hết hạn ≥ ngày bắt đầu (nếu có).
+    Quy tắc: ngày bắt đầu ≥ ngày ký; ngày hết hạn phải SAU ngày bắt đầu (nếu có).
     Trả về list thông báo lỗi (rỗng = hợp lệ). Bỏ qua ngày trống/sai định dạng
     (validation định dạng do nơi gọi xử lý riêng).
     """
@@ -36,8 +37,18 @@ def validate_contract_date_order(signed, start, end):
     d_end = parse_ddmmyyyy(end)
     if d_signed and d_start and d_start < d_signed:
         errors.append('Ngày bắt đầu hợp đồng phải từ ngày ký trở đi.')
-    if d_start and d_end and d_end < d_start:
-        errors.append('Ngày hết hạn hợp đồng phải từ ngày bắt đầu trở đi.')
+    if d_start and d_end and d_end <= d_start:
+        errors.append('Ngày hết hạn hợp đồng phải sau ngày bắt đầu.')
+    return errors
+
+
+def validate_work_date_order(probation_start, official_start):
+    """Ngày thử việc phải ≤ ngày chính thức (chuỗi DD/MM/YYYY)."""
+    errors = []
+    d_prob = parse_ddmmyyyy(probation_start)
+    d_off = parse_ddmmyyyy(official_start)
+    if d_prob and d_off and d_prob > d_off:
+        errors.append('Ngày thử việc phải trước hoặc bằng ngày chính thức.')
     return errors
 
 
@@ -91,7 +102,7 @@ def build_contract_page_context(contract_info):
     days_until_expiry = None
     if end_date and today <= end_date:
         days_until_expiry = (end_date - today).days
-        show_expiry_warning = days_until_expiry <= THRESHOLD_NEAR
+        show_expiry_warning = days_until_expiry <= THRESHOLD_FAR
 
     return {
         'has_contract': True,

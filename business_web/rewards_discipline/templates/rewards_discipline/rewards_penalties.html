@@ -421,8 +421,8 @@
                         <td>
                             {% if r.status == 'approved' %}
                                 <span class="badge-status badge-appr"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>
-                            {% elif r.status == 'pending' %}
-                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>
+                            {% elif r.status == 'pending' or r.status == 'leader_approved' %}
+                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ HR duyệt</span>
                             {% else %}
                                 <span class="badge-status badge-rej"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>
                             {% endif %}
@@ -479,8 +479,8 @@
                         <td>
                             {% if r.status == 'approved' %}
                                 <span class="badge-status badge-appr"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>
-                            {% elif r.status == 'pending' %}
-                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>
+                            {% elif r.status == 'pending' or r.status == 'leader_approved' %}
+                                <span class="badge-status badge-pend"><i class="fa-solid fa-clock"></i> Chờ HR duyệt</span>
                             {% else %}
                                 <span class="badge-status badge-rej"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>
                             {% endif %}

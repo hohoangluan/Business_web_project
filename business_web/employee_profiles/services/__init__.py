@@ -13,6 +13,10 @@ from accounts.services import (
     ensure_work_info, ensure_contract_info,
     ensure_personal_info, ensure_emergency_contact, ensure_education_info
 )
+from employee_profiles.forms import (
+    DEPARTMENT_CHOICES, EMPLOYEE_TYPE_CHOICES, GENDER_CHOICES,
+    MARITAL_STATUS_CHOICES, NATIONALITY_CHOICES, POSITION_CHOICES, WORKPLACE_CHOICES,
+)
 
 
 def get_manager_user_queryset():
@@ -36,6 +40,13 @@ def build_hr_create_profile_context(form_data=None):
         'form_data': form_data or {},
         'manager_choices': get_manager_user_queryset(),
         'leader_choices': get_leader_user_queryset(),
+        'department_choices': DEPARTMENT_CHOICES,
+        'position_choices': POSITION_CHOICES,
+        'employee_type_choices': EMPLOYEE_TYPE_CHOICES,
+        'workplace_choices': WORKPLACE_CHOICES,
+        'gender_choices': GENDER_CHOICES,
+        'marital_status_choices': MARITAL_STATUS_CHOICES,
+        'nationality_choices': NATIONALITY_CHOICES,
     }
 
 

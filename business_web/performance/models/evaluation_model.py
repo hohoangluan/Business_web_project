@@ -34,6 +34,7 @@ class Evaluation(models.Model):
         ('draft', 'Nháp'),
         ('submitted', 'Đã gửi'),
         ('acknowledged', 'HR đã xác nhận'),
+        ('rejected', 'HR từ chối'),
     ]
 
     RATING_CHOICES = [

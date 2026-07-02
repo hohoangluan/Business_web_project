@@ -1,9 +1,0 @@
-sequenceDiagram
-  actor ND as Người dùng
-  participant GD as Giao diện<br/>Trang cài đặt
-  participant HT as Hệ Thống<br/>settings_view / account_update_view
-  ND->>GD: Mở /settings/
-  GD->>HT: GET
-  HT-->>GD: Trang Cài đặt
-  GD-->>ND: Hiển thị
-  note over HT: Thông tin cá nhân sửa ở trang Hồ sơ (2.3) · account_update_view = placeholder

@@ -4,14 +4,14 @@
    View xử lý: user_list_view tại accounts/views.py #}
 {% load static %}
 
-{% block title %}Quản lý hồ sơ nhân sự - HR Studio{% endblock %}
+{% block title %}Quản lý tài khoản - HR Studio{% endblock %}
 
 {% block content %}
 <!-- ===== PAGE HEADER ===== -->
 <div class="page-header animate-fade">
     <div>
-        <h1>Quản lý hồ sơ nhân sự</h1>
-        <p class="text-secondary">Xem danh sách nhân sự và cập nhật toàn bộ thông tin công việc khi cần</p>
+        <h1>Quản lý tài khoản</h1>
+        <p class="text-secondary">Xem danh sách tài khoản, trạng thái và phân quyền khi cần</p>
     </div>
     <div class="header-actions">
         {% if can_manage_system_users %}

@@ -126,12 +126,10 @@ Blocks có thể override:
                     <i class="fa-solid fa-file-signature"></i>
                     <span>Báo cáo</span>
                 </a>
-                {% if request.user.profile.role.name != 'employee' %}
                 <a href="{% url 'rewards_penalties' %}" class="nav-item {% if active_page == 'rewards' %}active{% endif %}">
                     <i class="fa-solid fa-award"></i>
                     <span>Khen thưởng & Xử phạt</span>
                 </a>
-                {% endif %}
                 {% endif %}  <!-- End of Khối nghiệp vụ -->
 
 
@@ -143,7 +141,7 @@ Blocks có thể override:
                 <a href="{% url 'user_list' %}"
                    class="nav-item {% if active_page == 'users' %}active{% endif %}">
                     <i class="fa-solid fa-users-gear"></i>
-                    <span>Quản lý hồ sơ nhân sự</span>
+                    <span>Quản lý tài khoản</span>
                 </a>
 
                 <!-- Đăng ký tài khoản mới (chỉ username + password) -->

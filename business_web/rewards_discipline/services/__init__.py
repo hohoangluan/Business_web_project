@@ -1,19 +1,7 @@
-"""Service duyệt 2 cấp cho khen thưởng / xử phạt (QĐ §5.9).
-
-Luồng:
-  - Leader lập phiếu  → PENDING (chờ Manager duyệt L1) → LEADER_APPROVED
-                        → HR duyệt L2 → APPROVED.
-  - Manager/HR lập → LEADER_APPROVED ngay (bỏ L1) → HR duyệt L2 → APPROVED.
-  - Từ chối ở bất kỳ cấp → REJECTED.
-"""
-from django.utils import timezone
+"""Service duyệt khen thưởng / xử phạt: Leader/Manager đề xuất, HR duyệt hoặc từ chối."""
 
 from accounts.models import Role
-from accounts.services import (
-    create_notification,
-    is_hr_user,
-    user_has_role,
-)
+from accounts.services import create_notification, is_hr_user, user_has_role
 from rewards_discipline.models import RewardPenalty
 
 
@@ -21,85 +9,78 @@ def _record_label(obj):
     return 'Khen thưởng' if obj.record_type == RewardPenalty.REWARD else 'Xử phạt'
 
 
-def initial_status_for(proposer):
-    """Trạng thái khởi tạo theo vai trò người lập phiếu."""
-    if user_has_role(proposer, Role.LEADER):
-        return RewardPenalty.PENDING          # cần Manager duyệt L1
-    return RewardPenalty.LEADER_APPROVED      # Manager/HR lập → thẳng L2
+
+def _is_l1_approver(user, obj=None):
+    """Legacy shim: L1 approval was removed; no user is an L1 approver now."""
+    return False
 
 
-def _is_l1_approver(user):
-    return user_has_role(user, Role.MANAGER)
-
-
-def _is_l2_approver(user):
+def _is_l2_approver(user, obj=None):
+    """Legacy shim: HR is the only final approver in the simplified flow."""
     return is_hr_user(user)
+
+def initial_status_for(proposer):
+    """Mọi đề xuất hợp lệ đi thẳng vào hàng chờ HR."""
+    return RewardPenalty.PENDING
+
+
+def can_propose_reward_penalty(user):
+    return is_hr_user(user) or user_has_role(user, Role.MANAGER) or user_has_role(user, Role.LEADER)
 
 
 def approve_reward_penalty(approver, record_id):
-    """Duyệt 1 phiếu theo cấp hiện tại. Trả (success, message)."""
+    """HR duyệt 1 phiếu. Trả (success, message)."""
     try:
         obj = RewardPenalty.objects.get(id=record_id)
     except RewardPenalty.DoesNotExist:
         return False, 'Không tìm thấy phiếu.'
 
+    if not is_hr_user(approver):
+        return False, 'Chỉ HR mới được duyệt phiếu.'
     if obj.proposer_id == approver.id:
         return False, 'Không thể tự duyệt phiếu của chính mình.'
+    if obj.status != RewardPenalty.PENDING:
+        return False, 'Phiếu đã được xử lý.'
 
-    if obj.status == RewardPenalty.PENDING:
-        if not _is_l1_approver(approver):
-            return False, 'Chỉ Manager mới được duyệt cấp 1.'
-        obj.status = RewardPenalty.LEADER_APPROVED
-        obj.leader_approved_by = approver
-        obj.leader_approved_at = timezone.now()
-        obj.save(update_fields=['status', 'leader_approved_by', 'leader_approved_at'])
-        return True, 'Đã duyệt cấp 1 (Manager). Chuyển HR duyệt cuối.'
-
-    if obj.status == RewardPenalty.LEADER_APPROVED:
-        if not _is_l2_approver(approver):
-            return False, 'Chỉ HR mới được duyệt cấp cuối.'
-        obj.status = RewardPenalty.APPROVED
-        obj.approved_by = approver
-        obj.save(update_fields=['status', 'approved_by'])
-        create_notification(
-            obj.employee,
-            f'{_record_label(obj)} đã được duyệt',
-            f'Phiếu "{obj.reason_title}" đã được phê duyệt.',
-        )
-        return True, 'Đã phê duyệt cuối cùng (HR).'
-
-    return False, 'Phiếu đã được xử lý.'
+    obj.status = RewardPenalty.APPROVED
+    obj.approved_by = approver
+    obj.save(update_fields=['status', 'approved_by'])
+    create_notification(
+        obj.employee,
+        f'{_record_label(obj)} đã được duyệt',
+        f'Phiếu "{obj.reason_title}" đã được HR phê duyệt.',
+    )
+    return True, 'HR đã phê duyệt phiếu.'
 
 
 def reject_reward_penalty(approver, record_id):
-    """Từ chối phiếu (ở cấp đang chờ). Trả (success, message)."""
+    """HR từ chối 1 phiếu. Trả (success, message)."""
     try:
         obj = RewardPenalty.objects.get(id=record_id)
     except RewardPenalty.DoesNotExist:
         return False, 'Không tìm thấy phiếu.'
 
-    if obj.status == RewardPenalty.PENDING and not _is_l1_approver(approver):
-        return False, 'Không có quyền từ chối phiếu này.'
-    if obj.status == RewardPenalty.LEADER_APPROVED and not _is_l2_approver(approver):
-        return False, 'Không có quyền từ chối phiếu này.'
-    if obj.status not in (RewardPenalty.PENDING, RewardPenalty.LEADER_APPROVED):
+    if not is_hr_user(approver):
+        return False, 'Chỉ HR mới được từ chối phiếu.'
+    if obj.proposer_id == approver.id:
+        return False, 'Không thể tự xử lý phiếu của chính mình.'
+    if obj.status != RewardPenalty.PENDING:
         return False, 'Phiếu đã được xử lý.'
 
     obj.status = RewardPenalty.REJECTED
-    obj.save(update_fields=['status'])
+    obj.approved_by = approver
+    obj.save(update_fields=['status', 'approved_by'])
     create_notification(
         obj.employee,
         f'{_record_label(obj)} bị từ chối',
-        f'Phiếu "{obj.reason_title}" đã bị từ chối.',
+        f'Phiếu "{obj.reason_title}" đã bị HR từ chối.',
     )
-    return True, 'Đã từ chối phiếu.'
+    return True, 'HR đã từ chối phiếu.'
 
 
 def get_pending_for_approver(user):
-    """Hàng đợi duyệt theo vai trò: Manager→L1 (pending); HR→L2 (leader_approved)."""
+    """Chỉ HR có hàng đợi duyệt."""
     qs = RewardPenalty.objects.select_related('employee', 'proposer')
-    if _is_l2_approver(user):
-        return qs.filter(status=RewardPenalty.LEADER_APPROVED).order_by('-created_at')
-    if _is_l1_approver(user):
+    if is_hr_user(user):
         return qs.filter(status=RewardPenalty.PENDING).order_by('-created_at')
     return qs.none()

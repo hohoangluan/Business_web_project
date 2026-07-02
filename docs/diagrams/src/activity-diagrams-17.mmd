@@ -1,7 +1,0 @@
-flowchart TD
-  A([HR gia hạn hợp đồng]) --> B[POST: end_date mới + loại HĐ]
-  B --> C{validate ngày mới}
-  C -- Lỗi --> D[Hiển thị lỗi] --> B
-  C -- OK --> E[adjust_contract: archive cũ<br/>+ bản mới hạn mới]
-  E --> F[Báo: đã gia hạn · phiên bản mới]
-  F --> Y([Redirect contract_history])

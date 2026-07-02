@@ -1,7 +1,0 @@
-flowchart TD
-  A([HR/Admin mở Quản lý người dùng]) --> B[user_list_view]
-  B --> C{can_manage_work_info?}
-  C -- Không --> Z([Chặn])
-  C -- Có --> D[Query User + role + permissions<br/>order by date_joined]
-  D --> E[ensure_profile cho từng user]
-  E --> F[Hiển thị danh sách · cờ quyền quản lý]

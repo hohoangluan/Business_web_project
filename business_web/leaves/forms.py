@@ -51,6 +51,12 @@ class LeaveRequestForm(forms.ModelForm):
             'attachment': 'Tệp minh chứng (nếu có)',
         }
 
+    def clean_reason(self):
+        reason = (self.cleaned_data.get('reason') or '').strip()
+        if not reason:
+            raise forms.ValidationError('Vui lòng nhập lý do nghỉ phép.')
+        return reason
+
     def clean_attachment(self):
         # Minh chứng tùy chọn → validator dùng chung (5 MB + PDF/JPG/PNG).
         return validate_upload(self.cleaned_data.get('attachment'))

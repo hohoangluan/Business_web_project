@@ -1,7 +1,0 @@
-flowchart TD
-  A([Nhân viên mở Ticket]) --> B[POST create · tiêu đề + nội dung]
-  B --> C{Form hợp lệ?}
-  C -- Không --> D[Báo lỗi] --> B
-  C -- Có --> E[Tạo Ticket · author · status=new]
-  E --> F[Báo: tạo yêu cầu thành công]
-  F --> Y([Redirect tickets])

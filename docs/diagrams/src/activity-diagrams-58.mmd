@@ -1,8 +1,0 @@
-flowchart TD
-  A([HR mở Cài đặt]) --> B[settings_view · WorkScheduleConfig.get_solo]
-  B --> C{POST form_section=work_schedule?}
-  C -- Không --> D[Hiển thị cấu hình hiện tại]
-  C -- Có --> E{Form hợp lệ?<br/>shift_start < shift_end · late_grace}
-  E -- Không --> F[Render lại panel kèm lỗi]
-  E -- Có --> G[schedule_form.save<br/>cập nhật ca chuẩn + ân hạn trễ]
-  G --> H[Báo: đã lưu cấu hình]
