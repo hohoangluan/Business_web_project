@@ -5,6 +5,7 @@ from accounts.forms.account.account_update_form import (
     AccountUpdateForm,
     AssignPermissionsForm,
 )
+from accounts.forms.company_settings_form import CompanyConfigurationForm
 from accounts.forms.auth.forgot_password_form import (
     ForgotPasswordCodeForm,
     ForgotPasswordUsernameForm,
@@ -17,6 +18,7 @@ __all__ = [
     "AccountStatusForm",
     "AccountUpdateForm",
     "AssignPermissionsForm",
+    "CompanyConfigurationForm",
     "ForgotPasswordCodeForm",
     "ForgotPasswordUsernameForm",
     "LoginForm",

@@ -345,11 +345,7 @@
                     <div class="hrc-field">
                         <label>Loại hợp đồng <span class="req">*</span></label>
                         <select name="contract_type" required>
-                            <option value="">-- Chọn loại hợp đồng --</option>
-                            <option value="Thử việc" {% if form_data.contract_type == "Thử việc" %}selected{% endif %}>Thử việc</option>
-                            <option value="Xác định thời hạn" {% if form_data.contract_type == "Xác định thời hạn" %}selected{% endif %}>Xác định thời hạn</option>
-                            <option value="Không xác định thời hạn" {% if form_data.contract_type == "Không xác định thời hạn" %}selected{% endif %}>Không xác định thời hạn</option>
-                            <option value="Thời vụ" {% if form_data.contract_type == "Thời vụ" %}selected{% endif %}>Thời vụ</option>
+                            {% for value,label in contract_type_choices %}<option value="{{ value }}" {% if form_data.contract_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="hrc-field">

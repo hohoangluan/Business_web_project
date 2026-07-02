@@ -10,7 +10,7 @@ from datetime import date
 
 from django import forms
 from django.contrib.auth.models import User
-from accounts.models import UserProfile, Role
+from accounts.models import CompanyConfiguration, UserProfile, Role
 from common.validators import validate_phone_number
 from contracts.services import normalize_date_string, parse_ddmmyyyy
 from employee_profiles.models import EmployeeWorkInfo
@@ -75,6 +75,20 @@ WORKPLACE_CHOICES = [
     ('Hybrid', 'Hybrid'),
 ]
 
+
+def configured_company_choices(field_name, fallback_choices, empty_label, selected_value=None):
+    """Build choices from Admin company config, preserving legacy selected values."""
+
+    try:
+        choices = CompanyConfiguration.get_solo().choices_for(field_name, empty_label)
+    except Exception:
+        choices = list(fallback_choices)
+
+    selected_value = (selected_value or '').strip()
+    values = {value for value, _ in choices}
+    if selected_value and selected_value not in values:
+        choices.append((selected_value, selected_value))
+    return choices
 GENDER_CHOICES = [('', '-- Chọn giới tính --'), ('Nam', 'Nam'), ('Nữ', 'Nữ'), ('Male', 'Male'), ('Female', 'Female')]
 MARITAL_STATUS_CHOICES = [('', '-- Chọn tình trạng --'), ('Độc thân', 'Độc thân'), ('Đã kết hôn', 'Đã kết hôn')]
 NATIONALITY_CHOICES = [
@@ -213,6 +227,15 @@ class EmployeeProfileForm(forms.Form):
         self.current_user = current_user
         self.fields['manager_user'].queryset = manager_queryset or User.objects.none()
         self.fields['leader_user'].queryset = leader_queryset or User.objects.none()
+        self.fields['department'].choices = configured_company_choices(
+            'departments', DEPARTMENT_CHOICES, '-- Chọn phòng ban --', self.initial.get('department')
+        )
+        self.fields['position'].choices = configured_company_choices(
+            'positions', POSITION_CHOICES, '-- Chọn chức vụ --', self.initial.get('position')
+        )
+        self.fields['workplace'].choices = configured_company_choices(
+            'workplaces', WORKPLACE_CHOICES, '-- Chọn nơi làm việc --', self.initial.get('workplace')
+        )
 
     def clean_employee_id(self):
         """Không cho trùng mã nhân viên với user khác."""
