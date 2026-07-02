@@ -179,8 +179,8 @@
 
                 <div class="hrc-grid">
                     <div class="hrc-field">
-                        <label>Họ và tên</label>
-                        <input type="text" name="full_name" placeholder="VD: Nguyễn Văn A" value="{{ form_data.full_name|default:'' }}">
+                        <label>Họ và tên <span class="req">*</span></label>
+                        <input type="text" name="full_name" placeholder="VD: Nguyễn Văn A" value="{{ form_data.full_name|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
                         <label>Mã nhân viên <span class="req">*</span></label>
@@ -196,7 +196,37 @@
                     </div>
                     <div class="hrc-field">
                         <label>Ngày sinh</label>
-                        <input type="text" name="date_of_birth" placeholder="DD/MM/YYYY" value="{{ form_data.date_of_birth|default:'' }}">
+                        <input type="date" name="date_of_birth" value="{{ form_data.date_of_birth|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Giới tính</label>
+                        <select name="gender">
+                            {% for value,label in gender_choices %}<option value="{{ value }}" {% if form_data.gender == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Tình trạng hôn nhân</label>
+                        <select name="marital_status">
+                            {% for value,label in marital_status_choices %}<option value="{{ value }}" {% if form_data.marital_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Quốc tịch</label>
+                        <select name="nationality">
+                            {% for value,label in nationality_choices %}<option value="{{ value }}" {% if form_data.nationality == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Số CCCD/CMND</label>
+                        <input type="text" name="id_card_number" placeholder="VD: 079123456789" value="{{ form_data.id_card_number|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Nơi cấp CCCD</label>
+                        <input type="text" name="id_card_issue_place" placeholder="VD: Cục CSQLHC về TTXH" value="{{ form_data.id_card_issue_place|default:'' }}">
+                    </div>
+                    <div class="hrc-field">
+                        <label>Ngày cấp CCCD</label>
+                        <input type="date" name="id_card_issue_date" value="{{ form_data.id_card_issue_date|default:'' }}">
                     </div>
                 </div>
             </div>
@@ -214,27 +244,35 @@
                 <div class="hrc-grid">
                     <div class="hrc-field">
                         <label>Phòng ban / Bộ phận <span class="req">*</span></label>
-                        <input type="text" name="department" placeholder="VD: Phòng Kinh doanh" value="{{ form_data.department|default:'' }}" required>
+                        <select name="department" required>
+                            {% for value,label in department_choices %}<option value="{{ value }}" {% if form_data.department == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
                     </div>
                     <div class="hrc-field">
                         <label>Chức vụ <span class="req">*</span></label>
-                        <input type="text" name="position" placeholder="VD: Chuyên viên" value="{{ form_data.position|default:'' }}" required>
+                        <select name="position" required>
+                            {% for value,label in position_choices %}<option value="{{ value }}" {% if form_data.position == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
                     </div>
                     <div class="hrc-field">
                         <label>Loại nhân viên <span class="req">*</span></label>
-                        <input type="text" name="employee_type" placeholder="VD: Toàn thời gian" value="{{ form_data.employee_type|default:'' }}" required>
+                        <select name="employee_type" required>
+                            {% for value,label in employee_type_choices %}<option value="{{ value }}" {% if form_data.employee_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
                     </div>
                     <div class="hrc-field">
                         <label>Nơi làm việc <span class="req">*</span></label>
-                        <input type="text" name="workplace" placeholder="VD: Văn phòng Hà Nội" value="{{ form_data.workplace|default:'' }}" required>
+                        <select name="workplace" required>
+                            {% for value,label in workplace_choices %}<option value="{{ value }}" {% if form_data.workplace == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
                     </div>
                     <div class="hrc-field">
                         <label>Ngày bắt đầu thử việc <span class="req">*</span></label>
-                        <input type="text" name="probation_start" placeholder="DD/MM/YYYY" value="{{ form_data.probation_start|default:'' }}" required>
+                        <input type="date" name="probation_start" value="{{ form_data.probation_start|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
                         <label>Ngày làm việc chính thức <span class="req">*</span></label>
-                        <input type="text" name="official_start_date" placeholder="DD/MM/YYYY" value="{{ form_data.official_start_date|default:'' }}" required>
+                        <input type="date" name="official_start_date" value="{{ form_data.official_start_date|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
                         <label>Trạng thái làm việc <span class="req">*</span></label>
@@ -247,8 +285,8 @@
                         </select>
                     </div>
                     <div class="hrc-field">
-                        <label>Quản lý trực tiếp <span class="req">*</span></label>
-                        <select name="manager_user" required>
+                        <label>Quản lý trực tiếp</label>
+                        <select name="manager_user">
                             <option value="">-- Chưa gán quản lý --</option>
                             {% for manager in manager_choices %}
                             <option value="{{ manager.id }}" {% if form_data.manager_user == manager.id|stringformat:"s" %}selected{% endif %}>
@@ -258,8 +296,8 @@
                         </select>
                     </div>
                     <div class="hrc-field">
-                        <label>Leader phụ trách <span class="req">*</span></label>
-                        <select name="leader_user" required>
+                        <label>Leader phụ trách</label>
+                        <select name="leader_user">
                             <option value="">-- Chưa gán leader --</option>
                             {% for leader in leader_choices %}
                             <option value="{{ leader.id }}" {% if form_data.leader_user == leader.id|stringformat:"s" %}selected{% endif %}>
@@ -306,19 +344,25 @@
                     </div>
                     <div class="hrc-field">
                         <label>Loại hợp đồng <span class="req">*</span></label>
-                        <input type="text" name="contract_type" placeholder="VD: Thử việc 2 tháng" value="{{ form_data.contract_type|default:'' }}" required>
+                        <select name="contract_type" required>
+                            <option value="">-- Chọn loại hợp đồng --</option>
+                            <option value="Thử việc" {% if form_data.contract_type == "Thử việc" %}selected{% endif %}>Thử việc</option>
+                            <option value="Xác định thời hạn" {% if form_data.contract_type == "Xác định thời hạn" %}selected{% endif %}>Xác định thời hạn</option>
+                            <option value="Không xác định thời hạn" {% if form_data.contract_type == "Không xác định thời hạn" %}selected{% endif %}>Không xác định thời hạn</option>
+                            <option value="Thời vụ" {% if form_data.contract_type == "Thời vụ" %}selected{% endif %}>Thời vụ</option>
+                        </select>
                     </div>
                     <div class="hrc-field">
                         <label>Ngày ký hợp đồng <span class="req">*</span></label>
-                        <input type="text" name="contract_signed_date" placeholder="DD/MM/YYYY" value="{{ form_data.contract_signed_date|default:'' }}" required>
+                        <input type="date" name="contract_signed_date" value="{{ form_data.contract_signed_date|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
                         <label>Ngày bắt đầu hiệu lực <span class="req">*</span></label>
-                        <input type="text" name="contract_start_date" placeholder="DD/MM/YYYY" value="{{ form_data.contract_start_date|default:'' }}" required>
+                        <input type="date" name="contract_start_date" value="{{ form_data.contract_start_date|default:'' }}" required>
                     </div>
                     <div class="hrc-field">
                         <label>Ngày hết hạn</label>
-                        <input type="text" name="contract_end_date" placeholder="Để trống nếu không thời hạn" value="{{ form_data.contract_end_date|default:'' }}">
+                        <input type="date" name="contract_end_date" value="{{ form_data.contract_end_date|default:'' }}">
                     </div>
                     <div class="hrc-field">
                         <label>Số ngày nghỉ phép/năm <span class="req">*</span></label>
@@ -337,8 +381,35 @@
                         <input type="time" name="shift_end_time" value="{{ form_data.shift_end_time|default:'' }}">
                     </div>
                     <div class="hrc-field">
+                        <label>Từ thứ</label>
+                        <select name="shift_start_day">
+                            <option value="">-- Chọn thứ --</option>
+                            <option value="Thứ 2" {% if form_data.shift_start_day == "Thứ 2" %}selected{% endif %}>Thứ 2</option>
+                            <option value="Thứ 3" {% if form_data.shift_start_day == "Thứ 3" %}selected{% endif %}>Thứ 3</option>
+                            <option value="Thứ 4" {% if form_data.shift_start_day == "Thứ 4" %}selected{% endif %}>Thứ 4</option>
+                            <option value="Thứ 5" {% if form_data.shift_start_day == "Thứ 5" %}selected{% endif %}>Thứ 5</option>
+                            <option value="Thứ 6" {% if form_data.shift_start_day == "Thứ 6" %}selected{% endif %}>Thứ 6</option>
+                            <option value="Thứ 7" {% if form_data.shift_start_day == "Thứ 7" %}selected{% endif %}>Thứ 7</option>
+                            <option value="Chủ nhật" {% if form_data.shift_start_day == "Chủ nhật" %}selected{% endif %}>Chủ nhật</option>
+                        </select>
+                    </div>
+                    <div class="hrc-field">
+                        <label>Đến thứ</label>
+                        <select name="shift_end_day">
+                            <option value="">-- Chọn thứ --</option>
+                            <option value="Thứ 2" {% if form_data.shift_end_day == "Thứ 2" %}selected{% endif %}>Thứ 2</option>
+                            <option value="Thứ 3" {% if form_data.shift_end_day == "Thứ 3" %}selected{% endif %}>Thứ 3</option>
+                            <option value="Thứ 4" {% if form_data.shift_end_day == "Thứ 4" %}selected{% endif %}>Thứ 4</option>
+                            <option value="Thứ 5" {% if form_data.shift_end_day == "Thứ 5" %}selected{% endif %}>Thứ 5</option>
+                            <option value="Thứ 6" {% if form_data.shift_end_day == "Thứ 6" %}selected{% endif %}>Thứ 6</option>
+                            <option value="Thứ 7" {% if form_data.shift_end_day == "Thứ 7" %}selected{% endif %}>Thứ 7</option>
+                            <option value="Chủ nhật" {% if form_data.shift_end_day == "Chủ nhật" %}selected{% endif %}>Chủ nhật</option>
+                        </select>
+                    </div>
+                    <div class="hrc-field">
                         <label>File tham chiếu hợp đồng</label>
-                        <input type="text" name="contract_attachment_reference" placeholder="VD: HD_NV001.pdf hoặc link lưu trữ" value="{{ form_data.contract_attachment_reference|default:'' }}">
+                        <input type="file" name="contract_attachment_file" accept=".pdf,.doc,.docx,image/*">
+                        <input type="text" name="contract_attachment_reference" placeholder="Tên file/link nếu lưu ngoài hệ thống" value="{{ form_data.contract_attachment_reference|default:'' }}" style="margin-top:0.5rem;">
                     </div>
                 </div>
             </div>

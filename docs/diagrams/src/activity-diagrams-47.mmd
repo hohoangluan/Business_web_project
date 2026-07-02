@@ -1,9 +1,0 @@
-flowchart TD
-  A([Manager mở trang duyệt]) --> B[get_pending_for_approver: Manager → PENDING]
-  B --> C[approve pk]
-  C --> CA{proposer == approver?}
-  CA -- Có --> E0[Chặn: không tự duyệt phiếu của mình]
-  CA -- Không --> D{status==PENDING & _is_l1_approver?<br/>Manager}
-  D -- Không --> E[Chặn]
-  D -- Có --> F[status=LEADER_APPROVED<br/>leader_approved_by/at]
-  F --> Y([Redirect approval])

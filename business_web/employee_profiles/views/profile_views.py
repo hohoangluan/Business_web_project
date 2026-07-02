@@ -4,13 +4,17 @@ Views cho hồ sơ cá nhân và quản lý hồ sơ nhân sự (HR/Admin).
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from accounts.models import UserProfile, Role
 from common.file_validation import validate_upload
+from common.validators import validate_phone_number
+from contracts.services import normalize_date_string, parse_ddmmyyyy
 from employee_profiles.models import EmployeeDocument
 from accounts.services import (
     ensure_profile, ensure_work_info, ensure_contract_info,
@@ -192,6 +196,12 @@ def hr_create_profile_view(request):
         email = request.POST.get('email', '').strip()
         phone = request.POST.get('phone_number', '').strip()
         dob = request.POST.get('date_of_birth', '').strip()
+        gender = request.POST.get('gender', '').strip()
+        marital_status = request.POST.get('marital_status', '').strip()
+        nationality = request.POST.get('nationality', '').strip()
+        id_card_number = request.POST.get('id_card_number', '').strip()
+        id_card_issue_place = request.POST.get('id_card_issue_place', '').strip()
+        id_card_issue_date = request.POST.get('id_card_issue_date', '').strip()
         employee_id = request.POST.get('employee_id', '').strip()
         employee_type = request.POST.get('employee_type', '').strip()
         department = request.POST.get('department', '').strip()
@@ -208,7 +218,12 @@ def hr_create_profile_view(request):
         contract_standard_shift = request.POST.get('contract_standard_shift', '').strip()
         shift_start_time = request.POST.get('shift_start_time', '').strip()
         shift_end_time = request.POST.get('shift_end_time', '').strip()
+        shift_start_day = request.POST.get('shift_start_day', '').strip()
+        shift_end_day = request.POST.get('shift_end_day', '').strip()
         contract_attachment_reference = request.POST.get('contract_attachment_reference', '').strip()
+        contract_attachment_file = request.FILES.get('contract_attachment_file')
+        if contract_attachment_file and not contract_attachment_reference:
+            contract_attachment_reference = contract_attachment_file.name
         work_status = request.POST.get('work_status', '').strip()
         manager_user_id = request.POST.get('manager_user', '').strip()
         leader_user_id = request.POST.get('leader_user', '').strip()
@@ -219,8 +234,40 @@ def hr_create_profile_view(request):
         leader_user = User.objects.filter(pk=leader_user_id).first() if leader_user_id else None
         contract_annual_leave_days = None
 
+        dob = normalize_date_string(dob) if dob else ''
+        id_card_issue_date = normalize_date_string(id_card_issue_date) if id_card_issue_date else ''
+        probation_start = normalize_date_string(probation_start) if probation_start else ''
+        official_start_date = normalize_date_string(official_start_date) if official_start_date else ''
+        contract_signed_date = normalize_date_string(contract_signed_date) if contract_signed_date else ''
+        contract_start_date = normalize_date_string(contract_start_date) if contract_start_date else ''
+        contract_end_date = normalize_date_string(contract_end_date) if contract_end_date else ''
+
         # Validation
         errors = []
+        if 'full_name' in request.POST and not full_name:
+            errors.append('Họ tên không được để trống.')
+        if email:
+            try:
+                validate_email(email)
+            except ValidationError:
+                errors.append('Email không hợp lệ.')
+        if phone:
+            try:
+                validate_phone_number(phone)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
+        if dob:
+            birth_date = parse_ddmmyyyy(dob)
+            if not birth_date:
+                errors.append('Ngày sinh không hợp lệ.')
+            else:
+                today = timezone.localdate()
+                try:
+                    adult_cutoff = today.replace(year=today.year - 18)
+                except ValueError:
+                    adult_cutoff = today.replace(month=2, day=28, year=today.year - 18)
+                if birth_date > adult_cutoff:
+                    errors.append('Nhân viên chưa đủ 18 tuổi lao động.')
         if not employee_id:
             errors.append('Mã nhân viên không được để trống.')
         elif UserProfile.objects.filter(employee_id=employee_id).exists():
@@ -260,6 +307,8 @@ def hr_create_profile_view(request):
                     errors.append('Số ngày nghỉ phép/năm phải từ 0 trở lên.')
             except ValueError:
                 errors.append('Số ngày nghỉ phép/năm phải là số nguyên.')
+        if shift_start_time and shift_end_time and shift_start_day and shift_end_day:
+            contract_standard_shift = f'{shift_start_time} - {shift_end_time} ({shift_start_day} đến {shift_end_day})'
         if not contract_standard_shift:
             errors.append('Ca làm tiêu chuẩn không được để trống.')
 
@@ -317,11 +366,19 @@ def hr_create_profile_view(request):
                 profile.role = role
             profile.save()
 
-            # Save basic personal info
+            # Save basic and extended personal info
             personal_info = ensure_personal_info(user)
             personal_info.phone_number = phone
             personal_info.date_of_birth = dob
             personal_info.save()
+            save_personal_info_from_data(user, {
+                'gender': gender,
+                'marital_status': marital_status,
+                'nationality': nationality,
+                'id_card_number': id_card_number,
+                'id_card_issue_place': id_card_issue_place,
+                'id_card_issue_date': id_card_issue_date,
+            })
 
             # Lưu thông tin công việc
             save_work_info_from_data(user, {
@@ -349,6 +406,21 @@ def hr_create_profile_view(request):
                 'shift_end_time': shift_end_time,
                 'contract_attachment_reference': contract_attachment_reference,
             })
+
+            if contract_attachment_file:
+                try:
+                    validate_upload(contract_attachment_file)
+                    EmployeeDocument.objects.create(
+                        user=user,
+                        title=contract_attachment_file.name,
+                        document_type='Hợp đồng lao động',
+                        file=contract_attachment_file,
+                    )
+                except ValidationError as exc:
+                    messages.warning(
+                        request,
+                        f'Bỏ qua file hợp đồng "{contract_attachment_file.name}": {" ".join(exc.messages)}'
+                    )
 
             # Tài liệu minh chứng (CCCD, bằng cấp, hợp đồng đã ký...) đính kèm khi tạo hồ sơ.
             for evidence_file in request.FILES.getlist('evidence_files'):
@@ -414,12 +486,41 @@ def edit_work_info_view(request, user_id):
     personal_info = ensure_personal_info(target_user)
     emergency_contact = ensure_emergency_contact(target_user)
     education_info = ensure_education_info(target_user)
+    documents = EmployeeDocument.objects.filter(user=target_user)
 
     manager_queryset = get_manager_user_queryset()
     leader_queryset = get_leader_user_queryset()
     editor_is_admin = is_admin_user(request.user)
 
     if request.method == 'POST':
+        delete_document_id = request.POST.get('delete_document_id')
+        if delete_document_id:
+            doc = get_object_or_404(EmployeeDocument, pk=delete_document_id, user=target_user)
+            if doc.file:
+                doc.file.delete(save=False)
+            doc.delete()
+            messages.success(request, 'Đã xóa tài liệu minh chứng.')
+            return redirect('edit_work_info', user_id=target_user.pk)
+
+        profile_action = request.POST.get('profile_action', 'save_profile')
+        if profile_action == 'upload_document':
+            upload_file = request.FILES.get('document_file')
+            if not upload_file:
+                messages.error(request, 'Vui lòng chọn tệp để tải lên.')
+            else:
+                try:
+                    validate_upload(upload_file)
+                    EmployeeDocument.objects.create(
+                        user=target_user,
+                        title=request.POST.get('document_title', '').strip() or upload_file.name,
+                        document_type=request.POST.get('document_type', '').strip(),
+                        file=upload_file,
+                    )
+                    messages.success(request, 'Đã tải lên tài liệu minh chứng.')
+                except ValidationError as exc:
+                    messages.error(request, ' '.join(exc.messages))
+            return redirect('edit_work_info', user_id=target_user.pk)
+
         form = EmployeeProfileForm(
             request.POST,
             manager_queryset=manager_queryset,
@@ -497,6 +598,7 @@ def edit_work_info_view(request, user_id):
         'active_page': 'users',
         'can_manage_system_users': editor_is_admin,
         'major_suggestions': MAJOR_SUGGESTIONS,
+        'documents': documents,
     })
 
 

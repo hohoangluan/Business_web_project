@@ -1,6 +1,0 @@
-stateDiagram-v2
-    [*] --> submitted : Employee tạo báo cáo
-    submitted --> needs_update : Manager "Yêu cầu cập nhật"
-    submitted --> acknowledged : Manager "Tiếp nhận"
-    needs_update --> submitted : Employee sửa và gửi lại
-    acknowledged --> [*] : Khóa chỉnh sửa (can_edit_or_delete = False)

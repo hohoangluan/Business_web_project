@@ -1,9 +1,0 @@
-flowchart TD
-  A([Admin mở Tạo tài khoản]) --> B[POST username + password + confirm]
-  B --> C{is_admin_user?}
-  C -- Không --> Z([Chặn])
-  C -- Có --> D{Validate:<br/>username trống/trùng?<br/>password trống/khớp?<br/>validate_password}
-  D -- Lỗi --> E[Hiển thị lỗi · giữ form] --> B
-  D -- OK --> F[User.create_user<br/>ensure_profile]
-  F --> G[Báo tạo thành công<br/>Admin giữ phiên đăng nhập]
-  G --> Y([Redirect user_list])

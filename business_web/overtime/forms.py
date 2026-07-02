@@ -59,20 +59,21 @@ class OvertimeRequestForm(forms.ModelForm):
             'attachment': 'Tệp minh chứng (nếu có)',
         }
 
+    def clean_reason(self):
+        reason = (self.cleaned_data.get('reason') or '').strip()
+        if not reason:
+            raise forms.ValidationError('Vui lòng nhập lý do tăng ca.')
+        return reason
+
     def clean_attachment(self):
         # Minh chứng tùy chọn → validator dùng chung (5 MB + PDF/JPG/PNG).
         return validate_upload(self.cleaned_data.get('attachment'))
 
     def clean_overtime_date(self):
-        """Ngày tăng ca không được ở quá khứ quá xa (> 30 ngày trước)."""
+        """Ngày tăng ca không được ở quá khứ."""
         date = self.cleaned_data.get('overtime_date')
-        if date:
-            today = timezone.localdate()
-            diff = (today - date).days
-            if diff > 30:
-                raise forms.ValidationError(
-                    'Ngày tăng ca không được quá 30 ngày trước.'
-                )
+        if date and date < timezone.localdate():
+            raise forms.ValidationError('Ngày tăng ca không được ở quá khứ.')
         return date
 
     def clean_hours(self):

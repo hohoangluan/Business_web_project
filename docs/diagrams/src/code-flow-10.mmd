@@ -1,7 +1,0 @@
-stateDiagram-v2
-    [*] --> new : Employee tạo ticket
-    new --> processing : HR nhận xử lý
-    processing --> resolved : HR giải quyết xong
-    processing --> rejected : HR từ chối
-    resolved --> closed : Auto/Manual đóng
-    new --> rejected : HR từ chối ngay

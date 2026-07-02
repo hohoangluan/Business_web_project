@@ -1,7 +1,0 @@
-flowchart TD
-  A([Cron: send_contract_renewal_reminders]) --> B[expire_overdue_contracts]
-  B --> C[Lọc HĐ is_active=True · end_date ≠ trống]
-  C --> D{days_left < 0 ?}
-  D -- Không --> E[Giữ nguyên]
-  D -- Có --> F[is_active = False · save]
-  F --> G[HĐ chuyển Hết hạn / Archived]

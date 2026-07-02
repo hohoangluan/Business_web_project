@@ -99,6 +99,11 @@ def get_acknowledged_evaluations_for_hr(hr_user=None):
     return Evaluation.objects.filter(status='acknowledged').select_related('employee', 'reviewer', 'category')
 
 
+def get_rejected_evaluations_for_hr(hr_user=None):
+    """HR lấy danh sách đánh giá đã từ chối."""
+    return Evaluation.objects.filter(status='rejected').select_related('employee', 'reviewer', 'category')
+
+
 def acknowledge_evaluation(hr_user, eval_id, note):
     """HR xác nhận đánh giá."""
     try:
@@ -115,6 +120,23 @@ def acknowledge_evaluation(hr_user, eval_id, note):
         return False, "Không tìm thấy đánh giá."
 
 
+def reject_evaluation(hr_user, eval_id, reason):
+    """HR từ chối đánh giá, bắt buộc có lý do."""
+    reason = (reason or '').strip()
+    if not reason:
+        return False, 'Vui lòng nhập lý do từ chối.'
+    try:
+        evaluation = Evaluation.objects.get(id=eval_id)
+        if evaluation.status != 'submitted':
+            return False, 'Chỉ có thể từ chối đánh giá đang chờ xác nhận.'
+        evaluation.status = 'rejected'
+        evaluation.acknowledged_by = hr_user
+        evaluation.acknowledged_at = timezone.now()
+        evaluation.hr_note = reason
+        evaluation.save()
+        return True, 'Đã từ chối đánh giá.'
+    except Evaluation.DoesNotExist:
+        return False, 'Không tìm thấy đánh giá.'
 def get_evaluation_scope(user):
     """Đánh giá nhân viên dùng cùng phạm vi với statistics."""
     from stats_reports.services import get_statistics_scope

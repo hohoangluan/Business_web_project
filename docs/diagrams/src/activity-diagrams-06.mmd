@@ -1,8 +1,0 @@
-flowchart TD
-  A([HR/Admin mở hồ sơ nhân viên]) --> B{Hành động}
-  B -- Gán vai trò --> C[hr_assign_role_view<br/>profile.role = new_role / None]
-  B -- Gán quyền tùy chỉnh --> D[assign_permissions_view<br/>profile.permissions.set]
-  C --> E[save profile]
-  D --> E
-  E --> F([Cập nhật RBAC hiệu lực])
-  A -. DEV superuser .-> G[switch_role_view<br/>mô phỏng vai trò] --> F

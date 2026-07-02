@@ -7,6 +7,7 @@ from contracts.services.renewal_service import (
     THRESHOLD_FAR,
     THRESHOLD_NEAR,
     parse_ddmmyyyy,
+    normalize_date_string,
     expire_overdue_contracts,
     get_days_until_expiry,
     get_expiring_contracts,
@@ -101,7 +102,7 @@ def build_contract_page_context(contract_info):
     days_until_expiry = None
     if end_date and today <= end_date:
         days_until_expiry = (end_date - today).days
-        show_expiry_warning = days_until_expiry <= THRESHOLD_NEAR
+        show_expiry_warning = days_until_expiry <= THRESHOLD_FAR
 
     return {
         'has_contract': True,

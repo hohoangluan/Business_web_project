@@ -193,6 +193,9 @@
                                     <button class="btn-action btn-action-approve" onclick="openAcknowledgeModal({{ rec.id }}, '{{ rec.employee_name|escapejs }}')">
                                         <i class="fa-solid fa-check"></i> Xác nhận
                                     </button>
+                                    <button class="btn-action btn-action-reject" onclick="openRejectModal({{ rec.id }}, '{{ rec.employee_name|escapejs }}')">
+                                        <i class="fa-solid fa-xmark"></i> Từ chối
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -320,6 +323,34 @@
     </div>
 </div>
 
+
+<!-- ===== MODAL: HR TỪ CHỐI ĐÁNH GIÁ ===== -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-circle-xmark" style="color:#ef4444; margin-right:8px;"></i>Từ chối đánh giá</h3>
+            <button class="modal-close" onclick="closeRejectModal()" type="button">&times;</button>
+        </div>
+        <form method="post" id="rejectForm" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                    Từ chối đánh giá của nhân viên <strong id="rejectEmployeeName"></strong>.
+                </p>
+                <div class="form-group">
+                    <label for="reject_reason">Lý do từ chối <span style="color:#ef4444;">*</span></label>
+                    <textarea name="reject_reason" id="reject_reason" class="form-control" rows="3" required placeholder="Nhập lý do để người đánh giá chỉnh lại..." style="resize:none;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-modal" onclick="closeRejectModal()">Hủy bỏ</button>
+                <button type="submit" class="btn-confirm-modal" style="background:#ef4444;">
+                    <i class="fa-solid fa-xmark" style="margin-right:5px;"></i>Xác nhận từ chối
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
     function switchTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -347,6 +378,19 @@
         document.body.style.overflow = 'hidden';
     }
 
+
+    function openRejectModal(pk, name) {
+        document.getElementById('rejectForm').action = '/evaluations/' + pk + '/reject/';
+        document.getElementById('rejectEmployeeName').textContent = name;
+        document.getElementById('reject_reason').value = '';
+        document.getElementById('rejectModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
     function closeAcknowledgeModal() {
         document.getElementById('acknowledgeModal').classList.remove('active');
         document.body.style.overflow = '';
@@ -354,8 +398,11 @@
     document.getElementById('acknowledgeModal').addEventListener('click', function(e) {
         if (e.target === this) closeAcknowledgeModal();
     });
+    document.getElementById('rejectModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRejectModal();
+    });
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeAcknowledgeModal();
+        if (e.key === 'Escape') { closeAcknowledgeModal(); closeRejectModal(); }
     });
 </script>
 {% endblock %}

@@ -292,7 +292,7 @@
     </div>
 
     <!-- ===== STATS GRID ===== -->
-    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
         <!-- Card 1: Tổng giờ -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#eff6ff; color:#3b82f6; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -303,19 +303,7 @@
                 <div class="stat-val-big">{{ stats.total_hours }}h</div>
             </div>
         </div>
-        
-        <!-- Card 2: Thu nhập -->
-        <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
-            <div class="stat-icon" style="background:#ecfdf5; color:#10b981; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                <i class="fa-solid fa-dollar-sign"></i>
-            </div>
-            <div>
-                <div class="stat-label">Thu nhập tăng ca</div>
-                <div class="stat-val-big" style="color: #1e293b;">{{ stats.total_pay|floatformat:0 }}đ</div>
-            </div>
-        </div>
-        
-        <!-- Card 3: Đã duyệt -->
+        <!-- Card 2: Đã duyệt -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#faf5ff; color:#a855f7; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid fa-arrow-trend-up"></i>
@@ -326,7 +314,7 @@
             </div>
         </div>
         
-        <!-- Card 4: Chờ duyệt -->
+        <!-- Card 3: Chờ duyệt -->
         <div class="card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
             <div class="stat-icon" style="background:#fffbeb; color:#f59e0b; width: 48px; height: 48px; font-size: 1.25rem; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-regular fa-calendar"></i>

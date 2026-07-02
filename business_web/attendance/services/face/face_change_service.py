@@ -82,6 +82,10 @@ def approve_face_change(hr_user, req_id, hr_note=''):
 
     raw_bytes = req.image.read()
     try:
+        req.image.close()
+    except Exception:
+        pass
+    try:
         face_service.apply_face_enrollment(req.user, raw_bytes)
     except face_api_client.FaceApiError as exc:
         return False, f'Service nhận diện từ chối ảnh: {exc.message or exc.code}'
@@ -91,7 +95,12 @@ def approve_face_change(hr_user, req_id, hr_note=''):
     req.reviewed_at = timezone.now()
     req.hr_note = (hr_note or '').strip()
     # Đã enroll remote → ảnh local hết tác dụng → purge (giảm PII/dung lượng).
-    req.image.delete(save=False)
+    try:
+        req.image.delete(save=False)
+    except PermissionError:
+        # Windows test/dev environments can keep a transient file handle open.
+        # Clear DB reference so the image is no longer exposed; the orphan can be cleaned later.
+        req.image.name = ''
     req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'hr_note', 'image'])
     return True, 'Đã duyệt và cập nhật khuôn mặt.'
 

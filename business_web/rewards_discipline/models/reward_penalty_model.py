@@ -14,13 +14,13 @@ class RewardPenalty(models.Model):
         (PENALTY, 'Xử phạt'),
     ]
 
-    # ----- Trạng thái duyệt 2 cấp -----
-    PENDING = 'pending'                  # chờ Manager duyệt L1 (khi Leader lập)
-    LEADER_APPROVED = 'leader_approved'  # đã qua L1 / Manager-HR lập → chờ HR L2
+    # ----- Trạng thái duyệt HR -----
+    PENDING = 'pending'                  # chờ HR duyệt
+    LEADER_APPROVED = 'leader_approved'  # legacy: không dùng cho phiếu mới
     APPROVED = 'approved'
     REJECTED = 'rejected'
     STATUS_CHOICES = [
-        (PENDING, 'Chờ duyệt cấp 1'),
+        (PENDING, 'Chờ HR duyệt'),
         (LEADER_APPROVED, 'Chờ HR duyệt'),
         (APPROVED, 'Đã duyệt'),
         (REJECTED, 'Từ chối'),
@@ -61,7 +61,7 @@ class RewardPenalty(models.Model):
     status = models.CharField(
         max_length=20,
         default=PENDING,
-        help_text="Trạng thái duyệt: pending → leader_approved → approved / rejected.",
+        help_text="Trạng thái duyệt: pending → approved / rejected.",
     )
     leader_approved_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,

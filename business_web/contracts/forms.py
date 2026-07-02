@@ -3,8 +3,18 @@ import re
 
 from django import forms
 
-from contracts.services import validate_contract_date_order
+from contracts.services import normalize_date_string, validate_contract_date_order
 
+WEEKDAY_CHOICES = [
+    ('', '-- Chọn thứ --'),
+    ('Thứ 2', 'Thứ 2'),
+    ('Thứ 3', 'Thứ 3'),
+    ('Thứ 4', 'Thứ 4'),
+    ('Thứ 5', 'Thứ 5'),
+    ('Thứ 6', 'Thứ 6'),
+    ('Thứ 7', 'Thứ 7'),
+    ('Chủ nhật', 'Chủ nhật'),
+]
 
 class ContractAdjustForm(forms.Form):
     """Form điều chỉnh hợp đồng — chỉ field HĐ. Mỗi lần lưu = 1 phiên bản mới."""
@@ -13,21 +23,22 @@ class ContractAdjustForm(forms.Form):
         max_length=100, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: HD-2026-001'}),
     )
-    contract_type = forms.CharField(
-        max_length=100, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: Chính thức 1 năm'}),
+    contract_type = forms.ChoiceField(
+        required=False,
+        choices=[('', '-- Chọn loại hợp đồng --'), ('Thử việc', 'Thử việc'), ('Xác định thời hạn', 'Xác định thời hạn'), ('Không xác định thời hạn', 'Không xác định thời hạn'), ('Thời vụ', 'Thời vụ')],
+        widget=forms.Select(attrs={'class': 'form-control'}),
     )
     contract_signed_date = forms.CharField(
         max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 01/05/2026'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     contract_start_date = forms.CharField(
         max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 05/05/2026'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     contract_end_date = forms.CharField(
         max_length=10, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: 05/05/2027'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     contract_annual_leave_days = forms.IntegerField(
         required=False, min_value=0,
@@ -45,22 +56,37 @@ class ContractAdjustForm(forms.Form):
         required=False,
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
     )
+    shift_start_day = forms.ChoiceField(
+        required=False, choices=WEEKDAY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    shift_end_day = forms.ChoiceField(
+        required=False, choices=WEEKDAY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
     contract_attachment_reference = forms.CharField(
         max_length=255, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VD: HD_NV001.pdf'}),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tên file/link nếu lưu ngoài hệ thống'}),
+    )
+    contract_attachment_file = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.doc,.docx,image/*'}),
     )
 
     def clean(self):
         cleaned_data = super().clean()
 
-        date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
         date_fields = ['contract_signed_date', 'contract_start_date', 'contract_end_date']
         bad_format = False
         for field_name in date_fields:
             value = cleaned_data.get(field_name)
-            if value and not date_pattern.match(value.strip()):
-                self.add_error(field_name, 'Định dạng ngày phải là DD/MM/YYYY.')
-                bad_format = True
+            if value:
+                normalized = normalize_date_string(value)
+                if normalized == value and not re.match(r'^\d{2}/\d{2}/\d{4}$', value.strip()):
+                    self.add_error(field_name, 'Định dạng ngày không hợp lệ.')
+                    bad_format = True
+                else:
+                    cleaned_data[field_name] = normalized
 
         if not bad_format:
             order_errors = validate_contract_date_order(

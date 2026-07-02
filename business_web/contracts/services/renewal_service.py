@@ -21,13 +21,22 @@ THRESHOLD_NEAR = 7    # Nhắc khẩn cấp: còn 7 ngày
 
 
 def parse_ddmmyyyy(raw_value):
-    """Chuyển chuỗi DD/MM/YYYY thành date. Trả None nếu sai format."""
+    """Chuyển chuỗi DD/MM/YYYY hoặc YYYY-MM-DD thành date. Trả None nếu sai format."""
     if not raw_value:
         return None
-    try:
-        return datetime.strptime(raw_value, '%d/%m/%Y').date()
-    except ValueError:
-        return None
+    raw_value = str(raw_value).strip()
+    for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(raw_value, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def normalize_date_string(raw_value):
+    """Chuẩn hóa ngày nhập từ text/date input về DD/MM/YYYY để giữ tương thích dữ liệu cũ."""
+    parsed = parse_ddmmyyyy(raw_value)
+    return parsed.strftime('%d/%m/%Y') if parsed else (raw_value or '').strip()
 
 
 def get_days_until_expiry(contract_info):

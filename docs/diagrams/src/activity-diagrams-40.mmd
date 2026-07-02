@@ -1,6 +1,0 @@
-flowchart TD
-  A([Mở trang Đánh giá]) --> B{can_access_evaluations?}
-  B -- Không · nhân viên thường --> Z([Chặn · xem kết quả qua hồ sơ/thông báo])
-  B -- Có · Manager/Leader --> C[build_evaluations_page_context]
-  C --> D[exclude_self_records<br/>bỏ phiếu mà người xem là đối tượng]
-  D --> E[Hiển thị danh sách + score + rating + trạng thái]

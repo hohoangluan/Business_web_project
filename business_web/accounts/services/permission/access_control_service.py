@@ -54,15 +54,15 @@ def can_access_statistics(user):
 
 
 def can_access_evaluations(user):
-    """Return whether the user can access evaluation actions."""
+    """Return whether the user can access evaluation pages."""
 
-    return user_has_role(user, Role.MANAGER, Role.LEADER)
+    return user_has_role(user, Role.MANAGER, Role.LEADER, Role.EMPLOYEE)
 
 
 def can_submit_evaluation_demo(user):
-    """Return whether the user can submit demo evaluations."""
+    """Return whether the user can submit evaluations."""
 
-    return can_access_evaluations(user)
+    return user_has_role(user, Role.MANAGER, Role.LEADER)
 
 
 def can_acknowledge_evaluation(user):

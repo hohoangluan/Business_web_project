@@ -6,15 +6,14 @@ from django.contrib.auth.models import User
 from accounts.services import (
     ensure_profile,
     is_hr_user,
-    can_manage_requests,
-    user_has_role,
+    is_admin_user,
 )
 from accounts.models import Role
-from accounts.services import is_admin_user, user_has_role
 from rewards_discipline.models import RewardPenalty
 from rewards_discipline.forms import RewardPenaltyForm
 from rewards_discipline.services import (
     approve_reward_penalty,
+    can_propose_reward_penalty,
     get_pending_for_approver,
     initial_status_for,
     reject_reward_penalty,
@@ -25,9 +24,8 @@ from rewards_discipline.services import (
 def rewards_penalties_view(request):
     """Trang khen thưởng & xử phạt cá nhân hoặc lọc theo nhân viên đối với HR."""
     ensure_profile(request.user)
-
-    if getattr(request.user.profile.role, 'name', None) == 'employee' or is_admin_user(request.user):
-        messages.error(request, 'Tài khoản của bạn không có quyền truy cập chức năng Khen thưởng & Xử phạt.')
+    if is_admin_user(request.user):
+        messages.error(request, 'Tài khoản Admin không xử lý nghiệp vụ khen thưởng/xử phạt.')
         return redirect('dashboard')
 
     # 1. Xác định vai trò HR / Admin (dùng service an toàn)
@@ -85,7 +83,7 @@ def rewards_penalties_view(request):
     net_income_formatted = f"{net_prefix} {abs(net_income):,}đ".replace(',', '.')
 
     # 4. Kiểm tra quyền đề xuất tạo phiếu mới (chỉ Leader / Manager / HR — Admin đã bị chặn ở bước 0)
-    can_propose = can_manage_requests(request.user)
+    can_propose = can_propose_reward_penalty(request.user)
 
     form = None
     if can_propose:
@@ -120,19 +118,12 @@ def rewards_penalties_view(request):
 
 @login_required
 def rewards_penalties_approval_view(request):
-    """Trang phê duyệt thưởng/phạt — duyệt 2 cấp.
-
-    Manager xử lý cấp 1 (phiếu Leader lập, status=pending);
-    HR xử lý cấp 2 (status=leader_approved).
+    """Trang phê duyệt thưởng/phạt — chỉ HR duyệt hoặc từ chối.
     """
     ensure_profile(request.user)
 
-    # 1. Bảo mật: Manager (L1) hoặc HR (L2) mới được duyệt. Admin không phê duyệt nhân sự.
-    is_approver = (
-        user_has_role(request.user, Role.MANAGER)
-        or is_hr_user(request.user)
-    )
-    if not is_approver:
+    # 1. Bảo mật: chỉ HR duyệt hoặc từ chối.
+    if not is_hr_user(request.user):
         messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt Thưởng / Phạt.')
         return redirect('rewards_penalties')
 

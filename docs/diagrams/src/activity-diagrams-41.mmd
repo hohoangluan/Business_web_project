@@ -1,8 +1,0 @@
-flowchart TD
-  A([Manager/Leader mở Đánh giá]) --> B[POST: nhân viên + score + nhận xét + minh chứng]
-  B --> C{can_submit_evaluation_demo?}
-  C -- Không --> D[Báo: chỉ được xem]
-  C -- Có --> E[create_evaluation]
-  E --> F[score → rating tự động<br/>≥90 A · ≥75 B · ≥60 C · <60 D]
-  F --> G[Lưu Evaluation status=submitted]
-  G --> H[Báo: đã gửi đánh giá]
